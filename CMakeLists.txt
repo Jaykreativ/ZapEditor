@@ -26,3 +26,10 @@ target_include_directories(
     "${Zap_DIR}/Dependencies/assimp/include"
     "$ENV{VULKAN_SDK}/Include"
 )
+
+file(GLOB PhysX_DLLs
+    "${Zap_DIR}/Dependencies/PhysX/physx/bin/win.x86_64.vc143.mt/debug/PhysX*.dll"
+)
+
+file(COPY ${PhysX_DLLs}
+        DESTINATION "${PROJECT_SOURCE_DIR}/Debug")
