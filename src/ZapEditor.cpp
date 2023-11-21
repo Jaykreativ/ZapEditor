@@ -21,10 +21,10 @@ namespace app {
 
 	Zap::Window window = Zap::Window(1000, 600, "Zap Window");
 
-	Zap::Gui gui = Zap::Gui(window);
+	//Zap::Gui gui = Zap::Gui(window);
 
 	Zap::PBRenderer renderer = Zap::PBRenderer(window);
-	Zap::PBRenderer renderer2 = Zap::PBRenderer(window);
+	//Zap::PBRenderer renderer2 = Zap::PBRenderer(window);
 
 	Zap::Actor cam = Zap::Actor();
 }
@@ -190,7 +190,7 @@ namespace keybinds {
 
 void resize(GLFWwindow* window, int width, int height) {
 	app::renderer.setViewport(width, height, 0, 0);
-	app::gui.setViewport(width, height, 0, 0);
+	//app::gui.setViewport(width, height, 0, 0);
 }
 
 int main() {
@@ -201,8 +201,8 @@ int main() {
 	app::window.setKeyCallback(keybinds::keyCallback);
 	app::window.setResizeCallback(resize);
 
-	app::gui.setViewport(app::window.getWidth(), app::window.getHeight(), 0, 0);
-	app::gui.init();
+	//app::gui.setViewport(app::window.getWidth(), app::window.getHeight(), 0, 0);
+	//app::gui.init();
 
 	Zap::Mesh model = Zap::Mesh();
 	model.load("Models/OBJ/Cube.obj");
@@ -300,8 +300,8 @@ int main() {
 	app::renderer.setViewport(1000, 600, 0, 0);
 	app::renderer.init();
 
-	app::renderer2.setViewport(500, 300, 0, 0);
-	app::renderer2.init();
+	//app::renderer2.setViewport(500, 300, 0, 0);
+	//app::renderer2.init();
 
 	//mainloop
 	float dTime = 0;
@@ -311,7 +311,7 @@ int main() {
 
 		rotatingGift.getTransformComponent()->rotateY(45 * dTime);
 
-		ImGui::ShowDemoWindow();
+		//ImGui::ShowDemoWindow();
 
 		if (dTime > 0) {
 			Zap::Scene::simulate(dTime);
@@ -320,10 +320,10 @@ int main() {
 		app::window.clear();
 
 		app::renderer.render(app::cam.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
-		app::window.clearDepthStencil();
-		app::renderer2.render(physicstest.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
-		app::window.clearDepthStencil();
-		app::gui.render(0);
+		//app::window.clearDepthStencil();
+		//app::renderer2.render(physicstest.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
+		//app::window.clearDepthStencil();
+		//app::gui.render(0);
 
 		app::window.swapBuffers();
 		Zap::Window::pollEvents();
@@ -333,8 +333,8 @@ int main() {
 
 	//terminate
 	app::renderer.~PBRenderer();
-	app::renderer2.~PBRenderer();
-	app::gui.~Gui();
+	//app::renderer2.~PBRenderer();
+	//app::gui.~Gui();
 	app::window.~Window();
 
 	app::engineBase->terminate();
