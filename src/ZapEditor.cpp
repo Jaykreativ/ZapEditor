@@ -204,41 +204,39 @@ int main() {
 	//app::gui.setViewport(app::window.getWidth(), app::window.getHeight(), 0, 0);
 	//app::gui.init();
 
-	Zap::Mesh model = Zap::Mesh();
-	model.load("Models/OBJ/Cube.obj");
+	Zap::Mesh().load("Models/OBJ/Cube.obj");
 
 	//Zap::Model sponzaModel = Zap::Model();
 	//sponzaModel.load("Models/OBJ/Sponza.obj");
 
-	Zap::Mesh giftModel = Zap::Mesh();
-	giftModel.load("Models/OBJ/Gift.obj");
+	Zap::Mesh().load("Models/OBJ/Gift.obj");
 
 	//Actors
 	Zap::Actor centre;
 	centre.addTransform(glm::mat4(1));
 	centre.getTransformComponent()->setPos(0, 0, 0);
 	centre.getTransformComponent()->setScale(0.25, 0.25, 0.25);
-	centre.addMesh(&model);
+	centre.addMesh(0);
 
 	Zap::Actor xDir;
 	xDir.addTransform(glm::mat4(1));
 	xDir.getTransformComponent()->setPos(0.75, 0, 0);
 	xDir.getTransformComponent()->setScale(0.5, 0.1, 0.1);
-	xDir.addMesh(&model);
+	xDir.addMesh(0);
 	xDir.getMeshComponent(0)->m_material.m_AlbedoColor = { 1, 0, 0 };
 
 	Zap::Actor yDir;
 	yDir.addTransform(glm::mat4(1));
 	yDir.getTransformComponent()->setPos(0, 0.75, 0);
 	yDir.getTransformComponent()->setScale(0.1, 0.5, 0.1);
-	yDir.addMesh(&model);
+	yDir.addMesh(0);
 	yDir.getMeshComponent(0)->m_material.m_AlbedoColor = { 0, 1, 0 };
 
 	Zap::Actor zDir;
 	zDir.addTransform(glm::mat4(1));
 	zDir.getTransformComponent()->setPos(0, 0, 0.75);
 	zDir.getTransformComponent()->setScale(0.1, 0.1, 0.5);
-	zDir.addMesh(&model);
+	zDir.addMesh(0);
 	zDir.getMeshComponent(0)->m_material.m_AlbedoColor = { 0, 0, 1 };
 
 	auto pxMaterial = Zap::PhysicsMaterial(0.5, 0.5, 0.6);
@@ -254,13 +252,13 @@ int main() {
 	}
 
 	physicstest.addCamera({ 0, 0, 0 });
-	physicstest.addMesh(&giftModel);
+	physicstest.addMesh(1);
 	physicstest.addLight({ 0.25, 1, 3 });
 
 	Zap::Actor rotatingGift;
 	rotatingGift.addTransform(glm::mat4(1));
 	rotatingGift.getTransformComponent()->setPos(3, 2, 2);
-	rotatingGift.addMesh(&giftModel);
+	rotatingGift.addMesh(1);
 	rotatingGift.getMeshComponent(0)->m_material.m_AlbedoColor = { 0.5, 1, 0.5 };
 
 	Zap::Actor ground;
@@ -275,13 +273,13 @@ int main() {
 		auto shape = Zap::Shape(geometry, pxMaterial, true, localTransform);
 		ground.addPhysics(Zap::PHYSICS_TYPE_RIGID_STATIC, shape);
 	}
-	ground.addMesh(&model);
+	ground.addMesh(0);
 
 	Zap::Actor skybox;
 	skybox.addTransform(glm::mat4(1));
 	skybox.getTransformComponent()->setPos(0, 0, 0);
 	skybox.getTransformComponent()->setScale(500, 500, 500);
-	skybox.addMesh(&model);
+	skybox.addMesh(0);
 
 	Zap::Actor light;
 	light.addTransform(glm::mat4(1));
