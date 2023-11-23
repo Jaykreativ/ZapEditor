@@ -2,6 +2,7 @@
 #include "Zap/Window.h"
 #include "Zap/Renderer.h"
 #include "Zap/PBRenderer.h"
+#include "Zap/ModelLoader.h"
 #include "Zap/Gui.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Mesh.h"
@@ -203,6 +204,8 @@ int main() {
 
 	//app::gui.setViewport(app::window.getWidth(), app::window.getHeight(), 0, 0);
 	//app::gui.init();
+
+	Zap::ModelLoader modelLoader = Zap::ModelLoader();
 
 	Zap::Mesh().load("Models/OBJ/Cube.obj");
 
