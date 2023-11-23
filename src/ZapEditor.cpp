@@ -22,10 +22,10 @@ namespace app {
 
 	Zap::Window window = Zap::Window(1000, 600, "Zap Window");
 
-	//Zap::Gui gui = Zap::Gui(window);
+	Zap::Gui gui = Zap::Gui(window);
 
 	Zap::PBRenderer renderer = Zap::PBRenderer(window);
-	//Zap::PBRenderer renderer2 = Zap::PBRenderer(window);
+	Zap::PBRenderer renderer2 = Zap::PBRenderer(window);
 
 	Zap::Actor cam = Zap::Actor();
 }
@@ -191,7 +191,7 @@ namespace keybinds {
 
 void resize(GLFWwindow* window, int width, int height) {
 	app::renderer.setViewport(width, height, 0, 0);
-	//app::gui.setViewport(width, height, 0, 0);
+	app::gui.setViewport(width, height, 0, 0);
 }
 
 int main() {
@@ -202,44 +202,44 @@ int main() {
 	app::window.setKeyCallback(keybinds::keyCallback);
 	app::window.setResizeCallback(resize);
 
-	//app::gui.setViewport(app::window.getWidth(), app::window.getHeight(), 0, 0);
-	//app::gui.init();
+	app::gui.setViewport(app::window.getWidth(), app::window.getHeight(), 0, 0);
+	app::gui.init();
 
 	Zap::ModelLoader modelLoader = Zap::ModelLoader();
 
-	Zap::Mesh().load("Models/OBJ/Cube.obj");
+	auto cubeMesh = modelLoader.load("Models/OBJ/Cube.obj")[0];
 
 	//Zap::Model sponzaModel = Zap::Model();
 	//sponzaModel.load("Models/OBJ/Sponza.obj");
 
-	Zap::Mesh().load("Models/OBJ/Gift.obj");
+	auto giftMesh = modelLoader.load("Models/OBJ/Gift.obj")[0];
 
 	//Actors
 	Zap::Actor centre;
 	centre.addTransform(glm::mat4(1));
 	centre.getTransformComponent()->setPos(0, 0, 0);
 	centre.getTransformComponent()->setScale(0.25, 0.25, 0.25);
-	centre.addMesh(0);
+	centre.addMesh(cubeMesh);
 
 	Zap::Actor xDir;
 	xDir.addTransform(glm::mat4(1));
 	xDir.getTransformComponent()->setPos(0.75, 0, 0);
 	xDir.getTransformComponent()->setScale(0.5, 0.1, 0.1);
-	xDir.addMesh(0);
+	xDir.addMesh(cubeMesh);
 	xDir.getMeshComponent(0)->m_material.m_AlbedoColor = { 1, 0, 0 };
 
 	Zap::Actor yDir;
 	yDir.addTransform(glm::mat4(1));
 	yDir.getTransformComponent()->setPos(0, 0.75, 0);
 	yDir.getTransformComponent()->setScale(0.1, 0.5, 0.1);
-	yDir.addMesh(0);
+	yDir.addMesh(cubeMesh);
 	yDir.getMeshComponent(0)->m_material.m_AlbedoColor = { 0, 1, 0 };
 
 	Zap::Actor zDir;
 	zDir.addTransform(glm::mat4(1));
 	zDir.getTransformComponent()->setPos(0, 0, 0.75);
 	zDir.getTransformComponent()->setScale(0.1, 0.1, 0.5);
-	zDir.addMesh(0);
+	zDir.addMesh(cubeMesh);
 	zDir.getMeshComponent(0)->m_material.m_AlbedoColor = { 0, 0, 1 };
 
 	auto pxMaterial = Zap::PhysicsMaterial(0.5, 0.5, 0.6);
@@ -255,13 +255,13 @@ int main() {
 	}
 
 	physicstest.addCamera({ 0, 0, 0 });
-	physicstest.addMesh(1);
+	physicstest.addMesh(giftMesh);
 	physicstest.addLight({ 0.25, 1, 3 });
 
 	Zap::Actor rotatingGift;
 	rotatingGift.addTransform(glm::mat4(1));
 	rotatingGift.getTransformComponent()->setPos(3, 2, 2);
-	rotatingGift.addMesh(1);
+	rotatingGift.addMesh(giftMesh);
 	rotatingGift.getMeshComponent(0)->m_material.m_AlbedoColor = { 0.5, 1, 0.5 };
 
 	Zap::Actor ground;
@@ -276,13 +276,13 @@ int main() {
 		auto shape = Zap::Shape(geometry, pxMaterial, true, localTransform);
 		ground.addPhysics(Zap::PHYSICS_TYPE_RIGID_STATIC, shape);
 	}
-	ground.addMesh(0);
+	ground.addMesh(cubeMesh);
 
 	Zap::Actor skybox;
 	skybox.addTransform(glm::mat4(1));
 	skybox.getTransformComponent()->setPos(0, 0, 0);
 	skybox.getTransformComponent()->setScale(500, 500, 500);
-	skybox.addMesh(0);
+	skybox.addMesh(cubeMesh);
 
 	Zap::Actor light;
 	light.addTransform(glm::mat4(1));
@@ -301,8 +301,8 @@ int main() {
 	app::renderer.setViewport(1000, 600, 0, 0);
 	app::renderer.init();
 
-	//app::renderer2.setViewport(500, 300, 0, 0);
-	//app::renderer2.init();
+	app::renderer2.setViewport(500, 300, 0, 0);
+	app::renderer2.init();
 
 	//mainloop
 	float dTime = 0;
@@ -312,7 +312,7 @@ int main() {
 
 		rotatingGift.getTransformComponent()->rotateY(45 * dTime);
 
-		//ImGui::ShowDemoWindow();
+		ImGui::ShowDemoWindow();
 
 		if (dTime > 0) {
 			Zap::Scene::simulate(dTime);
@@ -321,10 +321,10 @@ int main() {
 		app::window.clear();
 
 		app::renderer.render(app::cam.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
-		//app::window.clearDepthStencil();
-		//app::renderer2.render(physicstest.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
-		//app::window.clearDepthStencil();
-		//app::gui.render(0);
+		app::window.clearDepthStencil();
+		app::renderer2.render(physicstest.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
+		app::window.clearDepthStencil();
+		app::gui.render(0);
 
 		app::window.swapBuffers();
 		Zap::Window::pollEvents();
@@ -334,8 +334,8 @@ int main() {
 
 	//terminate
 	app::renderer.~PBRenderer();
-	//app::renderer2.~PBRenderer();
-	//app::gui.~Gui();
+	app::renderer2.~PBRenderer();
+	app::gui.~Gui();
 	app::window.~Window();
 
 	app::engineBase->terminate();
