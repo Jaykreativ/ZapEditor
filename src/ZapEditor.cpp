@@ -219,7 +219,7 @@ int main() {
 	centre.addTransform(glm::mat4(1));
 	centre.getTransformComponent()->setPos(0, 0, 0);
 	centre.getTransformComponent()->setScale(0.25, 0.25, 0.25);
-	centre.addMesh(cubeMesh);
+	centre.addMeshes({ giftMesh, cubeMesh });
 
 	Zap::Actor xDir;
 	xDir.addTransform(glm::mat4(1));
