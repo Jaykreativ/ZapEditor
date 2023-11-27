@@ -212,14 +212,14 @@ int main() {
 	//Zap::Model sponzaModel = Zap::Model();
 	//sponzaModel.load("Models/OBJ/Sponza.obj");
 
-	auto giftMesh = modelLoader.load("Models/OBJ/Gift.obj")[0];
+	auto giftModel = modelLoader.load("Models/OBJ/Gift.obj");
 
 	//Actors
 	Zap::Actor centre;
 	centre.addTransform(glm::mat4(1));
 	centre.getTransformComponent()->setPos(0, 0, 0);
 	centre.getTransformComponent()->setScale(0.25, 0.25, 0.25);
-	centre.addMeshes({ giftMesh, cubeMesh });
+	centre.addMesh(cubeMesh);
 
 	Zap::Actor xDir;
 	xDir.addTransform(glm::mat4(1));
@@ -255,13 +255,13 @@ int main() {
 	}
 
 	physicstest.addCamera({ 0, 0, 0 });
-	physicstest.addMesh(giftMesh);
+	physicstest.addMeshes(giftModel);
 	physicstest.addLight({ 0.25, 1, 3 });
 
 	Zap::Actor rotatingGift;
 	rotatingGift.addTransform(glm::mat4(1));
 	rotatingGift.getTransformComponent()->setPos(3, 2, 2);
-	rotatingGift.addMesh(giftMesh);
+	rotatingGift.addMeshes(giftModel);
 	rotatingGift.getMeshComponent(0)->m_material.m_AlbedoColor = { 0.5, 1, 0.5 };
 
 	Zap::Actor ground;
