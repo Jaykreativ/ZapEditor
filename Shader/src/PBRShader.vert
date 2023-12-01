@@ -21,11 +21,15 @@ layout(binding=0) uniform UBO{
     uint lightCount;
 } ubo;
 
+layout( push_constant ) uniform constants {
+    uint index;
+}PushConstant;
+
 void main(){
     vec4 worldPos = ubo.model * vec4(vertPos, 1);
     vec4 viewPos = ubo.view * worldPos;
     gl_Position = ubo.perspective * vec4(viewPos.x, -viewPos.y, viewPos.z, 1);
-    fragColor = ubo.color;
+    fragColor = vec3(PushConstant.index, 0, 0);
     fragPos = vec3(worldPos);
     fragNormal = vec3(ubo.modelNormal * vec4(vertNormal, 0));
 }
