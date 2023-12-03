@@ -318,13 +318,13 @@ int main() {
 			Zap::Scene::simulate(dTime);
 		}
 
-		app::window.clear();
+		//app::window.clear();
 
 		app::renderer.render(app::cam.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
-		app::window.clearDepthStencil();
+		//app::window.clearDepthStencil();
 		app::renderer2.render(physicstest.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
-		app::window.clearDepthStencil();
-		app::gui.render(0);
+		//app::window.clearDepthStencil();
+		//app::gui.render(0);
 
 		app::window.swapBuffers();
 		Zap::Window::pollEvents();
