@@ -250,7 +250,7 @@ int main() {
 	{
 		auto geometry = Zap::BoxGeometry({ 1, 1, 1 });
 		auto shape = Zap::Shape(geometry, pxMaterial, true);
-		physicstest.addPhysics(Zap::PHYSICS_TYPE_RIGID_DYNAMIC, shape);
+		physicstest.addRigidDynamic(shape);
 	}
 
 	physicstest.addCamera({ 0, 0, 0 });
@@ -278,7 +278,7 @@ int main() {
 		localTransform = glm::translate(localTransform, glm::vec3(0, 1, 0));
 		localTransform = glm::rotate(localTransform, glm::radians<float>(90), glm::vec3(0, 0, 1));
 		auto shape = Zap::Shape(geometry, pxMaterial, true, localTransform);
-		ground.addPhysics(Zap::PHYSICS_TYPE_RIGID_STATIC, shape);
+		ground.addRigidStatic(shape);
 	}
 	ground.addMesh(cubeMesh);
 
