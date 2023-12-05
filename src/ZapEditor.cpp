@@ -209,7 +209,7 @@ int main() {
 
 	auto cubeMesh = modelLoader.load("Models/OBJ/Cube.obj")[0];
 
-	//auto sponzaModel = modelLoader.load("Models/OBJ/Sponza.obj");
+	auto sponzaModel = modelLoader.load("Models/OBJ/Sponza.obj");
 
 	auto giftModel = modelLoader.load("Models/OBJ/Gift.obj");
 
@@ -263,10 +263,10 @@ int main() {
 	rotatingGift.addMeshes(giftModel);
 	rotatingGift.getMeshComponent(0)->m_material.m_AlbedoColor = { 0.5, 1, 0.5 };
 
-	/*Zap::Actor sponza;
+	Zap::Actor sponza;
 	sponza.addTransform(glm::mat4(1));
 	sponza.getTransformComponent()->setPos({5, -1, 0});
-	sponza.addMeshes(sponzaModel);*/
+	sponza.addMeshes(sponzaModel);
 
 	Zap::Actor ground;
 	ground.addTransform(glm::mat4(1));
