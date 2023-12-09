@@ -13,7 +13,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 add_executable(ZapEditor ${ZapEditor_SRC})
 
-add_subdirectory("../Zap" "../Zap/Debug")
+add_subdirectory("../Zap" "${PROJECT_SOURCE_DIR}/../Zap")
 
 set(Zap_DIR "${PROJECT_SOURCE_DIR}/../Zap")
 
@@ -31,7 +31,7 @@ target_include_directories(
     "$ENV{VULKAN_SDK}/Include"
 )
 
-string(TOLOWER ${CMAKE_BUILD_TYPE} PHYSX_BUILD_TYPE)
+string(TOLOWER "${CMAKE_BUILD_TYPE}" PHYSX_BUILD_TYPE)
 
 file(GLOB PhysX_DLLs
     "${Zap_DIR}/Dependencies/PhysX/physx/bin/win.x86_64.vc143.md/${PHYSX_BUILD_TYPE}/PhysX*.dll"

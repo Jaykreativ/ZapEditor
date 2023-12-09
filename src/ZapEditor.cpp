@@ -209,7 +209,9 @@ int main() {
 
 	auto cubeMesh = modelLoader.load("Models/OBJ/Cube.obj")[0];
 
+#ifndef _DEBUG
 	auto sponzaModel = modelLoader.load("Models/OBJ/Sponza.obj");
+#endif
 
 	auto giftModel = modelLoader.load("Models/OBJ/Gift.obj");
 
@@ -263,10 +265,12 @@ int main() {
 	rotatingGift.addMeshes(giftModel);
 	rotatingGift.getMeshComponent(0)->m_material.m_AlbedoColor = { 0.5, 1, 0.5 };
 
+#ifndef _DEBUG
 	Zap::Actor sponza;
 	sponza.addTransform(glm::mat4(1));
 	sponza.getTransformComponent()->setPos({5, -1, 0});
 	sponza.addMeshes(sponzaModel);
+#endif
 
 	Zap::Actor ground;
 	ground.addTransform(glm::mat4(1));
@@ -322,13 +326,13 @@ int main() {
 			Zap::Scene::simulate(dTime);
 		}
 
-		app::window.clear();
+		//app::window.clear();
 
 		app::renderer.render(app::cam.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
-		app::window.clearDepthStencil();
-		app::renderer2.render(physicstest.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
-		app::window.clearDepthStencil();
-		app::gui.render(0);
+		/*app::window.clearDepthStencil();
+		app::renderer2.render(physicstest.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);*/
+		//app::window.clearDepthStencil();
+		//app::gui.render(0);
 
 		app::window.swapBuffers();
 		Zap::Window::pollEvents();
