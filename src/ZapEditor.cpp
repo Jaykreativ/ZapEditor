@@ -21,11 +21,11 @@ namespace editor {
 	Zap::Base* engineBase = Zap::Base::createBase("Zap Application");
 
 	Zap::Window window = Zap::Window(1000, 600, "Zap Window");
+	Zap::Renderer renderer = Zap::Renderer(window);
 
-	Zap::Gui gui = Zap::Gui(window);
+	Zap::Gui gui = Zap::Gui(renderer);
 
-	Zap::PBRenderer renderer = Zap::PBRenderer(window);
-	Zap::PBRenderer renderer2 = Zap::PBRenderer(window);
+	Zap::PBRenderer pbr = Zap::PBRenderer(renderer);
 
 	Zap::Actor cam = Zap::Actor();
 }
@@ -190,8 +190,7 @@ namespace keybinds {
 }
 
 void resize(GLFWwindow* window, int width, int height) {
-	editor::renderer.setViewport(width, height, 0, 0);
-	editor::gui.setViewport(width, height, 0, 0);
+	//editor::renderer.setViewport(width, height, 0, 0); TODO fix resize
 }
 
 int main() {
@@ -201,9 +200,6 @@ int main() {
 	editor::window.show();
 	editor::window.setKeyCallback(keybinds::keyCallback);
 	editor::window.setResizeCallback(resize);
-
-	editor::gui.setViewport(editor::window.getWidth(), editor::window.getHeight(), 0, 0);
-	editor::gui.init();
 
 	Zap::ModelLoader modelLoader = Zap::ModelLoader();
 
@@ -306,11 +302,11 @@ int main() {
 	editor::cam.getTransformComponent()->setPos(-1, 1, -5);
 	editor::cam.addCamera(glm::vec3(0, 0, 0));
 
-	editor::renderer.setViewport(1000, 600, 0, 0);
+	editor::pbr.setViewport(1000, 600, 0, 0);
+	editor::renderer.addRenderTemplate(&editor::pbr);
 	editor::renderer.init();
 
-	editor::renderer2.setViewport(500, 300, 0, 0);
-	editor::renderer2.init();
+	editor::gui.init();
 
 	//mainloop
 	float dTime = 0;
@@ -326,18 +322,18 @@ int main() {
 			Zap::Scene::simulate(dTime);
 		}
 
-		editor::renderer.render(editor::cam.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
-		//editor::gui.render(0);
+		editor::pbr.updateBuffers(editor::cam.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
+		editor::gui.render();
+		editor::renderer.render();
 
-		editor::window.swapBuffers();
 		Zap::Window::pollEvents();
 		auto timeEndFrame = std::chrono::high_resolution_clock::now();
 		dTime = std::chrono::duration_cast<std::chrono::duration<float>>(timeEndFrame - timeStartFrame).count();
 	}
 
 	//terminate
-	editor::renderer.~PBRenderer();
-	editor::renderer2.~PBRenderer();
+	editor::renderer.~Renderer();
+	editor::pbr.~PBRenderer();
 	editor::gui.~Gui();
 	editor::window.~Window();
 
