@@ -1,9 +1,9 @@
 #include "Zap/Zap.h"
-#include "Zap/Window.h"
-#include "Zap/Renderer.h"
-#include "Zap/PBRenderer.h"
 #include "Zap/ModelLoader.h"
-#include "Zap/Gui.h"
+#include "Zap/Rendering/Window.h"
+#include "Zap/Rendering/Renderer.h"
+#include "Zap/Rendering/PBRenderer.h"
+#include "Zap/Rendering/Gui.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Mesh.h"
 #include "Zap/Scene/Shape.h"
@@ -17,7 +17,7 @@
 #include "gtc/matrix_transform.hpp"
 #include "gtc/type_ptr.hpp"
 
-namespace app {
+namespace editor {
 	Zap::Base* engineBase = Zap::Base::createBase("Zap Application");
 
 	Zap::Window window = Zap::Window(1000, 600, "Zap Window");
@@ -43,64 +43,64 @@ namespace movement {
 	bool lookRight = false;
 	void move(float dTime) {
 		if (forward) {
-			auto res = app::cam.getTransform();
+			auto res = editor::cam.getTransform();
 			glm::vec3 vec = res[2];
 			res[3] = glm::vec4(glm::vec3(res[3]) + glm::normalize(glm::vec3{ vec.x, 0, vec.z }) * dTime * 2.0f, 1);
-			app::cam.setTransform(res);
+			editor::cam.setTransform(res);
 		}
 		if (backward) {
-			auto res = app::cam.getTransform();
+			auto res = editor::cam.getTransform();
 			glm::vec3 vec = -res[2];
 			res[3] = glm::vec4(glm::vec3(res[3]) + glm::normalize(glm::vec3{ vec.x, 0, vec.z }) * dTime * 2.0f, 1);
-			app::cam.setTransform(res);
+			editor::cam.setTransform(res);
 		}
 		if (right) {
-			auto res = app::cam.getTransform();
+			auto res = editor::cam.getTransform();
 			glm::vec3 vec = res[0];
 			res[3] = glm::vec4(glm::vec3(res[3]) + glm::normalize(glm::vec3{ vec.x, 0, vec.z }) * dTime * 2.0f, 1);
-			app::cam.setTransform(res);
+			editor::cam.setTransform(res);
 		}
 		if (left) {
-			auto res = app::cam.getTransform();
+			auto res = editor::cam.getTransform();
 			glm::vec3 vec = -res[0];
 			res[3] = glm::vec4(glm::vec3(res[3]) + glm::normalize(glm::vec3{ vec.x, 0, vec.z }) * dTime * 2.0f, 1);
-			app::cam.setTransform(res);
+			editor::cam.setTransform(res);
 		}
 		if (down) {
-			auto res = app::cam.getTransform();
+			auto res = editor::cam.getTransform();
 			res[3] = glm::vec4(glm::vec3(res[3]) + glm::vec3{ 0, -2, 0 }*dTime, 1);
-			app::cam.setTransform(res);
+			editor::cam.setTransform(res);
 		}
 		if (up) {
-			auto res = app::cam.getTransform();
+			auto res = editor::cam.getTransform();
 			res[3] = glm::vec4(glm::vec3(res[3]) + glm::vec3{ 0, 2, 0 }*dTime, 1);
-			app::cam.setTransform(res);
+			editor::cam.setTransform(res);
 		}
 		if (lookLeft) {
-			glm::mat4 res = app::cam.getTransform();
+			glm::mat4 res = editor::cam.getTransform();
 			glm::mat4 rot = glm::rotate(glm::mat4(1), glm::radians<float>(-90 * dTime), glm::vec3{ 0, 1, 0 });
 
 			res[0] = rot * res[0];
 			res[1] = rot * res[1];
 			res[2] = rot * res[2];
 
-			app::cam.setTransform(res);
+			editor::cam.setTransform(res);
 		}
 		if (lookRight) {
-			glm::mat4 res = app::cam.getTransform();
+			glm::mat4 res = editor::cam.getTransform();
 			glm::mat4 rot = glm::rotate(glm::mat4(1), glm::radians<float>(90 * dTime), glm::vec3{ 0, 1, 0 });
 
 			res[0] = rot * res[0];
 			res[1] = rot * res[1];
 			res[2] = rot * res[2];
 
-			app::cam.setTransform(res);
+			editor::cam.setTransform(res);
 		}
 		if (lookDown) {
-			app::cam.getTransformComponent()->rotateX(90 * dTime);
+			editor::cam.getTransformComponent()->rotateX(90 * dTime);
 		}
 		if (lookUp) {
-			app::cam.getTransformComponent()->rotateX(-90 * dTime);
+			editor::cam.getTransformComponent()->rotateX(-90 * dTime);
 		}
 	}
 }
@@ -190,20 +190,20 @@ namespace keybinds {
 }
 
 void resize(GLFWwindow* window, int width, int height) {
-	app::renderer.setViewport(width, height, 0, 0);
-	app::gui.setViewport(width, height, 0, 0);
+	editor::renderer.setViewport(width, height, 0, 0);
+	editor::gui.setViewport(width, height, 0, 0);
 }
 
 int main() {
-	app::engineBase->init();
+	editor::engineBase->init();
 
-	app::window.init();
-	app::window.show();
-	app::window.setKeyCallback(keybinds::keyCallback);
-	app::window.setResizeCallback(resize);
+	editor::window.init();
+	editor::window.show();
+	editor::window.setKeyCallback(keybinds::keyCallback);
+	editor::window.setResizeCallback(resize);
 
-	app::gui.setViewport(app::window.getWidth(), app::window.getHeight(), 0, 0);
-	app::gui.init();
+	editor::gui.setViewport(editor::window.getWidth(), editor::window.getHeight(), 0, 0);
+	editor::gui.init();
 
 	Zap::ModelLoader modelLoader = Zap::ModelLoader();
 
@@ -302,19 +302,19 @@ int main() {
 	light2.getTransformComponent()->setPos({ 3, 2, 0 });
 	light2.addLight({ 3, 1.5, 0.6 });
 
-	app::cam.addTransform(glm::mat4(1));
-	app::cam.getTransformComponent()->setPos(-1, 1, -5);
-	app::cam.addCamera(glm::vec3(0, 0, 0));
+	editor::cam.addTransform(glm::mat4(1));
+	editor::cam.getTransformComponent()->setPos(-1, 1, -5);
+	editor::cam.addCamera(glm::vec3(0, 0, 0));
 
-	app::renderer.setViewport(1000, 600, 0, 0);
-	app::renderer.init();
+	editor::renderer.setViewport(1000, 600, 0, 0);
+	editor::renderer.init();
 
-	app::renderer2.setViewport(500, 300, 0, 0);
-	app::renderer2.init();
+	editor::renderer2.setViewport(500, 300, 0, 0);
+	editor::renderer2.init();
 
 	//mainloop
 	float dTime = 0;
-	while (!app::window.shouldClose()) {
+	while (!editor::window.shouldClose()) {
 		auto timeStartFrame = std::chrono::high_resolution_clock::now();
 		movement::move(dTime);
 
@@ -326,27 +326,22 @@ int main() {
 			Zap::Scene::simulate(dTime);
 		}
 
-		//app::window.clear();
+		editor::renderer.render(editor::cam.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
+		//editor::gui.render(0);
 
-		app::renderer.render(app::cam.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
-		/*app::window.clearDepthStencil();
-		app::renderer2.render(physicstest.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);*/
-		//app::window.clearDepthStencil();
-		//app::gui.render(0);
-
-		app::window.swapBuffers();
+		editor::window.swapBuffers();
 		Zap::Window::pollEvents();
 		auto timeEndFrame = std::chrono::high_resolution_clock::now();
 		dTime = std::chrono::duration_cast<std::chrono::duration<float>>(timeEndFrame - timeStartFrame).count();
 	}
 
 	//terminate
-	app::renderer.~PBRenderer();
-	app::renderer2.~PBRenderer();
-	app::gui.~Gui();
-	app::window.~Window();
+	editor::renderer.~PBRenderer();
+	editor::renderer2.~PBRenderer();
+	editor::gui.~Gui();
+	editor::window.~Window();
 
-	app::engineBase->terminate();
+	editor::engineBase->terminate();
 
 #ifdef _DEBUG
 	system("pause");
