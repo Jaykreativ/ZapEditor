@@ -332,9 +332,7 @@ int main() {
 	}
 
 	//terminate
-	editor::renderer.~Renderer();
-	editor::pbr.~PBRenderer();
-	editor::gui.~Gui();
+	editor::renderer.destroy();
 	editor::window.~Window();
 
 	editor::engineBase->terminate();
