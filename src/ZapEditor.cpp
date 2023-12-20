@@ -190,7 +190,7 @@ namespace keybinds {
 }
 
 void resize(GLFWwindow* window, int width, int height) {
-	//editor::renderer.setViewport(width, height, 0, 0); TODO fix resize
+	editor::pbr.setViewport(width, height, 0, 0);
 }
 
 int main() {
@@ -304,9 +304,8 @@ int main() {
 
 	editor::pbr.setViewport(1000, 600, 0, 0);
 	editor::renderer.addRenderTemplate(&editor::pbr);
+	editor::renderer.addRenderTemplate(&editor::gui);
 	editor::renderer.init();
-
-	editor::gui.init();
 
 	//mainloop
 	float dTime = 0;
@@ -323,7 +322,6 @@ int main() {
 		}
 
 		editor::pbr.updateBuffers(editor::cam.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
-		editor::gui.render();
 		editor::renderer.render();
 
 		Zap::Window::pollEvents();
