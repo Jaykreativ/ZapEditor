@@ -26,6 +26,7 @@ namespace editor {
 	Zap::Gui gui = Zap::Gui(renderer);
 
 	Zap::PBRenderer pbr = Zap::PBRenderer(renderer);
+	Zap::PBRenderer pbr2 = Zap::PBRenderer(renderer);
 
 	Zap::Actor cam = Zap::Actor();
 }
@@ -303,7 +304,9 @@ int main() {
 	editor::cam.addCamera(glm::vec3(0, 0, 0));
 
 	editor::pbr.setViewport(1000, 600, 0, 0);
+	editor::pbr2.setViewport(500, 300, 0, 0);
 	editor::renderer.addRenderTemplate(&editor::pbr);
+	editor::renderer.addRenderTemplate(&editor::pbr2);
 	editor::renderer.addRenderTemplate(&editor::gui);
 	editor::renderer.init();
 
@@ -322,6 +325,7 @@ int main() {
 		}
 
 		editor::pbr.updateBuffers(editor::cam.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
+		editor::pbr2.updateBuffers(physicstest.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
 		editor::renderer.render();
 
 		Zap::Window::pollEvents();
