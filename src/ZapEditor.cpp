@@ -38,10 +38,7 @@ namespace movement {
 	bool right = false;
 	bool down = false;
 	bool up = false;
-	bool lookUp = false;
-	bool lookDown = false;
-	bool lookLeft = false;
-	bool lookRight = false;
+	bool turnCamera = false;
 	void move(float dTime) {
 		if (forward) {
 			auto res = editor::cam.getTransform();
@@ -77,32 +74,27 @@ namespace movement {
 			res[3] = glm::vec4(glm::vec3(res[3]) + glm::vec3{ 0, 2, 0 }*dTime, 1);
 			editor::cam.setTransform(res);
 		}
-		if (lookLeft) {
+	}
+
+	double xlast = 0;
+	double ylast = 0;
+	float sensitivityX = 0.2;
+	float sensitivityY = 0.15;
+	void cursorPositionCallback(GLFWwindow* window, double xpos, double ypos) {
+		if (turnCamera) {		
 			glm::mat4 res = editor::cam.getTransform();
-			glm::mat4 rot = glm::rotate(glm::mat4(1), glm::radians<float>(-90 * dTime), glm::vec3{ 0, 1, 0 });
+			glm::mat4 rot = glm::rotate(glm::mat4(1), glm::radians<float>((xpos-xlast)*sensitivityX), glm::vec3{ 0, 1, 0 });
 
 			res[0] = rot * res[0];
 			res[1] = rot * res[1];
 			res[2] = rot * res[2];
 
 			editor::cam.setTransform(res);
+			editor::cam.getTransformComponent()->rotateX((ypos-ylast)*sensitivityY);
 		}
-		if (lookRight) {
-			glm::mat4 res = editor::cam.getTransform();
-			glm::mat4 rot = glm::rotate(glm::mat4(1), glm::radians<float>(90 * dTime), glm::vec3{ 0, 1, 0 });
 
-			res[0] = rot * res[0];
-			res[1] = rot * res[1];
-			res[2] = rot * res[2];
-
-			editor::cam.setTransform(res);
-		}
-		if (lookDown) {
-			editor::cam.getTransformComponent()->rotateX(90 * dTime);
-		}
-		if (lookUp) {
-			editor::cam.getTransformComponent()->rotateX(-90 * dTime);
-		}
+		xlast = xpos;
+		ylast = ypos;
 	}
 }
 
@@ -113,10 +105,23 @@ namespace keybinds {
 	int right = GLFW_KEY_D;
 	int down = GLFW_KEY_C;
 	int up = GLFW_KEY_SPACE;
-	int lookUp = GLFW_KEY_UP;
-	int lookDown = GLFW_KEY_DOWN;
-	int lookLeft = GLFW_KEY_LEFT;
-	int lookRight = GLFW_KEY_RIGHT;
+	int turnCamera = GLFW_MOUSE_BUTTON_1;
+
+	void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+		if (action == GLFW_PRESS) {
+			if (button == turnCamera) {
+				if (!ImGui::GetIO().WantCaptureMouse) {
+					movement::turnCamera = true;
+				}
+			}
+		}
+		else if (action == GLFW_RELEASE) {
+			if (button == turnCamera) {
+				movement::turnCamera = false;
+			}
+		}
+	}
+
 	void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 		if (action == GLFW_PRESS) {
 			if (key == forward) {
@@ -136,18 +141,6 @@ namespace keybinds {
 			}
 			else if (key == up) {
 				movement::up = true;
-			}
-			else if (key == lookUp) {
-				movement::lookUp = true;
-			}
-			else if (key == lookDown) {
-				movement::lookDown = true;
-			}
-			else if (key == lookLeft) {
-				movement::lookLeft = true;
-			}
-			else if (key == lookRight) {
-				movement::lookRight = true;
 			}
 			/*else if (key == GLFW_KEY_ENTER) {
 				glm::vec3 dir = app::cam.getTransform()[2];
@@ -174,18 +167,6 @@ namespace keybinds {
 			else if (key == up) {
 				movement::up = false;
 			}
-			else if (key == lookUp) {
-				movement::lookUp = false;
-			}
-			else if (key == lookDown) {
-				movement::lookDown = false;
-			}
-			else if (key == lookLeft) {
-				movement::lookLeft = false;
-			}
-			else if (key == lookRight) {
-				movement::lookRight = false;
-			}
 		}
 	}
 }
@@ -199,6 +180,8 @@ int main() {
 
 	editor::window.init();
 	editor::window.show();
+	editor::window.setCursorPosCallback(movement::cursorPositionCallback);
+	editor::window.setMousebButtonCallback(keybinds::mouseButtonCallback);
 	editor::window.setKeyCallback(keybinds::keyCallback);
 	editor::window.setResizeCallback(resize);
 
@@ -312,9 +295,13 @@ int main() {
 
 	//mainloop
 	float dTime = 0;
+	uint64_t frameIndex = 0;
 	while (!editor::window.shouldClose()) {
 		auto timeStartFrame = std::chrono::high_resolution_clock::now();
 		movement::move(dTime);
+
+		editor::pbr2.setViewport(500, 300, sin(frameIndex/360.0f)*50+50, 50);
+		editor::renderer.update();
 
 		rotatingGift.getTransformComponent()->rotateY(45 * dTime);
 
@@ -331,6 +318,7 @@ int main() {
 		Zap::Window::pollEvents();
 		auto timeEndFrame = std::chrono::high_resolution_clock::now();
 		dTime = std::chrono::duration_cast<std::chrono::duration<float>>(timeEndFrame - timeStartFrame).count();
+		frameIndex++;
 	}
 
 	//terminate
