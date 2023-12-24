@@ -17,6 +17,8 @@
 #include "gtc/matrix_transform.hpp"
 #include "gtc/type_ptr.hpp"
 
+#include "SceneHierarchy.h";
+
 namespace editor {
 	Zap::Base* engineBase = Zap::Base::createBase("Zap Application");
 
@@ -306,6 +308,8 @@ int main() {
 		rotatingGift.getTransformComponent()->rotateY(45 * dTime);
 
 		ImGui::ShowDemoWindow();
+
+		editor::drawSceneHierarchy();
 
 		if (dTime > 0) {
 			Zap::Scene::simulate(dTime);

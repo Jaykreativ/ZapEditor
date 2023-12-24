@@ -4,7 +4,7 @@ project(ZapEditor)
 
 file(GLOB ZapEditor_SRC 
     "src/*.cpp"
-    "src/*.h"
+    "header/*.h"
 )
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -21,6 +21,7 @@ target_link_libraries(ZapEditor PUBLIC Zap)
 target_include_directories(
     ZapEditor PUBLIC
     "${PROJECT_BINARY_DIR}"
+    "${PROJECT_SOURCE_DIR}/header"
     "${Zap_DIR}/include"
     "${Zap_DIR}/Dependencies/VulkanFramework/include"
     "${Zap_DIR}/Dependencies/glfw/include"
