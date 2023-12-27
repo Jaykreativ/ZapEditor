@@ -20,15 +20,17 @@
 #include "SceneHierarchy.h";
 
 namespace editor {
-	Zap::Base* engineBase = Zap::Base::createBase("Zap Application");
+	Zap::Base* engineBase;
 
-	Zap::Window window = Zap::Window(1000, 600, "Zap Window");
-	Zap::Renderer renderer = Zap::Renderer(window);
+	Zap::Window* window;
+	Zap::Renderer* renderer;
 
-	Zap::Gui gui = Zap::Gui(renderer);
+	Zap::Gui* gui;
 
-	Zap::PBRenderer pbr = Zap::PBRenderer(renderer);
-	Zap::PBRenderer pbr2 = Zap::PBRenderer(renderer);
+	Zap::PBRenderer* pbr;
+	Zap::PBRenderer* pbr2;
+
+	Zap::Scene scene;
 
 	Zap::Actor cam = Zap::Actor();
 }
@@ -174,18 +176,30 @@ namespace keybinds {
 }
 
 void resize(GLFWwindow* window, int width, int height) {
-	editor::pbr.setViewport(width, height, 0, 0);
+	editor::pbr->setViewport(width, height, 0, 0);
 }
 
 int main() {
+	editor::engineBase = Zap::Base::createBase("Zap Application");
 	editor::engineBase->init();
 
-	editor::window.init();
-	editor::window.show();
-	editor::window.setCursorPosCallback(movement::cursorPositionCallback);
-	editor::window.setMousebButtonCallback(keybinds::mouseButtonCallback);
-	editor::window.setKeyCallback(keybinds::keyCallback);
-	editor::window.setResizeCallback(resize);
+	editor::window = new Zap::Window(1000, 600, "Zap Window");
+	editor::window->init();
+	editor::window->show();
+	editor::window->setCursorPosCallback(movement::cursorPositionCallback);
+	editor::window->setMousebButtonCallback(keybinds::mouseButtonCallback);
+	editor::window->setKeyCallback(keybinds::keyCallback);
+	editor::window->setResizeCallback(resize);
+
+	editor::renderer = new Zap::Renderer(*editor::window);
+
+	editor::gui = new Zap::Gui(*editor::renderer);
+
+	editor::pbr = new Zap::PBRenderer(*editor::renderer);
+	editor::pbr2 = new Zap::PBRenderer(*editor::renderer);
+
+	editor::scene = editor::engineBase->createScene();
+	editor::scene.init();
 
 	Zap::ModelLoader modelLoader = Zap::ModelLoader();
 
@@ -234,7 +248,7 @@ int main() {
 	{
 		auto geometry = Zap::BoxGeometry({ 1, 1, 1 });
 		auto shape = Zap::Shape(geometry, pxMaterial, true);
-		physicstest.addRigidDynamic(shape);
+		physicstest.addRigidDynamic(shape, editor::scene);
 	}
 
 	physicstest.addCamera({ 0, 0, 0 });
@@ -264,7 +278,7 @@ int main() {
 		localTransform = glm::translate(localTransform, glm::vec3(0, 1, 0));
 		localTransform = glm::rotate(localTransform, glm::radians<float>(90), glm::vec3(0, 0, 1));
 		auto shape = Zap::Shape(geometry, pxMaterial, true, localTransform);
-		ground.addRigidStatic(shape);
+		ground.addRigidStatic(shape, editor::scene);
 	}
 	ground.addMesh(cubeMesh);
 
@@ -288,22 +302,22 @@ int main() {
 	editor::cam.getTransformComponent()->setPos(-1, 1, -5);
 	editor::cam.addCamera(glm::vec3(0, 0, 0));
 
-	editor::pbr.setViewport(1000, 600, 0, 0);
-	editor::pbr2.setViewport(500, 300, 0, 0);
-	editor::renderer.addRenderTemplate(&editor::pbr);
-	editor::renderer.addRenderTemplate(&editor::pbr2);
-	editor::renderer.addRenderTemplate(&editor::gui);
-	editor::renderer.init();
+	editor::pbr->setViewport(1000, 600, 0, 0);
+	editor::pbr2->setViewport(500, 300, 0, 0);
+	editor::renderer->addRenderTemplate(editor::pbr);
+	editor::renderer->addRenderTemplate(editor::pbr2);
+	editor::renderer->addRenderTemplate(editor::gui);
+	editor::renderer->init();
 
 	//mainloop
 	float dTime = 0;
 	uint64_t frameIndex = 0;
-	while (!editor::window.shouldClose()) {
+	while (!editor::window->shouldClose()) {
 		auto timeStartFrame = std::chrono::high_resolution_clock::now();
 		movement::move(dTime);
 
-		editor::pbr2.setViewport(500, 300, sin(frameIndex/360.0f)*50+50, 50);
-		editor::renderer.update();
+		//editor::pbr2.setViewport(500, 300, sin(frameIndex/360.0f)*50+50, 50);
+		//editor::renderer.update();
 
 		rotatingGift.getTransformComponent()->rotateY(45 * dTime);
 
@@ -312,12 +326,12 @@ int main() {
 		editor::drawSceneHierarchy();
 
 		if (dTime > 0) {
-			Zap::Scene::simulate(dTime);
+			editor::scene.simulate(dTime);
 		}
 
-		editor::pbr.updateBuffers(editor::cam.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
-		editor::pbr2.updateBuffers(physicstest.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
-		editor::renderer.render();
+		editor::pbr->updateBuffers(editor::cam.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
+		editor::pbr2->updateBuffers(physicstest.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
+		editor::renderer->render();
 
 		Zap::Window::pollEvents();
 		auto timeEndFrame = std::chrono::high_resolution_clock::now();
@@ -326,10 +340,16 @@ int main() {
 	}
 
 	//terminate
-	editor::renderer.destroy();
-	editor::window.~Window();
+	editor::renderer->destroy();
+	delete editor::renderer;
+	delete editor::window;
+
+	delete editor::gui;
+	delete editor::pbr;
+	delete editor::pbr2;
 
 	editor::engineBase->terminate();
+	Zap::Base::releaseBase();
 
 #ifdef _DEBUG
 	system("pause");
