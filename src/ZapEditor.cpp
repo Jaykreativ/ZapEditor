@@ -1,3 +1,6 @@
+#include "SceneHierarchy.h";
+#include "ComponentView.h";
+
 #include "Zap/Zap.h"
 #include "Zap/ModelLoader.h"
 #include "Zap/Rendering/Window.h"
@@ -8,31 +11,31 @@
 #include "Zap/Scene/Mesh.h"
 #include "Zap/Scene/Shape.h"
 #include "Zap/Scene/Actor.h"
-#include "Zap/Scene/Component.h"
 #include "Zap/Scene/Transform.h"
-#include "Zap/Scene/MeshComponent.h"
+#include "Zap/Scene/Model.h"
 #include "imgui.h"
 #include "PxPhysicsAPI.h"
 #include "glm.hpp"
 #include "gtc/matrix_transform.hpp"
 #include "gtc/type_ptr.hpp"
 
-#include "SceneHierarchy.h";
-
 namespace editor {
-	Zap::Base* engineBase;
+	static Zap::Base* engineBase;
 
-	Zap::Window* window;
-	Zap::Renderer* renderer;
+	static Zap::Window* window;
+	static Zap::Renderer* renderer;
 
-	Zap::Gui* gui;
+	static Zap::Gui* gui;
 
-	Zap::PBRenderer* pbr;
-	Zap::PBRenderer* pbr2;
+	static Zap::PBRenderer* pbr;
 
-	Zap::Scene scene;
+	static Zap::Scene* scene;
 
-	Zap::Actor cam = Zap::Actor();
+	static uint32_t cam = 0;
+	static std::vector<Zap::Actor> actors;
+
+	static SceneHierarchyView* sceneHierarchyView;
+	static ComponentView* componentView;
 }
 
 namespace movement {
@@ -45,38 +48,38 @@ namespace movement {
 	bool turnCamera = false;
 	void move(float dTime) {
 		if (forward) {
-			auto res = editor::cam.getTransform();
+			auto res = editor::actors[editor::cam].cmpTransform_getTransform();
 			glm::vec3 vec = res[2];
 			res[3] = glm::vec4(glm::vec3(res[3]) + glm::normalize(glm::vec3{ vec.x, 0, vec.z }) * dTime * 2.0f, 1);
-			editor::cam.setTransform(res);
+			editor::actors[editor::cam].cmpTransform_setTransform(res);
 		}
 		if (backward) {
-			auto res = editor::cam.getTransform();
+			auto res = editor::actors[editor::cam].cmpTransform_getTransform();
 			glm::vec3 vec = -res[2];
 			res[3] = glm::vec4(glm::vec3(res[3]) + glm::normalize(glm::vec3{ vec.x, 0, vec.z }) * dTime * 2.0f, 1);
-			editor::cam.setTransform(res);
+			editor::actors[editor::cam].cmpTransform_setTransform(res);
 		}
 		if (right) {
-			auto res = editor::cam.getTransform();
+			auto res = editor::actors[editor::cam].cmpTransform_getTransform();
 			glm::vec3 vec = res[0];
 			res[3] = glm::vec4(glm::vec3(res[3]) + glm::normalize(glm::vec3{ vec.x, 0, vec.z }) * dTime * 2.0f, 1);
-			editor::cam.setTransform(res);
+			editor::actors[editor::cam].cmpTransform_setTransform(res);
 		}
 		if (left) {
-			auto res = editor::cam.getTransform();
+			auto res = editor::actors[editor::cam].cmpTransform_getTransform();
 			glm::vec3 vec = -res[0];
 			res[3] = glm::vec4(glm::vec3(res[3]) + glm::normalize(glm::vec3{ vec.x, 0, vec.z }) * dTime * 2.0f, 1);
-			editor::cam.setTransform(res);
+			editor::actors[editor::cam].cmpTransform_setTransform(res);
 		}
 		if (down) {
-			auto res = editor::cam.getTransform();
+			auto res = editor::actors[editor::cam].cmpTransform_getTransform();
 			res[3] = glm::vec4(glm::vec3(res[3]) + glm::vec3{ 0, -2, 0 }*dTime, 1);
-			editor::cam.setTransform(res);
+			editor::actors[editor::cam].cmpTransform_setTransform(res);
 		}
 		if (up) {
-			auto res = editor::cam.getTransform();
+			auto res = editor::actors[editor::cam].cmpTransform_getTransform();
 			res[3] = glm::vec4(glm::vec3(res[3]) + glm::vec3{ 0, 2, 0 }*dTime, 1);
-			editor::cam.setTransform(res);
+			editor::actors[editor::cam].cmpTransform_setTransform(res);
 		}
 	}
 
@@ -86,15 +89,15 @@ namespace movement {
 	float sensitivityY = 0.15;
 	void cursorPositionCallback(GLFWwindow* window, double xpos, double ypos) {
 		if (turnCamera) {		
-			glm::mat4 res = editor::cam.getTransform();
+			glm::mat4 res = editor::actors[editor::cam].cmpTransform_getTransform();
 			glm::mat4 rot = glm::rotate(glm::mat4(1), glm::radians<float>((xpos-xlast)*sensitivityX), glm::vec3{ 0, 1, 0 });
 
 			res[0] = rot * res[0];
 			res[1] = rot * res[1];
 			res[2] = rot * res[2];
 
-			editor::cam.setTransform(res);
-			editor::cam.getTransformComponent()->rotateX((ypos-ylast)*sensitivityY);
+			editor::actors[editor::cam].cmpTransform_setTransform(res);
+			editor::actors[editor::cam].cmpTransform_rotateX((ypos-ylast)*sensitivityY);
 		}
 
 		xlast = xpos;
@@ -183,6 +186,9 @@ int main() {
 	editor::engineBase = Zap::Base::createBase("Zap Application");
 	editor::engineBase->init();
 
+	editor::scene = new Zap::Scene();
+	editor::scene->init();
+
 	editor::window = new Zap::Window(1000, 600, "Zap Window");
 	editor::window->init();
 	editor::window->show();
@@ -195,15 +201,12 @@ int main() {
 
 	editor::gui = new Zap::Gui(*editor::renderer);
 
-	editor::pbr = new Zap::PBRenderer(*editor::renderer);
-	editor::pbr2 = new Zap::PBRenderer(*editor::renderer);
+	editor::pbr = new Zap::PBRenderer(*editor::renderer, editor::scene);
 
-	editor::scene = editor::engineBase->createScene();
-	editor::scene.init();
 
 	Zap::ModelLoader modelLoader = Zap::ModelLoader();
 
-	auto cubeMesh = modelLoader.load("Models/OBJ/Cube.obj")[0];
+	auto cubeModel = modelLoader.load("Models/OBJ/Cube.obj");
 
 #ifndef _DEBUG
 	auto sponzaModel = modelLoader.load("Models/OBJ/Sponza.obj");
@@ -211,103 +214,27 @@ int main() {
 
 	auto giftModel = modelLoader.load("Models/OBJ/Gift.obj");
 
-	//Actors
-	Zap::Actor centre;
-	centre.addTransform(glm::mat4(1));
-	centre.getTransformComponent()->setPos(0, 0, 0);
-	centre.getTransformComponent()->setScale(0.25, 0.25, 0.25);
-	centre.addMesh(cubeMesh);
+	editor::actors.push_back(Zap::Actor());
+	auto pActor = &editor::actors[0];
+	editor::scene->attachActor(*pActor);
+	pActor->addTransform(glm::mat4(1));
+	pActor->addModel(cubeModel);
 
-	Zap::Actor xDir;
-	xDir.addTransform(glm::mat4(1));
-	xDir.getTransformComponent()->setPos(0.75, 0, 0);
-	xDir.getTransformComponent()->setScale(0.5, 0.1, 0.1);
-	xDir.addMesh(cubeMesh);
-	xDir.getMeshComponent(0)->m_material.m_AlbedoColor = { 1, 0, 0 };
-
-	Zap::Actor yDir;
-	yDir.addTransform(glm::mat4(1));
-	yDir.getTransformComponent()->setPos(0, 0.75, 0);
-	yDir.getTransformComponent()->setScale(0.1, 0.5, 0.1);
-	yDir.addMesh(cubeMesh);
-	yDir.getMeshComponent(0)->m_material.m_AlbedoColor = { 0, 1, 0 };
-
-	Zap::Actor zDir;
-	zDir.addTransform(glm::mat4(1));
-	zDir.getTransformComponent()->setPos(0, 0, 0.75);
-	zDir.getTransformComponent()->setScale(0.1, 0.1, 0.5);
-	zDir.addMesh(cubeMesh);
-	zDir.getMeshComponent(0)->m_material.m_AlbedoColor = { 0, 0, 1 };
-
-	auto pxMaterial = Zap::PhysicsMaterial(0.5, 0.5, 0.6);
-
-	Zap::Actor physicstest;
-	physicstest.addTransform(glm::mat4(1));
-	physicstest.getTransformComponent()->setPos({ 0, 5, 0 });
-	physicstest.getTransformComponent()->setScale({ 0.5, 0.5, 0.5 });
-	{
-		auto geometry = Zap::BoxGeometry({ 1, 1, 1 });
-		auto shape = Zap::Shape(geometry, pxMaterial, true);
-		physicstest.addRigidDynamic(shape, editor::scene);
-	}
-
-	physicstest.addCamera({ 0, 0, 0 });
-	physicstest.addMeshes(giftModel);
-	physicstest.addLight({ 0.25, 1, 3 });
-
-	Zap::Actor rotatingGift;
-	rotatingGift.addTransform(glm::mat4(1));
-	rotatingGift.getTransformComponent()->setPos(3, 2, 2);
-	rotatingGift.addMeshes(giftModel);
-	rotatingGift.getMeshComponent(0)->m_material.m_AlbedoColor = { 0.5, 1, 0.5 };
-
-#ifndef _DEBUG
-	Zap::Actor sponza;
-	sponza.addTransform(glm::mat4(1));
-	sponza.getTransformComponent()->setPos({5, -1, 0});
-	sponza.addMeshes(sponzaModel);
-#endif
-
-	Zap::Actor ground;
-	ground.addTransform(glm::mat4(1));
-	ground.getTransformComponent()->setPos(0, -2, 0);
-	ground.getTransformComponent()->setScale(500, 1, 500);
-	{
-		auto geometry = Zap::PlaneGeometry();
-		glm::mat4 localTransform = glm::mat4(1);
-		localTransform = glm::translate(localTransform, glm::vec3(0, 1, 0));
-		localTransform = glm::rotate(localTransform, glm::radians<float>(90), glm::vec3(0, 0, 1));
-		auto shape = Zap::Shape(geometry, pxMaterial, true, localTransform);
-		ground.addRigidStatic(shape, editor::scene);
-	}
-	ground.addMesh(cubeMesh);
-
-	Zap::Actor skybox;
-	skybox.addTransform(glm::mat4(1));
-	skybox.getTransformComponent()->setPos(0, 0, 0);
-	skybox.getTransformComponent()->setScale(500, 500, 500);
-	skybox.addMesh(cubeMesh);
-
-	Zap::Actor light;
-	light.addTransform(glm::mat4(1));
-	light.getTransformComponent()->setPos({ -3, 2, 0 });
-	light.addLight({ 2.5, 2.5, 2.5 });
-
-	Zap::Actor light2;
-	light2.addTransform(glm::mat4(1));
-	light2.getTransformComponent()->setPos({ 3, 2, 0 });
-	light2.addLight({ 3, 1.5, 0.6 });
-
-	editor::cam.addTransform(glm::mat4(1));
-	editor::cam.getTransformComponent()->setPos(-1, 1, -5);
-	editor::cam.addCamera(glm::vec3(0, 0, 0));
+	editor::cam = editor::actors.size();
+	editor::actors.push_back(Zap::Actor());
+	pActor = &editor::actors[editor::cam];
+	editor::scene->attachActor(*pActor);
+	pActor->addTransform(glm::mat4(1));
+	pActor->cmpTransform_setPos(-1, 1, -5);
+	pActor->addCamera();
 
 	editor::pbr->setViewport(1000, 600, 0, 0);
-	editor::pbr2->setViewport(500, 300, 0, 0);
 	editor::renderer->addRenderTemplate(editor::pbr);
-	editor::renderer->addRenderTemplate(editor::pbr2);
 	editor::renderer->addRenderTemplate(editor::gui);
 	editor::renderer->init();
+
+	editor::sceneHierarchyView = new editor::SceneHierarchyView(editor::actors);
+	editor::componentView = new editor::ComponentView();
 
 	//mainloop
 	float dTime = 0;
@@ -315,22 +242,20 @@ int main() {
 	while (!editor::window->shouldClose()) {
 		auto timeStartFrame = std::chrono::high_resolution_clock::now();
 		movement::move(dTime);
-
-		//editor::pbr2.setViewport(500, 300, sin(frameIndex/360.0f)*50+50, 50);
-		//editor::renderer.update();
-
-		rotatingGift.getTransformComponent()->rotateY(45 * dTime);
+		
+		editor::actors[0].cmpTransform_rotateY(45*dTime);
 
 		ImGui::ShowDemoWindow();
 
-		editor::drawSceneHierarchy();
+		editor::sceneHierarchyView->draw();
+		if(editor::sceneHierarchyView->getSelectedActor())
+			editor::componentView->draw(*editor::sceneHierarchyView->getSelectedActor());
 
 		if (dTime > 0) {
-			editor::scene.simulate(dTime);
+			editor::scene->simulate(dTime);
 		}
 
-		editor::pbr->updateBuffers(editor::cam.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
-		editor::pbr2->updateBuffers(physicstest.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
+		editor::pbr->updateBuffers(editor::actors[editor::cam]);
 		editor::renderer->render();
 
 		Zap::Window::pollEvents();
@@ -339,14 +264,18 @@ int main() {
 		frameIndex++;
 	}
 
+	delete editor::componentView;
+	delete editor::sceneHierarchyView;
+
 	//terminate
 	editor::renderer->destroy();
 	delete editor::renderer;
 	delete editor::window;
 
+	delete editor::scene;
+
 	delete editor::gui;
 	delete editor::pbr;
-	delete editor::pbr2;
 
 	editor::engineBase->terminate();
 	Zap::Base::releaseBase();
