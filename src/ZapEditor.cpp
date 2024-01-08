@@ -215,10 +215,67 @@ int main() {
 	auto giftModel = modelLoader.load("Models/OBJ/Gift.obj");
 
 	editor::actors.push_back(Zap::Actor());
-	auto pActor = &editor::actors[0];
+	auto pActor = &editor::actors.back();
 	editor::scene->attachActor(*pActor);
 	pActor->addTransform(glm::mat4(1));
+	pActor->cmpTransform_setPos(0, -1, 0);
+	pActor->cmpTransform_setScale(25, 1, 25);
 	pActor->addModel(cubeModel);
+
+	editor::actors.push_back(Zap::Actor());
+	pActor = &editor::actors.back();
+	editor::scene->attachActor(*pActor);
+	pActor->addTransform(glm::mat4(1));
+	pActor->cmpTransform_setPos(0, 3.5, 0);
+	pActor->addLight({3, 2, 1});
+
+	editor::actors.push_back(Zap::Actor());
+	pActor = &editor::actors.back();
+	editor::scene->attachActor(*pActor);
+	pActor->addTransform(glm::mat4(1));
+	pActor->cmpTransform_setPos(-2, 1, -0.5);
+	pActor->addLight({2, 2, 2});
+
+	editor::actors.push_back(Zap::Actor());
+	pActor = &editor::actors.back();
+	editor::scene->attachActor(*pActor);
+	pActor->addTransform(glm::mat4(1));
+	pActor->cmpTransform_setPos(0, 1, -3);
+	pActor->addModel(giftModel);
+
+	// coordinate helper
+	editor::actors.push_back(Zap::Actor());
+	pActor = &editor::actors.back();
+	editor::scene->attachActor(*pActor);
+	pActor->addTransform(glm::mat4(1));
+	pActor->cmpTransform_setPos(0, 1, 0);
+	pActor->cmpTransform_setScale(0.25, 0.25, 0.25);
+	pActor->addModel(cubeModel);
+
+	editor::actors.push_back(Zap::Actor());
+	pActor = &editor::actors.back();
+	editor::scene->attachActor(*pActor);
+	pActor->addTransform(glm::mat4(1));
+	pActor->cmpTransform_setPos(0.5, 1, 0);
+	pActor->cmpTransform_setScale(0.5, 0.1, 0.1);
+	pActor->addModel(cubeModel);
+
+	editor::actors.push_back(Zap::Actor());
+	pActor = &editor::actors.back();
+	editor::scene->attachActor(*pActor);
+	pActor->addTransform(glm::mat4(1));
+	pActor->cmpTransform_setPos(0, 1.5, 0);
+	pActor->cmpTransform_setScale(0.1, 0.5, 0.1);
+	pActor->addModel(cubeModel);
+
+	editor::actors.push_back(Zap::Actor());
+	pActor = &editor::actors.back();
+	editor::scene->attachActor(*pActor);
+	pActor->addTransform(glm::mat4(1));
+	pActor->cmpTransform_setPos(0, 1, 0.5);
+	pActor->cmpTransform_setScale(0.1, 0.1, 0.5);
+	pActor->addModel(cubeModel);
+	//
 
 	editor::cam = editor::actors.size();
 	editor::actors.push_back(Zap::Actor());
@@ -243,7 +300,8 @@ int main() {
 		auto timeStartFrame = std::chrono::high_resolution_clock::now();
 		movement::move(dTime);
 		
-		editor::actors[0].cmpTransform_rotateY(45*dTime);
+		editor::actors[3
+		].cmpTransform_rotateY(15*dTime);
 
 		ImGui::ShowDemoWindow();
 
