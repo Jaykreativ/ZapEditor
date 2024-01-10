@@ -300,14 +300,22 @@ int main() {
 		auto timeStartFrame = std::chrono::high_resolution_clock::now();
 		movement::move(dTime);
 		
-		editor::actors[3
-		].cmpTransform_rotateY(15*dTime);
+		editor::actors[3].cmpTransform_rotateY(15*dTime);
 
 		ImGui::ShowDemoWindow();
 
+		ImGui::Begin("Scene Hierarchy");
 		editor::sceneHierarchyView->draw();
+		ImGui::End();
+
+		ImGui::Begin("ComponentView");
 		if(editor::sceneHierarchyView->getSelectedActor())
 			editor::componentView->draw(*editor::sceneHierarchyView->getSelectedActor());
+		ImGui::BeginChild("Editor");
+		if(editor::componentView->getSelectedEditor())
+			editor::componentView->getSelectedEditor()->draw(*editor::sceneHierarchyView->getSelectedActor());
+		ImGui::EndChild();
+		ImGui::End();
 
 		if (dTime > 0) {
 			editor::scene->simulate(dTime);
