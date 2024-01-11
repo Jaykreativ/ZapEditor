@@ -1,3 +1,4 @@
+#include "Viewport.h";
 #include "SceneHierarchy.h";
 #include "ComponentView.h";
 
@@ -34,6 +35,7 @@ namespace editor {
 	static uint32_t cam = 0;
 	static std::vector<Zap::Actor> actors;
 
+	static Viewport* viewport;
 	static SceneHierarchyView* sceneHierarchyView;
 	static ComponentView* componentView;
 }
@@ -117,14 +119,24 @@ namespace keybinds {
 	void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
 		if (action == GLFW_PRESS) {
 			if (button == turnCamera) {
-				if (!ImGui::GetIO().WantCaptureMouse) {
+				auto mousePos = ImGui::GetMousePos();
+				uint32_t width, height, x, y;
+				editor::pbr->getViewport(width, height, x, y);
+				bool mouseOnViewport =
+					mousePos.x > x &&
+					mousePos.x < x + width &&
+					mousePos.y > y &&
+					mousePos.y < y + height;
+				if (mouseOnViewport) {
 					movement::turnCamera = true;
+					editor::viewport->canMove = false;
 				}
 			}
 		}
 		else if (action == GLFW_RELEASE) {
 			if (button == turnCamera) {
 				movement::turnCamera = false;
+				editor::viewport->canMove = true;
 			}
 		}
 	}
@@ -179,7 +191,7 @@ namespace keybinds {
 }
 
 void resize(GLFWwindow* window, int width, int height) {
-	editor::pbr->setViewport(width, height, 0, 0);
+	//editor::pbr->setViewport(width, height, 0, 0);
 }
 
 int main() {
@@ -286,10 +298,11 @@ int main() {
 	pActor->addCamera();
 
 	editor::pbr->setViewport(1000, 600, 0, 0);
-	editor::renderer->addRenderTemplate(editor::pbr);
 	editor::renderer->addRenderTemplate(editor::gui);
+	editor::renderer->addRenderTemplate(editor::pbr);
 	editor::renderer->init();
 
+	editor::viewport = new editor::Viewport(editor::pbr, editor::renderer);
 	editor::sceneHierarchyView = new editor::SceneHierarchyView(editor::actors);
 	editor::componentView = new editor::ComponentView();
 
@@ -304,16 +317,24 @@ int main() {
 
 		ImGui::ShowDemoWindow();
 
+		editor::viewport->updateGui();
+
 		ImGui::Begin("Scene Hierarchy");
 		editor::sceneHierarchyView->draw();
 		ImGui::End();
 
 		ImGui::Begin("ComponentView");
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.2, 0.2, 0.2, 1));
+		ImGui::BeginChild("Selection", ImVec2(100, 0), ImGuiChildFlags_ResizeX);
 		if(editor::sceneHierarchyView->getSelectedActor())
 			editor::componentView->draw(*editor::sceneHierarchyView->getSelectedActor());
-		ImGui::BeginChild("Editor");
-		if(editor::componentView->getSelectedEditor())
+		ImGui::EndChild();
+		ImGui::PopStyleColor();
+		ImGui::SameLine();
+		ImGui::BeginChild("Editor", ImVec2(0, 0), ImGuiChildFlags_Border);
+		if (editor::componentView->getSelectedEditor()) {
 			editor::componentView->getSelectedEditor()->draw(*editor::sceneHierarchyView->getSelectedActor());
+		}
 		ImGui::EndChild();
 		ImGui::End();
 
@@ -330,10 +351,11 @@ int main() {
 		frameIndex++;
 	}
 
+	//terminate
+	delete editor::viewport;
 	delete editor::componentView;
 	delete editor::sceneHierarchyView;
 
-	//terminate
 	editor::renderer->destroy();
 	delete editor::renderer;
 	delete editor::window;

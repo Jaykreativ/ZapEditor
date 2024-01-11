@@ -15,6 +15,12 @@ namespace editor {
 		void draw(Zap::Actor selectedActor);
 	};
 
+	class LightEditor : public ComponentEditor
+	{
+	public:
+		void draw(Zap::Actor selectedActor);
+	};
+
 	class ComponentView
 	{
 	public:
@@ -25,6 +31,6 @@ namespace editor {
 
 		ComponentEditor* getSelectedEditor();
 	private:
-		ComponentEditor* m_selectedEditor;
+		ComponentEditor* m_selectedEditor = nullptr;
 	};
 }

@@ -6,9 +6,21 @@
 
 #include "imgui.h"
 
+void deleteSave(void* data) {
+	if (data) delete data;
+}
+
 namespace editor {
 	void TransformEditor::draw(Zap::Actor selectedActor) {
-		ImGui::Text("Transform Editor");
+		glm::vec3 pos = selectedActor.cmpTransform_getPos();
+		ImGui::DragFloat3("Position", (float*)&pos, 0.1);
+		selectedActor.cmpTransform_setPos(pos);
+	}
+
+	void LightEditor::draw(Zap::Actor selectedActor) {
+		glm::vec3 color = selectedActor.cmpLight_getColor();
+		ImGui::ColorPicker3("color", (float*)&color);
+		selectedActor.cmpLight_setColor(color);
 	}
 
 	ComponentView::ComponentView(){}
@@ -17,32 +29,32 @@ namespace editor {
 	void ComponentView::draw(Zap::Actor selectedActor) {
 		if (selectedActor.m_pScene->m_transformComponents.count(selectedActor.m_handle)) 
 			if(ImGui::Button("Transform")) {
-				delete m_selectedEditor;
+				deleteSave(m_selectedEditor);
 				m_selectedEditor = new TransformEditor();
 			}
 		if (selectedActor.m_pScene->m_modelComponents.count(selectedActor.m_handle)) 
 			if (ImGui::Button("Model")) {
-				delete m_selectedEditor;
+				deleteSave(m_selectedEditor);
 				m_selectedEditor = nullptr;
 			}
 		if (selectedActor.m_pScene->m_lightComponents.count(selectedActor.m_handle)) 
 			if(ImGui::Button("Light")){
-				delete m_selectedEditor;
-				m_selectedEditor = nullptr;
+				deleteSave(m_selectedEditor);
+				m_selectedEditor = new LightEditor;
 			}
 		if (selectedActor.m_pScene->m_rigidDynamicComponents.count(selectedActor.m_handle)) 
 			if(ImGui::Button("RigidDynamic")){
-				delete m_selectedEditor;
+				deleteSave(m_selectedEditor);
 				m_selectedEditor = nullptr;
 			}
 		if (selectedActor.m_pScene->m_rigidStaticComponents.count(selectedActor.m_handle)) 
 			if(ImGui::Button("RigidStatic")){
-				delete m_selectedEditor;
+				deleteSave(m_selectedEditor);
 				m_selectedEditor = nullptr;
 			}
 		if (selectedActor.m_pScene->m_cameraComponents.count(selectedActor.m_handle)) 
 			if(ImGui::Button("Camera")){
-				delete m_selectedEditor;
+				deleteSave(m_selectedEditor);
 				m_selectedEditor = nullptr;
 			}
 	}
