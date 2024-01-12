@@ -15,6 +15,8 @@
 #include "Zap/Scene/Transform.h"
 #include "Zap/Scene/Model.h"
 #include "imgui.h"
+#include "backends/imgui_impl_vulkan.h";
+#include "backends/imgui_impl_glfw.h";
 #include "PxPhysicsAPI.h"
 #include "glm.hpp"
 #include "gtc/matrix_transform.hpp"
@@ -315,28 +317,33 @@ int main() {
 		
 		editor::actors[3].cmpTransform_rotateY(15*dTime);
 
-		ImGui::ShowDemoWindow();
+		if (!editor::window->isIconified()) {
+			ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
-		editor::viewport->updateGui();
+			ImGui::ShowDemoWindow();
 
-		ImGui::Begin("Scene Hierarchy");
-		editor::sceneHierarchyView->draw();
-		ImGui::End();
+			editor::viewport->updateGui();
 
-		ImGui::Begin("ComponentView");
-		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.2, 0.2, 0.2, 1));
-		ImGui::BeginChild("Selection", ImVec2(100, 0), ImGuiChildFlags_ResizeX);
-		if(editor::sceneHierarchyView->getSelectedActor())
-			editor::componentView->draw(*editor::sceneHierarchyView->getSelectedActor());
-		ImGui::EndChild();
-		ImGui::PopStyleColor();
-		ImGui::SameLine();
-		ImGui::BeginChild("Editor", ImVec2(0, 0), ImGuiChildFlags_Border);
-		if (editor::componentView->getSelectedEditor()) {
-			editor::componentView->getSelectedEditor()->draw(*editor::sceneHierarchyView->getSelectedActor());
+			ImGui::Begin("Scene Hierarchy");
+			ImGui::Text("test");
+			editor::sceneHierarchyView->draw();
+			ImGui::End();
+
+			ImGui::Begin("ComponentView");
+			ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.2, 0.2, 0.2, 1));
+			ImGui::BeginChild("Selection", ImVec2(100, 0), ImGuiChildFlags_ResizeX);
+			if(editor::sceneHierarchyView->getSelectedActor())
+				editor::componentView->draw(*editor::sceneHierarchyView->getSelectedActor());
+			ImGui::EndChild();
+			ImGui::PopStyleColor();
+			ImGui::SameLine();
+			ImGui::BeginChild("Editor", ImVec2(0, 0), ImGuiChildFlags_Border);
+			if (editor::componentView->getSelectedEditor()) {
+				editor::componentView->getSelectedEditor()->draw(*editor::sceneHierarchyView->getSelectedActor());
+			}
+			ImGui::EndChild();
+			ImGui::End();
 		}
-		ImGui::EndChild();
-		ImGui::End();
 
 		if (dTime > 0) {
 			editor::scene->simulate(dTime);
