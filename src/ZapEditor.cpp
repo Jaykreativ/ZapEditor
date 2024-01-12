@@ -325,7 +325,6 @@ int main() {
 			editor::viewport->updateGui();
 
 			ImGui::Begin("Scene Hierarchy");
-			ImGui::Text("test");
 			editor::sceneHierarchyView->draw();
 			ImGui::End();
 
