@@ -15,6 +15,9 @@ namespace editor {
 		glm::vec3 pos = selectedActor.cmpTransform_getPos();
 		ImGui::DragFloat3("Position", (float*)&pos, 0.1);
 		selectedActor.cmpTransform_setPos(pos);
+		if (selectedActor.hasRigidDynamic()) {
+			selectedActor.cmpRigidDynamic_updatePose();
+		}
 	}
 
 	void RigidDynamicEditor::draw(Zap::Actor selectedActor) {
