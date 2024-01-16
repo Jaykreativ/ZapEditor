@@ -15,6 +15,12 @@ namespace editor {
 		void draw(Zap::Actor selectedActor);
 	};
 
+	class RigidDynamicEditor : public ComponentEditor
+	{
+	public:
+		void draw(Zap::Actor selectedActor);
+	};
+
 	class LightEditor : public ComponentEditor
 	{
 	public:
