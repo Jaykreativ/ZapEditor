@@ -1,3 +1,4 @@
+#include "MainMenuBar.h";
 #include "Viewport.h";
 #include "SceneHierarchy.h";
 #include "ComponentView.h";
@@ -37,6 +38,7 @@ namespace editor {
 	static uint32_t cam = 0;
 	static std::vector<Zap::Actor> actors;
 
+	static MainMenuBar* mainMenuBar;
 	static Viewport* viewport;
 	static SceneHierarchyView* sceneHierarchyView;
 	static ComponentView* componentView;
@@ -327,6 +329,7 @@ int main() {
 	editor::renderer->addRenderTemplate(editor::pbr);
 	editor::renderer->init();
 
+	editor::mainMenuBar = new editor::MainMenuBar();
 	editor::viewport = new editor::Viewport(editor::pbr, editor::renderer);
 	editor::sceneHierarchyView = new editor::SceneHierarchyView(editor::actors);
 	editor::componentView = new editor::ComponentView();
@@ -344,6 +347,8 @@ int main() {
 			ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
 			ImGui::ShowDemoWindow();
+
+			editor::mainMenuBar->draw();
 
 			editor::viewport->updateGui();
 
@@ -367,7 +372,7 @@ int main() {
 			ImGui::End();
 		}
 
-		if (dTime > 0) {
+		if (editor::mainMenuBar->shouldSimulate() && dTime > 0) {
 			editor::scene->simulate(dTime);
 		}
 
