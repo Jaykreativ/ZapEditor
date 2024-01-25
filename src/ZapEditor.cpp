@@ -1,3 +1,4 @@
+#include "MainMenuBar.h";
 #include "Viewport.h";
 #include "SceneHierarchy.h";
 #include "ComponentView.h";
@@ -39,6 +40,7 @@ namespace editor {
 	static uint32_t cam = 0;
 	static std::vector<Zap::Actor> actors;
 
+	static MainMenuBar* mainMenuBar;
 	static Viewport* viewport;
 	static SceneHierarchyView* sceneHierarchyView;
 	static ComponentView* componentView;
@@ -165,11 +167,15 @@ namespace keybinds {
 			else if (key == up) {
 				movement::up = true;
 			}
-			/*else if (key == GLFW_KEY_ENTER) {
-				glm::vec3 dir = app::cam.getTransform()[2];
-				px::cubePxActor->addForce(PxVec3(dir.x*500, dir.y*500, dir.z*500));
-				//px::cubePxActor->setGlobalPose(PxTransform(PxVec3(0, 5, 0)));
-			}*/
+			else if (key == GLFW_KEY_ENTER) {
+
+				
+				editor::actors[editor::cam - 1].cmpTransform_setPos(-10, 0.3, 2);
+				editor::actors[editor::cam - 1].cmpRigidDynamic_updatePose();
+				editor::actors[editor::cam - 1].cmpRigidDynamic_clearTorque();
+				editor::actors[editor::cam - 1].cmpRigidDynamic_clearForce();
+				editor::actors[editor::cam - 1].cmpRigidDynamic_addForce({10, 10, 0});
+			}
 		}
 		else if (action == GLFW_RELEASE) {
 			if (key == forward) {
@@ -230,6 +236,8 @@ int main() {
 
 	auto giftModel = modelLoader.load("Models/OBJ/Gift.obj");
 
+	Zap::PhysicsMaterial pxMaterial = Zap::PhysicsMaterial(0.5, 1, 0.1);
+
 	editor::actors.push_back(Zap::Actor());
 	auto pActor = &editor::actors.back();
 	editor::scene->attachActor(*pActor);
@@ -237,6 +245,11 @@ int main() {
 	pActor->cmpTransform_setPos(0, -1, 0);
 	pActor->cmpTransform_setScale(25, 1, 25);
 	pActor->addModel(cubeModel);
+	{
+		Zap::BoxGeometry box({ 25, 1, 25 });
+		Zap::Shape shape(box, pxMaterial, true);
+		pActor->addRigidStatic(shape);
+	}
 
 	editor::actors.push_back(Zap::Actor());
 	pActor = &editor::actors.back();
@@ -293,12 +306,24 @@ int main() {
 	pActor->addModel(cubeModel);
 	//
 
+	editor::actors.push_back(Zap::Actor());
+	pActor = &editor::actors.back();
+	editor::scene->attachActor(*pActor);
+	pActor->addTransform(glm::mat4(1));
+	pActor->cmpTransform_setPos(-10, 1, 2);
+	pActor->cmpTransform_setScale(0.3, 0.3, 0.3);
+	pActor->addModel(cubeModel);
+	{
+		Zap::Shape shape(Zap::BoxGeometry({0.3, 0.3, 0.3}), pxMaterial, true);
+		pActor->addRigidDynamic(shape);
+	}
+
 	editor::cam = editor::actors.size();
 	editor::actors.push_back(Zap::Actor());
 	pActor = &editor::actors[editor::cam];
 	editor::scene->attachActor(*pActor);
 	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(-1, 1, -5);
+	pActor->cmpTransform_setPos(5, 1, -3);
 	pActor->addCamera();
 
 	editor::pbr->setViewport(1000, 600, 0, 0);
@@ -308,6 +333,7 @@ int main() {
 	editor::renderer->addRenderTemplate(editor::rtx);
 	editor::renderer->init();
 
+	editor::mainMenuBar = new editor::MainMenuBar();
 	editor::viewport = new editor::Viewport(editor::pbr, editor::renderer);
 	editor::sceneHierarchyView = new editor::SceneHierarchyView(editor::actors);
 	editor::componentView = new editor::ComponentView();
@@ -325,6 +351,8 @@ int main() {
 			ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
 
 			ImGui::ShowDemoWindow();
+
+			editor::mainMenuBar->draw();
 
 			editor::viewport->updateGui();
 
@@ -348,7 +376,7 @@ int main() {
 			ImGui::End();
 		}
 
-		if (dTime > 0) {
+		if (editor::mainMenuBar->shouldSimulate() && dTime > 0) {
 			editor::scene->simulate(dTime);
 		}
 

@@ -15,6 +15,15 @@ namespace editor {
 		glm::vec3 pos = selectedActor.cmpTransform_getPos();
 		ImGui::DragFloat3("Position", (float*)&pos, 0.1);
 		selectedActor.cmpTransform_setPos(pos);
+		if (selectedActor.hasRigidDynamic()) {
+			selectedActor.cmpRigidDynamic_updatePose();
+		}
+	}
+
+	void RigidDynamicEditor::draw(Zap::Actor selectedActor) {
+		if (ImGui::Button("update")) {
+			selectedActor.cmpRigidDynamic_updatePose();
+		}
 	}
 
 	void LightEditor::draw(Zap::Actor selectedActor) {
@@ -40,12 +49,12 @@ namespace editor {
 		if (selectedActor.m_pScene->m_lightComponents.count(selectedActor.m_handle)) 
 			if(ImGui::Button("Light")){
 				deleteSave(m_selectedEditor);
-				m_selectedEditor = new LightEditor;
+				m_selectedEditor = new LightEditor();
 			}
 		if (selectedActor.m_pScene->m_rigidDynamicComponents.count(selectedActor.m_handle)) 
 			if(ImGui::Button("RigidDynamic")){
 				deleteSave(m_selectedEditor);
-				m_selectedEditor = nullptr;
+				m_selectedEditor = new RigidDynamicEditor();
 			}
 		if (selectedActor.m_pScene->m_rigidStaticComponents.count(selectedActor.m_handle)) 
 			if(ImGui::Button("RigidStatic")){
