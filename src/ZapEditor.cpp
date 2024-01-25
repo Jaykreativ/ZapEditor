@@ -7,6 +7,7 @@
 #include "Zap/Rendering/Window.h"
 #include "Zap/Rendering/Renderer.h"
 #include "Zap/Rendering/PBRenderer.h"
+#include "Zap/Rendering/RaytracingRenderer.h"
 #include "Zap/Rendering/Gui.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Mesh.h"
@@ -31,6 +32,7 @@ namespace editor {
 	static Zap::Gui* gui;
 
 	static Zap::PBRenderer* pbr;
+	static Zap::RaytracingRenderer* rtx;
 
 	static Zap::Scene* scene;
 
@@ -216,7 +218,7 @@ int main() {
 	editor::gui = new Zap::Gui(*editor::renderer);
 
 	editor::pbr = new Zap::PBRenderer(*editor::renderer, editor::scene);
-
+	editor::rtx = new Zap::RaytracingRenderer(*editor::renderer, editor::scene);
 
 	Zap::ModelLoader modelLoader = Zap::ModelLoader();
 
@@ -300,8 +302,10 @@ int main() {
 	pActor->addCamera();
 
 	editor::pbr->setViewport(1000, 600, 0, 0);
+	editor::rtx->setExtent({1000, 600});
 	editor::renderer->addRenderTemplate(editor::gui);
-	editor::renderer->addRenderTemplate(editor::pbr);
+	//editor::renderer->addRenderTemplate(editor::pbr);
+	editor::renderer->addRenderTemplate(editor::rtx);
 	editor::renderer->init();
 
 	editor::viewport = new editor::Viewport(editor::pbr, editor::renderer);
@@ -348,7 +352,7 @@ int main() {
 			editor::scene->simulate(dTime);
 		}
 
-		editor::pbr->updateBuffers(editor::actors[editor::cam]);
+		//editor::pbr->updateBuffers(editor::actors[editor::cam]);
 		editor::renderer->render();
 
 		Zap::Window::pollEvents();
