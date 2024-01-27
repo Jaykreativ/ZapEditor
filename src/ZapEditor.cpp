@@ -34,9 +34,12 @@ namespace editor {
 
 	static Zap::PBRenderer* pbr;
 	static Zap::RaytracingRenderer* rtx;
+	static vk::Image* rtxOutImage;
+	static vk::Sampler rtxOutSampler;
+	static VkDescriptorSet rtxOutDescriptorSet;
 
 	static Zap::Scene* scene;
-
+	
 	static uint32_t cam = 0;
 	static std::vector<Zap::Actor> actors;
 
@@ -333,6 +336,12 @@ int main() {
 	editor::renderer->addRenderTemplate(editor::rtx);
 	editor::renderer->init();
 
+	editor::rtxOutImage = &editor::rtx->getOutputImage();
+
+	editor::rtxOutSampler.init();
+
+	editor::rtxOutDescriptorSet = ImGui_ImplVulkan_AddTexture(editor::rtxOutSampler, editor::rtxOutImage->getVkImageView(), editor::rtxOutImage->getLayout());
+
 	editor::mainMenuBar = new editor::MainMenuBar();
 	editor::viewport = new editor::Viewport(editor::pbr, editor::renderer);
 	editor::sceneHierarchyView = new editor::SceneHierarchyView(editor::actors);
@@ -354,7 +363,18 @@ int main() {
 
 			editor::mainMenuBar->draw();
 
-			editor::viewport->updateGui();
+			ImGui::Begin("Viewport");
+			auto imageExtent = editor::rtxOutImage->getExtent();
+			auto extent = ImGui::GetWindowSize();
+			if (extent.x != imageExtent.width || extent.y != imageExtent.height) {
+				editor::rtxOutImage->setWidth(extent.x);
+				editor::rtxOutImage->setHeight(extent.y);
+				editor::rtxOutImage->update();
+				editor::renderer->update();
+			}
+			ImGui::Image(editor::rtxOutDescriptorSet, extent);
+			ImGui::End();
+			//editor::viewport->updateGui();
 
 			ImGui::Begin("Scene Hierarchy");
 			editor::sceneHierarchyView->draw();
@@ -393,6 +413,8 @@ int main() {
 	delete editor::viewport;
 	delete editor::componentView;
 	delete editor::sceneHierarchyView;
+
+	editor::rtxOutSampler.destroy();
 
 	editor::renderer->destroy();
 	delete editor::renderer;
