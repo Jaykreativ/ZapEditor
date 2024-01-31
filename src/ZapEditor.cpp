@@ -34,9 +34,6 @@ namespace editor {
 
 	static Zap::PBRenderer* pbr;
 	static Zap::RaytracingRenderer* rtx;
-	static vk::Image* rtxOutImage;
-	static vk::Sampler rtxOutSampler;
-	static VkDescriptorSet rtxOutDescriptorSet;
 
 	static Zap::Scene* scene;
 	
@@ -127,25 +124,13 @@ namespace keybinds {
 
 	void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
 		if (action == GLFW_PRESS) {
-			if (button == turnCamera) {
-				auto mousePos = ImGui::GetMousePos();
-				uint32_t width, height, x, y;
-				editor::pbr->getViewport(width, height, x, y);
-				bool mouseOnViewport =
-					mousePos.x > x &&
-					mousePos.x < x + width &&
-					mousePos.y > y &&
-					mousePos.y < y + height;
-				if (mouseOnViewport) {
-					movement::turnCamera = true;
-					editor::viewport->canMove = false;
-				}
+			if (button == turnCamera && editor::viewport->isHovered()) {
+				movement::turnCamera = true;
 			}
 		}
 		else if (action == GLFW_RELEASE) {
 			if (button == turnCamera) {
 				movement::turnCamera = false;
-				editor::viewport->canMove = true;
 			}
 		}
 	}
@@ -330,20 +315,13 @@ int main() {
 	pActor->addCamera();
 
 	editor::pbr->setViewport(1000, 600, 0, 0);
-	editor::rtx->setExtent({1000, 600});
+	editor::renderer->addRenderTemplate(editor::rtx); 
 	editor::renderer->addRenderTemplate(editor::gui);
 	//editor::renderer->addRenderTemplate(editor::pbr);
-	editor::renderer->addRenderTemplate(editor::rtx);
 	editor::renderer->init();
 
-	editor::rtxOutImage = &editor::rtx->getOutputImage();
-
-	editor::rtxOutSampler.init();
-
-	editor::rtxOutDescriptorSet = ImGui_ImplVulkan_AddTexture(editor::rtxOutSampler, editor::rtxOutImage->getVkImageView(), editor::rtxOutImage->getLayout());
-
 	editor::mainMenuBar = new editor::MainMenuBar();
-	editor::viewport = new editor::Viewport(editor::pbr, editor::renderer);
+	editor::viewport = new editor::Viewport(editor::pbr, editor::rtx, editor::renderer);
 	editor::sceneHierarchyView = new editor::SceneHierarchyView(editor::actors);
 	editor::componentView = new editor::ComponentView();
 
@@ -363,18 +341,11 @@ int main() {
 
 			editor::mainMenuBar->draw();
 
-			ImGui::Begin("Viewport");
-			auto imageExtent = editor::rtxOutImage->getExtent();
-			auto extent = ImGui::GetWindowSize();
-			if (extent.x != imageExtent.width || extent.y != imageExtent.height) {
-				editor::rtxOutImage->setWidth(extent.x);
-				editor::rtxOutImage->setHeight(extent.y);
-				editor::rtxOutImage->update();
-				editor::renderer->update();
-			}
-			ImGui::Image(editor::rtxOutDescriptorSet, extent);
+			ImGuiWindowFlags windowFlags = 0;
+			if (editor::viewport->isHovered()) windowFlags |= ImGuiWindowFlags_NoMove;
+			ImGui::Begin("Viewport", nullptr, windowFlags);
+			editor::viewport->draw();
 			ImGui::End();
-			//editor::viewport->updateGui();
 
 			ImGui::Begin("Scene Hierarchy");
 			editor::sceneHierarchyView->draw();
@@ -401,6 +372,7 @@ int main() {
 		}
 
 		//editor::pbr->updateBuffers(editor::actors[editor::cam]);
+		editor::rtx->updateCamera(editor::actors[editor::cam]);
 		editor::renderer->render();
 
 		Zap::Window::pollEvents();
@@ -413,8 +385,6 @@ int main() {
 	delete editor::viewport;
 	delete editor::componentView;
 	delete editor::sceneHierarchyView;
-
-	editor::rtxOutSampler.destroy();
 
 	editor::renderer->destroy();
 	delete editor::renderer;

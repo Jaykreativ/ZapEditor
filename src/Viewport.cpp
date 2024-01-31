@@ -2,27 +2,39 @@
 
 #include "Zap/Rendering/Renderer.h"
 #include "Zap/Rendering/PBRenderer.h"
+#include "Zap/Rendering/RaytracingRenderer.h"
 #include "imgui.h"
+#include "backends/imgui_impl_vulkan.h"
 
 namespace editor {
-	Viewport::Viewport(Zap::PBRenderer* render, Zap::Renderer* renderer)
-		: m_render(render), m_renderer(renderer)
-	{}
+	Viewport::Viewport(Zap::PBRenderer* render, Zap::RaytracingRenderer* rtxRender, Zap::Renderer* renderer)
+		: m_render(render), m_rtxRender(rtxRender), m_renderer(renderer)
+	{
+		m_rtxOutImage = &m_rtxRender->getOutputImage();
 
-	void Viewport::updateGui() {
-		uint32_t width, height, x, y;
-		m_render->getViewport(width, height, x, y);
-		ImGui::GetStyle().DisplayWindowPadding = ImVec2(width, height+19);
-		ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
-		ImGuiWindowFlags windowFlags = 0;
-		if (!canMove) windowFlags |= ImGuiWindowFlags_NoMove;
-		ImGui::Begin("Viewport", nullptr, windowFlags);
-		auto pos = ImGui::GetWindowPos();
-		auto size = ImGui::GetWindowSize();
-		m_render->setViewport(size.x, size.y-19, pos.x, pos.y+19);
-		m_renderer->update();
-		ImGui::End();
-		ImGui::PopStyleColor();
-		ImGui::GetStyle().DisplayWindowPadding = ImVec2(0, 0);
+		m_rtxOutSampler.init();
+
+		m_rtxOutDescriptorSet = ImGui_ImplVulkan_AddTexture(m_rtxOutSampler, m_rtxOutImage->getVkImageView(), m_rtxOutImage->getLayout());
+	}
+
+	Viewport::~Viewport() {
+		m_rtxOutSampler.destroy();
+	}
+
+	void Viewport::draw() {
+		auto imageExtent = m_rtxOutImage->getExtent();
+		auto extent = ImGui::GetContentRegionAvail();
+		if (extent.x != imageExtent.width || extent.y != imageExtent.height) {
+			ImGui_ImplVulkan_RemoveTexture(m_rtxOutDescriptorSet);
+			m_rtxRender->resize(extent.x, extent.y);
+			m_renderer->update();
+			m_rtxOutDescriptorSet = ImGui_ImplVulkan_AddTexture(m_rtxOutSampler, m_rtxOutImage->getVkImageView(), m_rtxOutImage->getLayout());
+		}
+		ImGui::Image(m_rtxOutDescriptorSet, extent);
+		m_isHovered = ImGui::IsItemHovered();
+	}
+
+	bool Viewport::isHovered() {
+		return m_isHovered;
 	}
 }
