@@ -314,6 +314,24 @@ int main() {
 	pActor->cmpTransform_setPos(5, 1, -3);
 	pActor->addCamera();
 
+	for (int i = -5; i < 5; i++) {
+		for (int j = -5; j < 5; j++) {
+			for (int k = 0; k < 3; k++) {
+				editor::actors.push_back(Zap::Actor());
+				pActor = &editor::actors.back();
+				editor::scene->attachActor(*pActor);
+				pActor->addTransform(glm::mat4(1));
+				pActor->cmpTransform_setPos(i+k/3.0, 5+k, j);
+				pActor->cmpTransform_setScale(0.3, 0.3, 0.3);
+				pActor->addModel(giftModel);
+				{
+					Zap::Shape shape(Zap::BoxGeometry({ 0.3, 0.3, 0.3 }), pxMaterial, true);
+					pActor->addRigidDynamic(shape);
+				}
+			}
+		}
+	}
+
 	editor::pbr->setViewport(1000, 600, 0, 0);
 	editor::renderer->addRenderTemplate(editor::rtx); 
 	editor::renderer->addRenderTemplate(editor::gui);
