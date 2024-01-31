@@ -405,4 +405,6 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Auto ignores
 /imgui.ini
