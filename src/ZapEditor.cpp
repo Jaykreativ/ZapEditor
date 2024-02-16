@@ -155,14 +155,16 @@ namespace keybinds {
 			else if (key == up) {
 				movement::up = true;
 			}
-			else if (key == GLFW_KEY_ENTER) {
-
-				
-				editor::actors[editor::cam - 1].cmpTransform_setPos(-10, 0.3, 2);
+			else if (key == GLFW_KEY_P) {
+				editor::actors[editor::cam - 1].cmpTransform_setPos(-10, 0.3, 3);
 				editor::actors[editor::cam - 1].cmpRigidDynamic_updatePose();
-				editor::actors[editor::cam - 1].cmpRigidDynamic_clearTorque();
-				editor::actors[editor::cam - 1].cmpRigidDynamic_clearForce();
-				editor::actors[editor::cam - 1].cmpRigidDynamic_addForce({10, 10, 0});
+				editor::actors[editor::cam - 1].cmpRigidDynamic_addForce({10, 3, 0});
+			}
+			else if (key == GLFW_KEY_R) {
+				editor::viewport->changeRenderType(editor::Viewport::eRAYTRACING);
+			}
+			else if (key == GLFW_KEY_T) {
+				editor::viewport->changeRenderType(editor::Viewport::ePBR);
 			}
 		}
 		else if (action == GLFW_RELEASE) {
@@ -231,34 +233,44 @@ int main() {
 	editor::scene->attachActor(*pActor);
 	pActor->addTransform(glm::mat4(1));
 	pActor->cmpTransform_setPos(0, -1, 0);
-	pActor->cmpTransform_setScale(25, 1, 25);
+	pActor->cmpTransform_setScale(50, 1, 50);
 	pActor->addModel(cubeModel);
 	{
-		Zap::BoxGeometry box({ 25, 1, 25 });
+		Zap::BoxGeometry box({ 50, 1, 50 });
 		Zap::Shape shape(box, pxMaterial, true);
 		pActor->addRigidStatic(shape);
 	}
-
+	
 	editor::actors.push_back(Zap::Actor());
 	pActor = &editor::actors.back();
 	editor::scene->attachActor(*pActor);
 	pActor->addTransform(glm::mat4(1));
 	pActor->cmpTransform_setPos(0, 3.5, 0);
 	pActor->addLight({3, 2, 1});
-
+	
 	editor::actors.push_back(Zap::Actor());
 	pActor = &editor::actors.back();
 	editor::scene->attachActor(*pActor);
 	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(-2, 1, -0.5);
+	pActor->cmpTransform_setPos(-2, 2, -0.5);
 	pActor->addLight({2, 2, 2});
-
+	
 	editor::actors.push_back(Zap::Actor());
 	pActor = &editor::actors.back();
 	editor::scene->attachActor(*pActor);
 	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(0, 1, -3);
+	pActor->cmpTransform_setPos(-5, 1, 0);
 	pActor->addModel(giftModel);
+	
+#ifndef _DEBUG
+	editor::actors.push_back(Zap::Actor());
+	pActor = &editor::actors.back();
+	editor::scene->attachActor(*pActor);
+	pActor->addTransform(glm::mat4(1));
+	pActor->cmpTransform_setPos(0, 0, 0);
+	pActor->cmpTransform_setScale(1, 1, 1);
+	pActor->addModel(sponzaModel);
+#endif
 
 	// coordinate helper
 	editor::actors.push_back(Zap::Actor());
@@ -268,7 +280,7 @@ int main() {
 	pActor->cmpTransform_setPos(0, 1, 0);
 	pActor->cmpTransform_setScale(0.25, 0.25, 0.25);
 	pActor->addModel(cubeModel);
-
+	
 	editor::actors.push_back(Zap::Actor());
 	pActor = &editor::actors.back();
 	editor::scene->attachActor(*pActor);
@@ -276,7 +288,7 @@ int main() {
 	pActor->cmpTransform_setPos(0.5, 1, 0);
 	pActor->cmpTransform_setScale(0.5, 0.1, 0.1);
 	pActor->addModel(cubeModel);
-
+	
 	editor::actors.push_back(Zap::Actor());
 	pActor = &editor::actors.back();
 	editor::scene->attachActor(*pActor);
@@ -284,7 +296,7 @@ int main() {
 	pActor->cmpTransform_setPos(0, 1.5, 0);
 	pActor->cmpTransform_setScale(0.1, 0.5, 0.1);
 	pActor->addModel(cubeModel);
-
+	
 	editor::actors.push_back(Zap::Actor());
 	pActor = &editor::actors.back();
 	editor::scene->attachActor(*pActor);
@@ -298,50 +310,55 @@ int main() {
 	pActor = &editor::actors.back();
 	editor::scene->attachActor(*pActor);
 	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(-10, 1, 2);
+	pActor->cmpTransform_setPos(-10, 1, 5);
 	pActor->cmpTransform_setScale(0.3, 0.3, 0.3);
 	pActor->addModel(cubeModel);
 	{
 		Zap::Shape shape(Zap::BoxGeometry({0.3, 0.3, 0.3}), pxMaterial, true);
 		pActor->addRigidDynamic(shape);
 	}
-
+	
 	editor::cam = editor::actors.size();
 	editor::actors.push_back(Zap::Actor());
 	pActor = &editor::actors[editor::cam];
 	editor::scene->attachActor(*pActor);
 	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(5, 1, -3);
+	pActor->cmpTransform_setPos(4, 2, 0);
+	pActor->cmpTransform_rotateY(-90);
 	pActor->addCamera();
 
-	for (int i = -5; i < 5; i++) {
-		for (int j = -5; j < 5; j++) {
-			for (int k = 0; k < 3; k++) {
-				editor::actors.push_back(Zap::Actor());
-				pActor = &editor::actors.back();
-				editor::scene->attachActor(*pActor);
-				pActor->addTransform(glm::mat4(1));
-				pActor->cmpTransform_setPos(i+k/3.0, 5+k, j);
-				pActor->cmpTransform_setScale(0.3, 0.3, 0.3);
-				pActor->addModel(giftModel);
-				{
-					Zap::Shape shape(Zap::BoxGeometry({ 0.3, 0.3, 0.3 }), pxMaterial, true);
-					pActor->addRigidDynamic(shape);
-				}
-			}
-		}
-	}
+	//for (int i = 0; i < 5; i++) {
+	//	for (int j = 0; j < 5; j++) {
+	//		for (int k = 0; k < 5-j; k++) {
+	//			editor::actors.push_back(Zap::Actor());
+	//			pActor = &editor::actors.back();
+	//			editor::scene->attachActor(*pActor);
+	//			pActor->addTransform(glm::mat4(1));
+	//			pActor->cmpTransform_setPos(i, 0.3+j*0.6, k * 0.6 + j * 0.6 / 2.0);
+	//			pActor->cmpTransform_setScale(0.3, 0.3, 0.3);
+	//			pActor->addModel(giftModel);
+	//			{
+	//				Zap::Shape shape(Zap::BoxGeometry({ 0.3, 0.3, 0.3 }), pxMaterial, true);
+	//				pActor->addRigidDynamic(shape);
+	//			}
+	//		}
+	//	}
+	//}
 
-	editor::pbr->setViewport(1000, 600, 0, 0);
-	editor::renderer->addRenderTemplate(editor::rtx); 
+	editor::renderer->addRenderTemplate(editor::rtx);
+
+	editor::pbr->setViewport(1, 1, 0, 0);
+	editor::renderer->addRenderTemplate(editor::pbr);
+
+	editor::gui->init();
 	editor::renderer->addRenderTemplate(editor::gui);
-	//editor::renderer->addRenderTemplate(editor::pbr);
-	editor::renderer->init();
 
 	editor::mainMenuBar = new editor::MainMenuBar();
 	editor::viewport = new editor::Viewport(editor::pbr, editor::rtx, editor::renderer);
 	editor::sceneHierarchyView = new editor::SceneHierarchyView(editor::actors);
 	editor::componentView = new editor::ComponentView();
+
+	editor::renderer->init();
 
 	//mainloop
 	float dTime = 0;
@@ -389,7 +406,7 @@ int main() {
 			editor::scene->simulate(dTime);
 		}
 
-		//editor::pbr->updateBuffers(editor::actors[editor::cam]);
+		editor::pbr->updateBuffers(editor::actors[editor::cam]);
 		editor::rtx->updateCamera(editor::actors[editor::cam]);
 		editor::renderer->render();
 

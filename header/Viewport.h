@@ -5,6 +5,7 @@
 namespace Zap{
 	class PBRenderer;
 	class RaytracingRenderer;
+	class Gui;
 	class Renderer;
 }
 
@@ -19,18 +20,29 @@ namespace editor {
 
 		void draw();
 
+		enum RenderType {
+			ePBR = 0,
+			eRAYTRACING = 1
+		};
+
+		void changeRenderType(RenderType renderType);
+
 		bool isHovered();
 
 	private:
-		Zap::PBRenderer* m_render;
+		Zap::PBRenderer* m_pbRender;
 		Zap::RaytracingRenderer* m_rtxRender;
 		Zap::Renderer* m_renderer;
 
-		vk::Image* m_rtxOutImage;
-		vk::Sampler m_rtxOutSampler;
-		VkDescriptorSet m_rtxOutDescriptorSet;
+		RenderType m_renderType = ePBR;
+		vk::Image m_outImage;
+
+		vk::Sampler m_sampler;
+		VkDescriptorSet m_imageDescriptorSet;
 
 		bool m_isHovered = false;
+
+		void update();
 	};
 }
 
