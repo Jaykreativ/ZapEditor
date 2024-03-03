@@ -5,8 +5,11 @@
 namespace Zap{
 	class PBRenderer;
 	class RaytracingRenderer;
+	class PathTracer;
 	class Gui;
 	class Renderer;
+	class Scene;
+	class Actor;
 }
 
 namespace editor {
@@ -15,14 +18,15 @@ namespace editor {
 	public:
 		bool canMove = true;
 
-		Viewport(Zap::PBRenderer* render, Zap::RaytracingRenderer* rtxRender, Zap::Renderer* renderer);
+		Viewport(Zap::Renderer* renderer, Zap::Scene* pScene);
 		~Viewport();
 
-		void draw();
+		void draw(const Zap::Actor& camera);
 
 		enum RenderType {
 			ePBR = 0,
-			eRAYTRACING = 1
+			eRAYTRACING = 1,
+			ePATHTRACING = 2
 		};
 
 		void changeRenderType(RenderType renderType);
@@ -32,6 +36,7 @@ namespace editor {
 	private:
 		Zap::PBRenderer* m_pbRender;
 		Zap::RaytracingRenderer* m_rtxRender;
+		Zap::PathTracer* m_pathTracer;
 		Zap::Renderer* m_renderer;
 
 		RenderType m_renderType = ePBR;
