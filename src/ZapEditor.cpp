@@ -210,182 +210,209 @@ int main() {
 
 	Zap::ModelLoader modelLoader = Zap::ModelLoader();
 
+	auto cornellBoxModel = modelLoader.load("Models/gltf/cornellBox.glb");
+
 	auto woodTexture = modelLoader.loadTexture("woodTexture.png");
-	auto randomTexture = modelLoader.loadTexture("randomTexture.jpg");
-	auto reddotsTexture = modelLoader.loadTexture("reddotsTexture.jpg");
-
+	//auto randomTexture = modelLoader.loadTexture("randomTexture.jpg");
+	//auto reddotsTexture = modelLoader.loadTexture("reddotsTexture.jpg");
+	//
 	auto cubeModel = modelLoader.load("Models/OBJ/Cube.obj");
-
+	//
 #ifndef _DEBUG
-	//auto sponzaModel = modelLoader.load("Models/OBJ/Sponza/Sponza.obj");
+	auto sponzaModel = modelLoader.load("Models/OBJ/Sponza/Sponza.obj");
 #endif
+	//
+	//auto giftModel = modelLoader.load("Models/OBJ/Gift.obj");
+	//
+	//auto kimberModel = modelLoader.load("Models/OBJ/PistolKimber/PistolKimber.glb");
 
-	auto giftModel = modelLoader.load("Models/OBJ/Gift.obj");
-
-	auto kimberModel = modelLoader.load("Models/OBJ/PistolKimber/PistolKimber.glb");
-
-	Zap::PhysicsMaterial pxMaterial = Zap::PhysicsMaterial(0.5, 1, 0.1);
-
-	editor::actors.push_back(Zap::Actor());
-	auto pActor = &editor::actors.back();
-	editor::scene->attachActor(*pActor);
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(0, -1, 0);
-	pActor->cmpTransform_setScale(50, 1, 50);
-	pActor->addModel(cubeModel);
-	{
-		Zap::Material mat;
-		mat.albedoColor = { 1, 1, 1 };
-		mat.roughness = 0.5;
-		mat.metallic = 0;
-		mat.emissive = { 1, 1, 1, 1 };
-		pActor->cmpModel_setMaterial(mat);
-
-		Zap::BoxGeometry box({ 50, 1, 50 });
-		Zap::Shape shape(box, pxMaterial, true);
-		pActor->addRigidStatic(shape);
-	}
-	
-	editor::actors.push_back(Zap::Actor());
-	pActor = &editor::actors.back();
-	editor::scene->attachActor(*pActor);
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(0, 3.5, 0);
-	pActor->addLight({3, 2, 1});
-	
-	editor::actors.push_back(Zap::Actor());
-	pActor = &editor::actors.back();
-	editor::scene->attachActor(*pActor);
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(-2, 2, -0.5);
-	pActor->addLight({2, 2, 2});
-
-	editor::actors.push_back(Zap::Actor());
-	pActor = &editor::actors.back();
-	editor::scene->attachActor(*pActor);
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(50, 150, 100);
-	pActor->addLight({ 1700, 1000, 500 });
-	
-	editor::actors.push_back(Zap::Actor());
-	pActor = &editor::actors.back();
-	editor::scene->attachActor(*pActor);
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(-5, 1, 0);
-	pActor->addModel(giftModel);
-	{
-		Zap::Material mat = Zap::Material();
-		mat.albedoColor = glm::vec3(1);
-		mat.albedoMap = reddotsTexture;
-		mat.metallic = 0;
-		mat.roughness = 0.2;
-		Zap::Material red = Zap::Material();
-		red.albedoColor = glm::vec3(1, 0, 0);
-		red.metallic = 0;
-		red.roughness = 0.5;
-		pActor->cmpModel_setMaterial(red);
-		pActor->cmpModel_setMaterial(0, mat);
-	}
-	
-#ifndef _DEBUG
+	//Zap::PhysicsMaterial pxMaterial = Zap::PhysicsMaterial(0.5, 1, 0.1);
+	//
+	//editor::actors.push_back(Zap::Actor());
+	//auto pActor = &editor::actors.back();
+	//editor::scene->attachActor(*pActor);
+	//pActor->addTransform(glm::mat4(1));
+	//pActor->cmpTransform_setPos(0, -1, 0);
+	//pActor->cmpTransform_setScale(50, 1, 50);
+	//pActor->addModel(cubeModel);
+	//{
+	//	Zap::Material mat;
+	//	mat.albedoColor = { 1, 1, 1 };
+	//	mat.roughness = 0.5;
+	//	mat.metallic = 0;
+	//	mat.emissive = { 1, 1, 1, 0 };
+	//	pActor->cmpModel_setMaterial(mat);
+	//
+	//	Zap::BoxGeometry box({ 50, 1, 50 });
+	//	Zap::Shape shape(box, pxMaterial, true);
+	//	pActor->addRigidStatic(shape);
+	//}
+	//
 	//editor::actors.push_back(Zap::Actor());
 	//pActor = &editor::actors.back();
 	//editor::scene->attachActor(*pActor);
 	//pActor->addTransform(glm::mat4(1));
-	//pActor->cmpTransform_setPos(0, 0, 0);
-	//pActor->cmpTransform_setScale(0.01, 0.01, 0.01);
-	//pActor->addModel(sponzaModel);
+	//pActor->cmpTransform_setPos(0, 3.5, 0);
+	//pActor->addLight({3, 2, 1});
+	//
+	editor::actors.push_back(Zap::Actor());
+	auto pActor = &editor::actors.back();
+	editor::scene->attachActor(*pActor);
+	pActor->addTransform(glm::mat4(1));
+	pActor->cmpTransform_setPos(0, 4.3, 0);
+	pActor->addLight({5, 5, 5});
+	//
+	//editor::actors.push_back(Zap::Actor());
+	//pActor = &editor::actors.back();
+	//editor::scene->attachActor(*pActor);
+	//pActor->addTransform(glm::mat4(1));
+	//pActor->cmpTransform_setPos(50, 150, 100);
+	//pActor->addLight({ 1700, 1000, 500 });
+	//
+	//editor::actors.push_back(Zap::Actor());
+	//pActor = &editor::actors.back();
+	//editor::scene->attachActor(*pActor);
+	//pActor->addTransform(glm::mat4(1));
+	//pActor->cmpTransform_setPos(-5, 1, 0);
+	//pActor->addModel(giftModel);
+	//{
+	//	Zap::Material mat = Zap::Material();
+	//	mat.albedoColor = glm::vec3(1);
+	//	mat.albedoMap = reddotsTexture;
+	//	mat.metallic = 0;
+	//	mat.roughness = 0.2;
+	//	Zap::Material red = Zap::Material();
+	//	red.albedoColor = glm::vec3(1, 0, 0);
+	//	red.metallic = 0;
+	//	red.roughness = 0.7;
+	//	pActor->cmpModel_setMaterial(red);
+	//	pActor->cmpModel_setMaterial(0, mat);
+	//}
+	//
+#ifndef _DEBUG
+	editor::actors.push_back(Zap::Actor());
+	pActor = &editor::actors.back();
+	editor::scene->attachActor(*pActor);
+	pActor->addTransform(glm::mat4(1));
+	pActor->cmpTransform_setPos(0, 0, 0);
+	pActor->cmpTransform_setScale(0.01, 0.01, 0.01);
+	pActor->addModel(sponzaModel);
+#endif
+	//
+	//// coordinate helper
+	//editor::actors.push_back(Zap::Actor());
+	//pActor = &editor::actors.back();
+	//editor::scene->attachActor(*pActor);
+	//pActor->addTransform(glm::mat4(1));
+	//pActor->cmpTransform_setPos(0, 1, 0);
+	//pActor->cmpTransform_setScale(0.25, 0.25, 0.25);
+	//pActor->addModel(cubeModel);
+	//{
+	//	Zap::Material mat = Zap::Material();
+	//	mat.albedoColor = { 1, 1, 1 };
+	//	mat.roughness = 0.5;
+	//	mat.metallic = 0;
+	//	mat.emissive = { 1, 1, 1, 10 };
+	//	pActor->cmpModel_setMaterial(mat);
+	//}
+	//
+	//editor::actors.push_back(Zap::Actor());
+	//pActor = &editor::actors.back();
+	//editor::scene->attachActor(*pActor);
+	//pActor->addTransform(glm::mat4(1));
+	//pActor->cmpTransform_setPos(0.5, 1, 0);
+	//pActor->cmpTransform_setScale(0.5, 0.1, 0.1);
+	//pActor->addModel(cubeModel);
+	//{
+	//	Zap::Material mat = Zap::Material();
+	//	mat.albedoColor = { 1, 0, 0 };
+	//	mat.roughness = 0.5;
+	//	mat.metallic = 0;
+	//	mat.emissive = { 1, 0, 0, 5 };
+	//	pActor->cmpModel_setMaterial(mat);
+	//}
+	//
+	//editor::actors.push_back(Zap::Actor());
+	//pActor = &editor::actors.back();
+	//editor::scene->attachActor(*pActor);
+	//pActor->addTransform(glm::mat4(1));
+	//pActor->cmpTransform_setPos(0, 1.5, 0);
+	//pActor->cmpTransform_setScale(0.1, 0.5, 0.1);
+	//pActor->addModel(cubeModel);
+	//{
+	//	Zap::Material mat = Zap::Material();
+	//	mat.albedoColor = { 0, 1, 0 };
+	//	mat.roughness = 0.5;
+	//	mat.metallic = 0;
+	//	mat.emissive = { 0, 1, 0, 5 };
+	//	pActor->cmpModel_setMaterial(mat);
+	//}
+	//
+	//editor::actors.push_back(Zap::Actor());
+	//pActor = &editor::actors.back();
+	//editor::scene->attachActor(*pActor);
+	//pActor->addTransform(glm::mat4(1));
+	//pActor->cmpTransform_setPos(0, 1, 0.5);
+	//pActor->cmpTransform_setScale(0.1, 0.1, 0.5);
+	//pActor->addModel(cubeModel);
+	//{
+	//	Zap::Material mat = Zap::Material();
+	//	mat.albedoColor = { 0, 0, 1 };
+	//	mat.roughness = 0.5;
+	//	mat.metallic = 0;
+	//	mat.emissive = { 0, 0, 1, 5 };
+	//	pActor->cmpModel_setMaterial(mat);
+	//}
+	////
+	//
+	//editor::actors.push_back(Zap::Actor());
+	//pActor = &editor::actors.back();
+	//editor::scene->attachActor(*pActor);
+	//pActor->addTransform(glm::mat4(1));
+	//pActor->cmpTransform_setPos(-10, 1, 5);
+	//pActor->cmpTransform_setScale(0.3, 0.3, 0.3);
+	//pActor->addModel(cubeModel);
+	//{
+	//	Zap::Shape shape(Zap::BoxGeometry({0.3, 0.3, 0.3}), pxMaterial, true);
+	//	pActor->addRigidDynamic(shape);
+	//}
+	//
+	//editor::actors.push_back(Zap::Actor());
+	//pActor = &editor::actors.back();
+	//editor::scene->attachActor(*pActor);
+	//pActor->addTransform(glm::mat4(1));
+	//pActor->cmpTransform_setPos(-1, 1, 5);
+	//pActor->cmpTransform_setScale(0.5, 0.5, 0.5);
+	//pActor->cmpTransform_rotateX(90);
+	//pActor->addModel(kimberModel);
+	//{
+	//	Zap::Shape shape(Zap::BoxGeometry({ 0.15, 0.3, 0.3 }), pxMaterial, true);
+	//	pActor->addRigidDynamic(shape);
+	//}
+
+#ifdef _DEBUG
+	editor::actors.push_back(Zap::Actor());
+	pActor = &editor::actors.back();
+	editor::scene->attachActor(*pActor);
+	pActor->addTransform(glm::mat4(1));
+	pActor->addModel(cornellBoxModel);
 #endif
 
-	// coordinate helper
-	editor::actors.push_back(Zap::Actor());
-	pActor = &editor::actors.back();
-	editor::scene->attachActor(*pActor);
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(0, 1, 0);
-	pActor->cmpTransform_setScale(0.25, 0.25, 0.25);
-	pActor->addModel(cubeModel);
-	{
-		Zap::Material mat = Zap::Material();
-		mat.albedoColor = { 1, 1, 1 };
-		mat.roughness = 0.5;
-		mat.metallic = 0;
-		mat.emissive = { 1, 1, 1, 4 };
-		pActor->cmpModel_setMaterial(mat);
-	}
-	
-	editor::actors.push_back(Zap::Actor());
-	pActor = &editor::actors.back();
-	editor::scene->attachActor(*pActor);
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(0.5, 1, 0);
-	pActor->cmpTransform_setScale(0.5, 0.1, 0.1);
-	pActor->addModel(cubeModel);
-	{
-		Zap::Material mat = Zap::Material();
-		mat.albedoColor = { 1, 0, 0 };
-		mat.roughness = 0.5;
-		mat.metallic = 0;
-		mat.emissive = { 1, 0, 0, 5 };
-		pActor->cmpModel_setMaterial(mat);
-	}
-	
-	editor::actors.push_back(Zap::Actor());
-	pActor = &editor::actors.back();
-	editor::scene->attachActor(*pActor);
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(0, 1.5, 0);
-	pActor->cmpTransform_setScale(0.1, 0.5, 0.1);
-	pActor->addModel(cubeModel);
-	{
-		Zap::Material mat = Zap::Material();
-		mat.albedoColor = { 0, 1, 0 };
-		mat.roughness = 0.5;
-		mat.metallic = 0;
-		mat.emissive = { 0, 1, 0, 5 };
-		pActor->cmpModel_setMaterial(mat);
-	}
-	
-	editor::actors.push_back(Zap::Actor());
-	pActor = &editor::actors.back();
-	editor::scene->attachActor(*pActor);
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(0, 1, 0.5);
-	pActor->cmpTransform_setScale(0.1, 0.1, 0.5);
-	pActor->addModel(cubeModel);
-	{
-		Zap::Material mat = Zap::Material();
-		mat.albedoColor = { 0, 0, 1 };
-		mat.roughness = 0.5;
-		mat.metallic = 0;
-		mat.emissive = { 0, 0, 1, 5 };
-		pActor->cmpModel_setMaterial(mat);
-	}
-	//
 
 	editor::actors.push_back(Zap::Actor());
 	pActor = &editor::actors.back();
 	editor::scene->attachActor(*pActor);
 	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(-10, 1, 5);
-	pActor->cmpTransform_setScale(0.3, 0.3, 0.3);
+	pActor->cmpTransform_setPos(0, 4.6, 0);
+	pActor->cmpTransform_setScale(2, 0.2, 2);
 	pActor->addModel(cubeModel);
 	{
-		Zap::Shape shape(Zap::BoxGeometry({0.3, 0.3, 0.3}), pxMaterial, true);
-		pActor->addRigidDynamic(shape);
-	}
-
-	editor::actors.push_back(Zap::Actor());
-	pActor = &editor::actors.back();
-	editor::scene->attachActor(*pActor);
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(-1, 1, 5);
-	pActor->cmpTransform_setScale(0.5, 0.5, 0.5);
-	pActor->cmpTransform_rotateX(90);
-	pActor->addModel(kimberModel);
-	{
-		Zap::Shape shape(Zap::BoxGeometry({ 0.15, 0.3, 0.3 }), pxMaterial, true);
-		pActor->addRigidDynamic(shape);
+		Zap::Material mat{};
+		mat.albedoColor = {1, 1, 1};
+		mat.metallic = 0;
+		mat.roughness = 0;
+		mat.emissive = {1, 1, 1, 5};
+		pActor->cmpModel_setMaterial(mat);
 	}
 	
 	editor::cam = editor::actors.size();
@@ -393,33 +420,33 @@ int main() {
 	pActor = &editor::actors[editor::cam];
 	editor::scene->attachActor(*pActor);
 	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(4, 2, 0);
+	pActor->cmpTransform_setPos(-2, 4, 0);
 	pActor->cmpTransform_rotateY(-90);
 	pActor->addCamera();
 
-	for (int i = 0; i < 5; i++) {
-		for (int j = 0; j < 5; j++) {
-			for (int k = 0; k < 5-j; k++) {
-				editor::actors.push_back(Zap::Actor());
-				pActor = &editor::actors.back();
-				editor::scene->attachActor(*pActor);
-				pActor->addTransform(glm::mat4(1));
-				pActor->cmpTransform_setPos(i+5, 0.3+j*0.6, k * 0.6 + j * 0.6 / 2.0);
-				pActor->cmpTransform_setScale(0.3, 0.3, 0.3);
-				pActor->addModel(giftModel);
-				Zap::Material material{};
-				material.albedoColor = {sin(i*2), 1, sin(i*5)};
-				material.albedoMap = j%2;
-				material.roughness = std::min<float>(j/5.0+0.1, 1);
-				material.metallic = !k%2;
-				pActor->cmpModel_setMaterial(material);
-				{
-					Zap::Shape shape(Zap::BoxGeometry({ 0.3, 0.3, 0.3 }), pxMaterial, true);
-					pActor->addRigidDynamic(shape);
-				}
-			}
-		}
-	}
+	//for (int i = 0; i < 5; i++) {
+	//	for (int j = 0; j < 5; j++) {
+	//		for (int k = 0; k < 5-j; k++) {
+	//			editor::actors.push_back(Zap::Actor());
+	//			pActor = &editor::actors.back();
+	//			editor::scene->attachActor(*pActor);
+	//			pActor->addTransform(glm::mat4(1));
+	//			pActor->cmpTransform_setPos(i+5, 0.3+j*0.6, k * 0.6 + j * 0.6 / 2.0);
+	//			pActor->cmpTransform_setScale(0.3, 0.3, 0.3);
+	//			pActor->addModel(giftModel);
+	//			Zap::Material material{};
+	//			material.albedoColor = {sin(i*2), 1, sin(i*5)};
+	//			material.albedoMap = j%2;
+	//			material.roughness = std::min<float>(j/5.0+0.1, 1);
+	//			material.metallic = !k%2;
+	//			pActor->cmpModel_setMaterial(material);
+	//			{
+	//				Zap::Shape shape(Zap::BoxGeometry({ 0.3, 0.3, 0.3 }), pxMaterial, true);
+	//				pActor->addRigidDynamic(shape);
+	//			}
+	//		}
+	//	}
+	//}
 
 	editor::scene->update();
 
@@ -440,7 +467,7 @@ int main() {
 		auto timeStartFrame = std::chrono::high_resolution_clock::now();
 		movement::move(dTime);
 		
-		editor::actors[3].cmpTransform_rotateY(15*dTime);
+		//editor::actors[3].cmpTransform_rotateY(15*dTime);
 
 		if (!editor::window->isIconified()) {
 			ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
