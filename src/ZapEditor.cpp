@@ -211,8 +211,8 @@ int main() {
 	Zap::ModelLoader modelLoader = Zap::ModelLoader();
 
 	auto woodTexture = modelLoader.loadTexture("woodTexture.png");
-	auto randomTexture = modelLoader.loadTexture("randomTexture.jpg");
-	auto reddotsTexture = modelLoader.loadTexture("reddotsTexture.jpg");
+	//auto randomTexture = modelLoader.loadTexture("randomTexture.jpg");
+	//auto reddotsTexture = modelLoader.loadTexture("reddotsTexture.jpg");
 	
 	auto cubeModel = modelLoader.load("Models/OBJ/Cube.obj");
 	//
@@ -220,9 +220,9 @@ int main() {
 	auto sponzaModel = modelLoader.load("Models/OBJ/Sponza/Sponza.obj");
 #endif
 	
-	auto giftModel = modelLoader.load("Models/OBJ/Gift.obj");
+	//auto giftModel = modelLoader.load("Models/OBJ/Gift.obj");
 	
-	auto kimberModel = modelLoader.load("Models/OBJ/PistolKimber/PistolKimber.glb");
+	//auto kimberModel = modelLoader.load("Models/OBJ/PistolKimber/PistolKimber.glb");
 
 	auto sphereModel = modelLoader.load("Models/gltf/metalSphere.glb");
 
@@ -333,22 +333,6 @@ int main() {
 	pActor->cmpTransform_setPos(-2, 4, 0);
 	pActor->cmpTransform_rotateY(-90);
 	pActor->addCamera();
-
-	editor::actors.push_back(Zap::Actor());
-	pActor = &editor::actors.back();
-	editor::scene->attachActor(*pActor);
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(0, 35, 0);
-	pActor->cmpTransform_setScale(5, 0.5, 5);
-	pActor->addModel(cubeModel);
-	{
-		Zap::Material mat{};
-		mat.albedoColor = {1, 1, 1};
-		mat.metallic = 0;
-		mat.roughness = 0;
-		mat.emissive = {1, 1, 1, 25};
-		pActor->cmpModel_setMaterial(mat);
-	}
 
 	for (int x = 0; x < 11; x++) {
 		for (int z = 0; z < 2; z++) {
