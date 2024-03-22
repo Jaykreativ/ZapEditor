@@ -381,6 +381,42 @@ int main() {
 	editor::scene->update();
 
 	editor::gui->init();
+
+	ImGuiStyle* style = &ImGui::GetStyle();
+	style->Colors[ImGuiCol_Header] = ImVec4(100 /255.0, 95 /255.0, 90 /255.0, 80 /255.0);
+	style->Colors[ImGuiCol_HeaderHovered] = ImVec4(125 /255.0, 120 /255.0, 115 /255.0, 200 /255.0);
+	style->Colors[ImGuiCol_HeaderActive] = ImVec4(155 /255.0, 150 /255.0, 145 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_Separator] = ImVec4(125 /255.0, 115 /255.0, 110 /255.0, 125 /255.0);
+	style->Colors[ImGuiCol_MenuBarBg] = ImVec4(40 /255.0, 37 /255.0, 35 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_TitleBg] = ImVec4(50 /255.0, 47 /255.0, 45 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_TitleBgActive] = ImVec4(55 /255.0, 52 /255.0, 50 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_Tab] = ImVec4(155 /255.0, 85 /255.0, 45 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_TabHovered] = ImVec4(250 /255.0, 145 /255.0, 85 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_TabActive] = ImVec4(225 /255.0, 125 /255.0, 75 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_TabUnfocused] = ImVec4(75 /255.0, 72 /255.0, 70 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_TabUnfocusedActive] = ImVec4(115 /255.0, 112 /255.0, 110 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_ResizeGrip] = ImVec4(185 /255.0, 95 /255.0, 45 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_ResizeGripHovered] = ImVec4(200 /255.0, 105 /255.0, 55 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_ResizeGripActive] = ImVec4(250 /255.0, 135 /255.0, 75 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_FrameBg] = ImVec4(55 /255.0, 52 /255.0, 50 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_FrameBgHovered] = ImVec4(85 /255.0, 82 /255.0, 80 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_FrameBgActive] = ImVec4(175 /255.0, 100 /255.0, 55 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_CheckMark] = ImVec4(230 /255.0, 135 /255.0, 100 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_SliderGrab] = ImVec4(185 /255.0, 105 /255.0, 65 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_SliderGrabActive] = ImVec4(230 /255.0, 135 /255.0, 100 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_Button] = ImVec4(65 /255.0, 62 /255.0, 60 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_ButtonHovered] = ImVec4(105 /255.0, 102 /255.0, 100 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_ButtonActive] = ImVec4(200 /255.0, 115 /255.0, 65 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_DockingPreview] = ImVec4(255 /255.0, 145 /255.0, 85 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_SeparatorHovered] = ImVec4(190 /255.0, 100 /255.0, 55 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_SeparatorActive] = ImVec4(200 /255.0, 105 /255.0, 60 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_TextSelectedBg] = ImVec4(250 /255.0, 135 /255.0, 85 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_NavHighlight] = ImVec4(250 /255.0, 135 /255.0, 85 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_TableHeaderBg] = ImVec4(50 /255.0, 48 /255.0, 46 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_TableBorderStrong] = ImVec4(85 /255.0, 75 /255.0, 72 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_TableBorderLight] = ImVec4(65 /255.0, 62 /255.0, 60 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_Border] = ImVec4(130 /255.0, 112 /255.0, 110 /255.0, 255 /255.0);
+
 	editor::renderer->addRenderTemplate(editor::gui);
 
 	editor::mainMenuBar = new editor::MainMenuBar(editor::layers, editor::renderer, editor::scene, editor::eventHandler, editor::actors, editor::selectedActors);
