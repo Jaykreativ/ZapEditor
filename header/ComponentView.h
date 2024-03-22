@@ -2,41 +2,84 @@
 
 #include "Zap/Scene/Actor.h"
 
+#include "ViewLayer.h"
+
 namespace editor {
-	class ComponentEditor
+	class ComponentEditor : public ViewLayer
 	{
 	public:
-		virtual void draw(Zap::Actor selectedActor) = 0;
+		virtual void draw() = 0;
+
+		virtual bool isValid() = 0;
+
+		ImGuiWindowFlags getWindowFlags();
 	};
 
 	class TransformEditor : public ComponentEditor
 	{
 	public:
-		void draw(Zap::Actor selectedActor);
+		TransformEditor(std::vector<Zap::Actor>& selectedActors);
+
+		~TransformEditor();
+
+		std::string name();
+
+		void draw();
+
+		bool isValid();
+
+	private:
+		std::vector<Zap::Actor>& m_selectedActors;
 	};
 
 	class RigidDynamicEditor : public ComponentEditor
 	{
 	public:
-		void draw(Zap::Actor selectedActor);
+		RigidDynamicEditor(std::vector<Zap::Actor>& selectedActors);
+
+		~RigidDynamicEditor();
+
+		std::string name();
+
+		void draw();
+
+		bool isValid();
+
+	private:
+		std::vector<Zap::Actor>& m_selectedActors;
 	};
 
 	class LightEditor : public ComponentEditor
 	{
 	public:
-		void draw(Zap::Actor selectedActor);
+		LightEditor(std::vector<Zap::Actor>& selectedActors);
+
+		~LightEditor();
+
+		std::string name();
+
+		void draw();
+
+		bool isValid();
+
+	private:
+		std::vector<Zap::Actor>& m_selectedActors;
 	};
 
-	class ComponentView
+	class ComponentView : public ViewLayer
 	{
 	public:
-		ComponentView();
+		ComponentView(std::vector<Zap::Actor>& selectedActors);
 		~ComponentView();
 
-		void draw(Zap::Actor selectedActor);
+		std::string name();
 
-		ComponentEditor* getSelectedEditor();
+		void draw();
+
+		ImGuiWindowFlags getWindowFlags();
+
 	private:
 		ComponentEditor* m_selectedEditor = nullptr;
+		std::vector<Zap::Actor>& m_selectedActors;
 	};
 }

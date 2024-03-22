@@ -3,19 +3,24 @@
 #include "Zap/Zap.h"
 #include "Zap/Scene/Actor.h"
 
+#include "ViewLayer.h"
+
 namespace editor {
-	class SceneHierarchyView {
+	class SceneHierarchyView : public ViewLayer
+	{
 	public:
-		SceneHierarchyView(std::vector<Zap::Actor>& actors);
+		SceneHierarchyView(std::vector<Zap::Actor>& allActors, std::vector<Zap::Actor>& selectedActors);
 		~SceneHierarchyView();
+
+		std::string name();
 
 		void draw();
 
-		Zap::Actor* getSelectedActor();
+		ImGuiWindowFlags getWindowFlags();
 
 	private:
-		std::vector<Zap::Actor>& m_actors;
-		Zap::Actor* m_selected = nullptr;
+		std::vector<Zap::Actor>& m_allActors;
+		std::vector<Zap::Actor>& m_selectedActors;
 	};
 }
 
