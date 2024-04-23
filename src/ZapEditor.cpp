@@ -49,69 +49,6 @@ namespace editor {
 	static std::vector<ViewLayer*> layers;
 }
 
-namespace keybinds {
-	//void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
-	//	if (action == GLFW_PRESS) {
-	//		if (button == turnCamera && editor::viewport->isHovered()) {
-	//			movement::turnCamera = true;
-	//		}
-	//	}
-	//	else if (action == GLFW_RELEASE) {
-	//		if (button == turnCamera) {
-	//			movement::turnCamera = false;
-	//		}
-	//	}
-	//}
-
-	//void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-	//	if (action == GLFW_PRESS) {
-	//		if (key == forward) {
-	//			movement::forward = true;
-	//		}
-	//		else if (key == backward) {
-	//			movement::backward = true;
-	//		}
-	//		else if (key == left) {
-	//			movement::left = true;
-	//		}
-	//		else if (key == right) {
-	//			movement::right = true;
-	//		}
-	//		else if (key == down) {
-	//			movement::down = true;
-	//		}
-	//		else if (key == up) {
-	//			movement::up = true;
-	//		}
-	//		else if (key == GLFW_KEY_P) {
-	//			editor::actors[editor::cam - 1].cmpTransform_setPos(-10, 0.3, 2);
-	//			editor::actors[editor::cam - 1].cmpRigidDynamic_updatePose();
-	//			editor::actors[editor::cam - 1].cmpRigidDynamic_addForce({10, 3, 0});
-	//		}
-	//	}
-	//	else if (action == GLFW_RELEASE) {
-	//		if (key == forward) {
-	//			movement::forward = false;
-	//		}
-	//		else if (key == backward) {
-	//			movement::backward = false;
-	//		}
-	//		else if (key == left) {
-	//			movement::left = false;
-	//		}
-	//		else if (key == right) {
-	//			movement::right = false;
-	//		}
-	//		else if (key == down) {
-	//			movement::down = false;
-	//		}
-	//		else if (key == up) {
-	//			movement::up = false;
-	//		}
-	//	}
-	//}
-}
-
 void resize(GLFWwindow* window, int width, int height) {}
 
 void setupActors() {
@@ -356,9 +293,41 @@ void setupActors() {
 }
 
 int main() {
-	editor::engineBase = Zap::Base::createBase("Zap Application");
-	editor::engineBase->init();
 
+	//class A {
+	//public:
+	//	A() {}
+	//	virtual ~A() {}
+	//
+	//	virtual void init() {
+	//		std::cout << "init: A\n";
+	//	}
+	//};
+	//
+	//class B : public A {
+	//public:
+	//	B() {}
+	//	~B() {}
+	//
+	//	void init() {
+	//		A::init();
+	//		std::cout << "init: B\n";
+	//	}
+	//};
+	//
+	//A* obj = new B();
+	//obj->init();
+	//delete obj;
+	//
+	//system("pause");
+
+	editor::engineBase = Zap::Base::createBase("Zap Application");
+	auto settings = editor::engineBase->getSettings();
+	
+	std::cout << "Enable raytracing 1(true) | 0(false)\n>>> ";
+	std::cin >> settings->enableRaytracing;
+
+	editor::engineBase->init();
 
 	editor::scene = new Zap::Scene();
 	editor::scene->init();
@@ -421,6 +390,8 @@ int main() {
 
 	editor::mainMenuBar = new editor::MainMenuBar(editor::layers, editor::renderer, editor::scene, editor::eventHandler, editor::actors, editor::selectedActors);
 	editor::layers.push_back(new editor::Viewport(editor::renderer, editor::scene, editor::eventHandler));
+	editor::layers.push_back(new editor::SceneHierarchyView(editor::actors, editor::selectedActors));
+	editor::layers.push_back(new editor::ComponentView(editor::selectedActors));
 
 	editor::renderer->init();
 
@@ -438,6 +409,19 @@ int main() {
 			ImGui::ShowDemoWindow();
 
 			editor::mainMenuBar->draw();
+
+			if (ImGui::Button("Spawn")) {
+				editor::actors.push_back(Zap::Actor());
+				auto* pActor = &editor::actors.back();
+				editor::scene->attachActor(*pActor);
+				pActor->addTransform(glm::mat4(1));
+				pActor->cmpTransform_setPos(0, 2.5, 0);
+				pActor->addLight({ 1, 1, 1 }, 5);
+			}
+			if (ImGui::Button("Delete")) {
+				editor::actors.back().destroy();
+				editor::actors.pop_back();
+			}
 
 			uint32_t i = 0;
 			for (auto layer : editor::layers) {

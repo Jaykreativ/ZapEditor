@@ -7,6 +7,8 @@
 #include "imgui.h"
 #include "imgui_internal.h"
 
+#include "glm/gtx/matrix_decompose.hpp"
+
 void deleteSave(void* data) {
 	if (data) delete data;
 }
@@ -38,9 +40,48 @@ namespace editor {
 			return;
 		}
 		Zap::Actor selectedActor = m_selectedActors[0];
-		glm::vec3 pos = selectedActor.cmpTransform_getPos();
-		ImGui::DragFloat3("Position", (float*)&pos, 0.1);
-		selectedActor.cmpTransform_setPos(pos);
+
+		glm::mat4 transform = selectedActor.cmpTransform_getTransform();
+		glm::vec3 scale;
+		glm::quat quat;
+		glm::vec3 pos;
+		glm::vec3 skew;
+		glm::vec4 perspective;
+		glm::decompose(transform, scale, quat, pos, skew, perspective);
+		glm::vec3 rot = glm::degrees(glm::eulerAngles(quat));
+
+		ImGui::SeparatorText("Position");
+		ImGui::DragFloat3("###Position", (float*)&pos, 0.1);
+
+		ImGui::SeparatorText("Rotation");
+		ImGui::DragFloat3("###Rotation", (float*)&rot, 0.1);
+
+		ImGui::SeparatorText("Scale");
+		ImGui::DragFloat3("###Scale", (float*)&scale, 0.1);
+
+		transform = glm::mat4(1);
+		rot = glm::radians(rot);
+		glm::mat4 rotMatX = glm::rotate(glm::mat4(1), rot.x, glm::vec3(1, 0, 0));
+		glm::mat4 rotMatY = glm::rotate(glm::mat4(1), rot.y, glm::vec3(0, 1, 0));
+		glm::mat4 rotMatZ = glm::rotate(glm::mat4(1), rot.z, glm::vec3(0, 0, 1));
+
+		transform[0] = rotMatX * transform[0];//TODO improve by adding custom component to actors
+		transform[1] = rotMatX * transform[1];
+		transform[2] = rotMatX * transform[2];
+
+		transform[0] = rotMatY * transform[0];
+		transform[1] = rotMatY * transform[1];
+		transform[2] = rotMatY * transform[2];
+
+		transform[0] = rotMatZ * transform[0];
+		transform[1] = rotMatZ * transform[1];
+		transform[2] = rotMatZ * transform[2];
+
+		transform = glm::scale(transform, glm::max(scale, glm::vec3(0.001)));
+		transform[3] = glm::vec4(pos, 1);
+
+		selectedActor.cmpTransform_setTransform(transform);
+
 		if (selectedActor.hasRigidDynamic()) {
 			selectedActor.cmpRigidDynamic_updatePose();
 		}
@@ -108,13 +149,22 @@ namespace editor {
 		}
 		Zap::Actor selectedActor = m_selectedActors[0];
 
+		ImGui::SeparatorText("Color");
 		glm::vec3 color = selectedActor.cmpLight_getColor();
-		ImGui::ColorPicker3("color", (float*)&color);
+		ImGui::ColorPicker3("Color", (float*)&color);
 		selectedActor.cmpLight_setColor(color);
 
+		ImGui::SeparatorText("Strength");
 		float strength = selectedActor.cmpLight_getStrength();
-		ImGui::DragFloat("strength", &strength, 0.1);
+		ImGui::DragFloat("Strength", &strength, 0.1);
+		strength = std::max<float>(strength, 0.0);
 		selectedActor.cmpLight_setStrength(strength);
+
+		ImGui::SeparatorText("Radius");
+		float radius = selectedActor.cmpLight_getRadius();
+		ImGui::DragFloat("Radius", &radius, 0.01);
+		radius = std::max<float>(radius, 0.0);
+		selectedActor.cmpLight_setRadius(radius);
 	}
 
 	bool LightEditor::isValid() {

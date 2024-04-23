@@ -33,19 +33,19 @@ namespace editor {
 		m_outImage.initView();
 
 		m_pbRender = new Zap::PBRenderer(*m_pRenderer, pScene);
-		m_rtxRender = new Zap::RaytracingRenderer(*m_pRenderer, pScene);
-		m_pathTracer = new Zap::PathTracer(*m_pRenderer, pScene);
-
-		m_pRenderer->addRenderTemplate(m_rtxRender);
-
-		m_pRenderer->addRenderTemplate(m_pathTracer);
-
 		m_pbRender->setViewport(1, 1, 0, 0);
+		m_pbRender->setRenderTarget(&m_outImage);
 		m_pRenderer->addRenderTemplate(m_pbRender);
 
-		m_pbRender->setRenderTarget(&m_outImage);
-		m_rtxRender->setRenderTarget(&m_outImage);
-		m_pathTracer->setRenderTarget(&m_outImage);
+		if (Zap::Base::getBase()->getSettings()->enableRaytracing) {
+			m_rtxRender = new Zap::RaytracingRenderer(*m_pRenderer, pScene);
+			m_rtxRender->setRenderTarget(&m_outImage);
+			m_pRenderer->addRenderTemplate(m_rtxRender);
+
+			m_pathTracer = new Zap::PathTracer(*m_pRenderer, pScene);
+			m_pathTracer->setRenderTarget(&m_outImage);
+			m_pRenderer->addRenderTemplate(m_pathTracer);
+		}
 
 		m_sampler.init();
 
@@ -61,8 +61,10 @@ namespace editor {
 
 	Viewport::~Viewport() {
 		delete m_pbRender;
-		delete m_rtxRender;
-		delete m_pathTracer;
+		if (Zap::Base::getBase()->getSettings()->enableRaytracing) {
+			delete m_rtxRender;
+			delete m_pathTracer;
+		}
 		m_sampler.destroy();
 		m_outImage.destroy();
 	}
@@ -159,12 +161,21 @@ namespace editor {
 				if (ImGui::MenuItem("PBR")) {
 					changeRenderType(ePBR);
 				}
+
+				// disable rendering modes that use raytracing if not enabled
+				if (!Zap::Base::getBase()->getSettings()->enableRaytracing)
+					ImGui::BeginDisabled();
+
 				if (ImGui::MenuItem("Raytracing")) {
 					changeRenderType(eRAYTRACING);
 				}
 				if (ImGui::MenuItem("Path Tracing")) {
 					changeRenderType(ePATHTRACING);
 				}
+
+				if (!Zap::Base::getBase()->getSettings()->enableRaytracing)
+					ImGui::EndDisabled();
+
 				ImGui::EndMenu();
 			}
 			ImGui::EndMenuBar();
@@ -188,8 +199,10 @@ namespace editor {
 		timeStartFrame = std::chrono::high_resolution_clock::now();
 
 		m_pbRender->updateCamera(m_camera);
-		m_rtxRender->updateCamera(m_camera);
-		m_pathTracer->updateCamera(m_camera);
+		if (Zap::Base::getBase()->getSettings()->enableRaytracing) {
+			m_rtxRender->updateCamera(m_camera);
+			m_pathTracer->updateCamera(m_camera);
+		}
 	}
 
 	ImGuiWindowFlags Viewport::getWindowFlags() {
@@ -208,8 +221,10 @@ namespace editor {
 		m_outImage.update();
 		m_pRenderer->beginRecord();
 		m_pbRender->disable();
-		m_rtxRender->disable();
-		m_pathTracer->disable();
+		if (Zap::Base::getBase()->getSettings()->enableRaytracing) {
+			m_rtxRender->disable();
+			m_pathTracer->disable();
+		}
 		switch (m_renderType)
 		{
 		case ePBR:
