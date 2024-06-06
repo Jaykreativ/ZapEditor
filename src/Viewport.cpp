@@ -12,15 +12,84 @@
 #include "backends/imgui_impl_vulkan.h"
 #include <chrono>
 
-void cursorPositionCallbackDef(GLFWwindow* window, double xpos, double ypos, void* data) {
-	auto obj = (editor::Viewport*)data;
-	obj->cursorPositionCallback(window, xpos, ypos);
-}
-
 namespace editor {
-	Viewport::Viewport(Zap::Renderer* pRenderer, Zap::Scene* pScene, Zap::EventHandler* pEventHandler)
-		: m_pRenderer(pRenderer), m_pEventHandler(pEventHandler)
+	int forward    = GLFW_KEY_W;// move keybinds to editor::preferences
+	int backward   = GLFW_KEY_S;
+	int right      = GLFW_KEY_D;
+	int left       = GLFW_KEY_A;
+	int down       = GLFW_KEY_C;
+	int up         = GLFW_KEY_SPACE;
+	int turnCamera = GLFW_MOUSE_BUTTON_1;
+
+	bool forwardPressed    = false;
+	bool backwardPressed   = false;
+	bool rightPressed      = false;
+	bool leftPressed       = false;
+	bool downPressed       = false;
+	bool upPressed         = false;
+	bool turnCameraPressed = false;
+
+	void mouseButtonCallback(Zap::MouseButtonEvent& params, void* data) {
+		if (params.action == GLFW_PRESS) {
+			if (params.button == turnCamera)
+				turnCameraPressed = true;
+		}
+		else if (params.action == GLFW_RELEASE) {
+			if (params.button == turnCamera)
+				turnCameraPressed = false;
+		}
+	}
+
+	void keyCallback(Zap::KeyEvent& params, void* data) {
+		if (params.action == GLFW_PRESS) {
+			if (params.key == forward) {
+				forwardPressed = true;
+			}
+			else if (params.key == backward) {
+				backwardPressed = true;
+			}
+			else if (params.key == right) {
+				rightPressed = true;
+			}
+			else if (params.key == left) {
+				leftPressed = true;
+			}
+			else if (params.key == down) {
+				downPressed = true;
+			}
+			else if (params.key == up) {
+				upPressed = true;
+			}
+		}
+		else if (params.action == GLFW_RELEASE) {
+			if (params.key == forward) {
+				forwardPressed = false;
+			}
+			else if (params.key == backward) {
+				backwardPressed = false;
+			}
+			else if (params.key == right) {
+				rightPressed = false;
+			}
+			else if (params.key == left) {
+				leftPressed = false;
+			}
+			else if (params.key == down) {
+				downPressed = false;
+			}
+			else if (params.key == up) {
+				upPressed = false;
+			}
+		}
+	}
+
+	Viewport::Viewport(Zap::Renderer* pRenderer, Zap::Scene* pScene, Zap::Window* pWindow)
+		: m_pRenderer(pRenderer), m_pWindow(pWindow)
 	{
+		m_pWindow->getKeyEventHandler()->addCallback(keyCallback);
+		m_pWindow->getMouseButtonEventHandler()->addCallback(mouseButtonCallback);
+		m_pWindow->getCursorPosEventHandler()->addCallback(Viewport::cursorPositionCallback, this);
+
 		m_outImage.setFormat(Zap::GlobalSettings::getColorFormat());
 		m_outImage.setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
 		m_outImage.setUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
@@ -46,12 +115,14 @@ namespace editor {
 			m_pathTracer->setRenderTarget(&m_outImage);
 			m_pRenderer->addRenderTemplate(m_pathTracer);
 		}
+		else {
+			m_rtxRender = nullptr;
+			m_pathTracer = nullptr;
+		}
 
 		m_sampler.init();
 
 		m_imageDescriptorSet = ImGui_ImplVulkan_AddTexture(m_sampler, m_outImage.getVkImageView(), VK_IMAGE_LAYOUT_GENERAL);
-		
-		m_pEventHandler->addCursorPositionCallback(cursorPositionCallbackDef, this);
 
 		m_camera = Zap::Actor();
 		pScene->attachActor(m_camera);
@@ -67,50 +138,45 @@ namespace editor {
 		}
 		m_sampler.destroy();
 		m_outImage.destroy();
+
+		m_pWindow->getCursorPosEventHandler()->removeCallback(Viewport::cursorPositionCallback, this);
 	}
 
 	std::string Viewport::name() {
 		return "Viewport";
 	}
 
-	int forward = GLFW_KEY_W;// move keybinds to editor::preferences
-	int backward = GLFW_KEY_S;
-	int left = GLFW_KEY_A;
-	int right = GLFW_KEY_D;
-	int down = GLFW_KEY_C;
-	int up = GLFW_KEY_SPACE;
-	int turnCamera = GLFW_MOUSE_BUTTON_1;
 	void Viewport::move(float dTime) {
-		if (m_pEventHandler->isKeyPressed(forward)) {
+		if (forwardPressed) {
 			auto res = m_camera.cmpTransform_getTransform();
 			glm::vec3 vec = res[2];
 			res[3] = glm::vec4(glm::vec3(res[3]) + glm::normalize(glm::vec3{ vec.x, 0, vec.z }) * dTime * 2.0f, 1);
 			m_camera.cmpTransform_setTransform(res);
 		}
-		if (m_pEventHandler->isKeyPressed(backward)) {
+		if (backwardPressed) {
 			auto res = m_camera.cmpTransform_getTransform();
 			glm::vec3 vec = -res[2];
 			res[3] = glm::vec4(glm::vec3(res[3]) + glm::normalize(glm::vec3{ vec.x, 0, vec.z }) * dTime * 2.0f, 1);
 			m_camera.cmpTransform_setTransform(res);
 		}
-		if (m_pEventHandler->isKeyPressed(right)) {
+		if (rightPressed) {
 			auto res = m_camera.cmpTransform_getTransform();
 			glm::vec3 vec = res[0];
 			res[3] = glm::vec4(glm::vec3(res[3]) + glm::normalize(glm::vec3{ vec.x, 0, vec.z }) * dTime * 2.0f, 1);
 			m_camera.cmpTransform_setTransform(res);
 		}
-		if (m_pEventHandler->isKeyPressed(left)) {
+		if (leftPressed) {
 			auto res = m_camera.cmpTransform_getTransform();
 			glm::vec3 vec = -res[0];
 			res[3] = glm::vec4(glm::vec3(res[3]) + glm::normalize(glm::vec3{ vec.x, 0, vec.z }) * dTime * 2.0f, 1);
 			m_camera.cmpTransform_setTransform(res);
 		}
-		if (m_pEventHandler->isKeyPressed(down)) {
+		if (downPressed) {
 			auto res = m_camera.cmpTransform_getTransform();
 			res[3] = glm::vec4(glm::vec3(res[3]) + glm::vec3{ 0, -2, 0 }*dTime, 1);
 			m_camera.cmpTransform_setTransform(res);
 		}
-		if (m_pEventHandler->isKeyPressed(up)) {
+		if (upPressed) {
 			auto res = m_camera.cmpTransform_getTransform();
 			res[3] = glm::vec4(glm::vec3(res[3]) + glm::vec3{ 0, 2, 0 }*dTime, 1);
 			m_camera.cmpTransform_setTransform(res);
@@ -121,21 +187,22 @@ namespace editor {
 	double ylast = 0;
 	float sensitivityX = 0.2;
 	float sensitivityY = 0.15;
-	void Viewport::cursorPositionCallback(GLFWwindow* window, double xpos, double ypos) {
-		if (m_pEventHandler->isMouseButtonPressed(turnCamera) && isHovered()) {
-			glm::mat4 res = m_camera.cmpTransform_getTransform();
-			glm::mat4 rot = glm::rotate(glm::mat4(1), glm::radians<float>((xpos - xlast) * sensitivityX), glm::vec3{ 0, 1, 0 });
-
+	void Viewport::cursorPositionCallback(Zap::CursorPosEvent& params, void* viewportData) {
+		Viewport* pViewport = (Viewport*)viewportData;
+		if (turnCameraPressed && pViewport->isHovered()) {
+			glm::mat4 res = pViewport->m_camera.cmpTransform_getTransform();
+			glm::mat4 rot = glm::rotate(glm::mat4(1), glm::radians<float>((params.xPos - xlast) * sensitivityX), glm::vec3{ 0, 1, 0 });
+			
 			res[0] = rot * res[0];
 			res[1] = rot * res[1];
 			res[2] = rot * res[2];
-
-			m_camera.cmpTransform_setTransform(res);
-			m_camera.cmpTransform_rotateX((ypos - ylast) * sensitivityY);
+			
+			pViewport->m_camera.cmpTransform_setTransform(res);
+			pViewport->m_camera.cmpTransform_rotateX((params.yPos - ylast) * sensitivityY);
 		}
-
-		xlast = xpos;
-		ylast = ypos;
+		
+		xlast = params.xPos;
+		ylast = params.yPos;
 	}
 
 	float dTime = 0;
