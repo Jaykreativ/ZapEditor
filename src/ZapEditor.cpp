@@ -376,7 +376,7 @@ int main() {
 		//editor::actors[3].cmpTransform_rotateY(15*dTime);
 
 		if (!editor::window->isIconified()) {
-			ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+			ImGui::DockSpaceOverViewport(0U, ImGui::GetMainViewport());
 
 			ImGui::ShowDemoWindow();
 
