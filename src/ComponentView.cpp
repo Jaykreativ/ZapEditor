@@ -58,6 +58,9 @@ namespace editor {
 
 		ImGui::SeparatorText("Scale");
 		ImGui::DragFloat3("###Scale", (float*)&scale, 0.1);
+		if (scale.x < 0.01) scale.x = 0.01;
+		if (scale.y < 0.01) scale.y = 0.01;
+		if (scale.z < 0.01) scale.z = 0.01;
 
 		transform = glm::mat4(1);
 		rot = glm::radians(rot);

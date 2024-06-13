@@ -5,7 +5,9 @@
 
 #include "Zap/Zap.h"
 #include "Zap/ModelLoader.h"
+#include "Zap/Event.h"
 #include "Zap/EventHandler.h"
+#include "Zap/Serializer.h"
 #include "Zap/Rendering/Window.h"
 #include "Zap/Rendering/Renderer.h"
 #include "Zap/Rendering/PBRenderer.h"
@@ -37,9 +39,7 @@ namespace editor {
 	static Zap::PBRenderer* pbr;
 	static Zap::RaytracingRenderer* rtx;
 
-	static Zap::Scene* scene;
-
-	static Zap::EventHandler* eventHandler;
+	static std::vector<Zap::Scene> scenes;
 	
 	static uint32_t cam = 0;
 	static std::vector<Zap::Actor> actors;
@@ -48,8 +48,6 @@ namespace editor {
 	static MainMenuBar* mainMenuBar;
 	static std::vector<ViewLayer*> layers;
 }
-
-void resize(GLFWwindow* window, int width, int height) {}
 
 void setupActors() {
 	Zap::ModelLoader modelLoader = Zap::ModelLoader();
@@ -60,10 +58,10 @@ void setupActors() {
 
 	auto cubeModel = modelLoader.load("Models/OBJ/Cube.obj");
 	//auto cboxModel = modelLoader.load("Models/gltf/cornellBox.glb");
-	//
-#ifndef _DEBUG
-	//auto sponzaModel = modelLoader.load("Models/OBJ/Sponza/Sponza.obj");
-#endif
+	
+	//auto sponzaModel = modelLoader.load("Models/gltf/Sponza.glb");
+
+	auto gearModel = modelLoader.load("Models/gltf/ZapGear.glb");
 
 	//auto giftModel = modelLoader.load("Models/OBJ/Gift.obj");
 
@@ -75,14 +73,14 @@ void setupActors() {
 
 	editor::actors.push_back(Zap::Actor());
 	auto pActor = &editor::actors.back();
-	editor::scene->attachActor(*pActor);
+	editor::scenes.back().attachActor(*pActor);
 	pActor->addTransform(glm::mat4(1));
 	pActor->cmpTransform_setPos(0, 2.7, 0);
 	pActor->addLight({ 12, 12, 12 });
 
 	editor::actors.push_back(Zap::Actor());
 	pActor = &editor::actors.back();
-	editor::scene->attachActor(*pActor);
+	editor::scenes.back().attachActor(*pActor);
 	pActor->addTransform(glm::mat4(1));
 	pActor->cmpTransform_setPos(0, 0, -2.7);
 	pActor->addLight({ 6, 4, 2 });
@@ -93,15 +91,12 @@ void setupActors() {
 	//	pActor->cmpModel_setMaterial(mat);
 	//}
 
-#ifndef _DEBUG
 	//editor::actors.push_back(Zap::Actor());
 	//pActor = &editor::actors.back();
-	//editor::scene->attachActor(*pActor);
+	//editor::scenes.back().attachActor(*pActor);
 	//pActor->addTransform(glm::mat4(1));
-	//pActor->cmpTransform_setPos(0, 0, 0);
-	//pActor->cmpTransform_setScale(0.02, 0.02, 0.02);
+	//pActor->cmpTransform_setPos(0, -2, 0);
 	//pActor->addModel(sponzaModel);
-#endif
 
 	// coordinate helper
 	//editor::actors.push_back(Zap::Actor());
@@ -174,7 +169,7 @@ void setupActors() {
 
 	editor::actors.push_back(Zap::Actor());
 	pActor = &editor::actors.back();
-	editor::scene->attachActor(*pActor);
+	editor::scenes.back().attachActor(*pActor);
 	pActor->addTransform(glm::mat4(1));
 	pActor->cmpTransform_setPos(2, 0, 1);
 	pActor->cmpTransform_setScale(0.1, 2, 3);
@@ -184,7 +179,7 @@ void setupActors() {
 
 	editor::actors.push_back(Zap::Actor());
 	pActor = &editor::actors.back();
-	editor::scene->attachActor(*pActor);
+	editor::scenes.back().attachActor(*pActor);
 	pActor->addTransform(glm::mat4(1));
 	pActor->cmpTransform_setPos(-2, 0, 1);
 	pActor->cmpTransform_setScale(0.1, 2, 3);
@@ -195,7 +190,7 @@ void setupActors() {
 
 	editor::actors.push_back(Zap::Actor());
 	pActor = &editor::actors.back();
-	editor::scene->attachActor(*pActor);
+	editor::scenes.back().attachActor(*pActor);
 	pActor->addTransform(glm::mat4(1));
 	pActor->cmpTransform_setPos(0, 0, -2);
 	pActor->cmpTransform_setScale(2, 2, 0.1);
@@ -204,7 +199,7 @@ void setupActors() {
 
 	editor::actors.push_back(Zap::Actor());
 	pActor = &editor::actors.back();
-	editor::scene->attachActor(*pActor);
+	editor::scenes.back().attachActor(*pActor);
 	pActor->addTransform(glm::mat4(1));
 	pActor->cmpTransform_setPos(0, 2, 1);
 	pActor->cmpTransform_setScale(2, 0.1, 3);
@@ -213,7 +208,7 @@ void setupActors() {
 
 	editor::actors.push_back(Zap::Actor());
 	pActor = &editor::actors.back();
-	editor::scene->attachActor(*pActor);
+	editor::scenes.back().attachActor(*pActor);
 	pActor->addTransform(glm::mat4(1));
 	pActor->cmpTransform_setPos(0, -2, 1);
 	pActor->cmpTransform_setScale(2, 0.1, 3);
@@ -222,19 +217,18 @@ void setupActors() {
 
 	editor::actors.push_back(Zap::Actor());
 	pActor = &editor::actors.back();
-	editor::scene->attachActor(*pActor);
+	editor::scenes.back().attachActor(*pActor);
 	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(0.75, -1.2, -0.8);
-	pActor->cmpTransform_setScale(0.8, 0.8, 0.8);
-	pActor->addModel(sphereModel);
+	pActor->cmpTransform_setPos(0, -1, 1.5);
+	pActor->cmpTransform_setScale(0.1, 0.1, 0.1);
+	pActor->addModel(gearModel);
+
 	cboxMat.albedoColor = { .99, .99, .99 };
 	cboxMat.roughness = 0.1;
 	cboxMat.metallic = 1;
-	pActor->cmpModel_setMaterial(cboxMat);
-
 	editor::actors.push_back(Zap::Actor());
 	pActor = &editor::actors.back();
-	editor::scene->attachActor(*pActor);
+	editor::scenes.back().attachActor(*pActor);
 	pActor->addTransform(glm::mat4(1));
 	pActor->cmpTransform_setPos(0.65, -1.6, 0.8);
 	pActor->cmpTransform_setScale(0.4, 0.4, 0.7);
@@ -243,9 +237,9 @@ void setupActors() {
 
 	editor::actors.push_back(Zap::Actor());
 	pActor = &editor::actors.back();
-	editor::scene->attachActor(*pActor);
+	editor::scenes.back().attachActor(*pActor);
 	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(-0.7, -0.9, 0.7);
+	pActor->cmpTransform_setPos(-0.7, -1.2, -0.5);
 	pActor->cmpTransform_setScale(0.8, 0.8, 0.8);
 	pActor->addModel(sphereModel);
 	cboxMat.metallic = 0;
@@ -292,62 +286,40 @@ void setupActors() {
 	//}
 }
 
+void windowResizeCallback(Zap::ResizeEvent& params, void* data) {}
+
 int main() {
-
-	//class A {
-	//public:
-	//	A() {}
-	//	virtual ~A() {}
-	//
-	//	virtual void init() {
-	//		std::cout << "init: A\n";
-	//	}
-	//};
-	//
-	//class B : public A {
-	//public:
-	//	B() {}
-	//	~B() {}
-	//
-	//	void init() {
-	//		A::init();
-	//		std::cout << "init: B\n";
-	//	}
-	//};
-	//
-	//A* obj = new B();
-	//obj->init();
-	//delete obj;
-	//
-	//system("pause");
-
 	editor::engineBase = Zap::Base::createBase("Zap Application");
 	auto settings = editor::engineBase->getSettings();
 	
-	std::cout << "Enable raytracing 1(true) | 0(false)\n>>> ";
-	std::cin >> settings->enableRaytracing;
+	//std::cout << "Enable raytracing 1(true) | 0(false)\n>>> ";
+	//std::cin >> settings->enableRaytracing;
+	settings->enableRaytracing = true;
 
 	editor::engineBase->init();
-
-	editor::scene = new Zap::Scene();
-	editor::scene->init();
 
 	editor::window = new Zap::Window(1000, 600, "Zap Window");
 	editor::window->init();
 	editor::window->show();
 	//editor::window->setMousebButtonCallback(keybinds::mouseButtonCallback);
 	//editor::window->setKeyCallback(keybinds::keyCallback);
-	editor::window->setResizeCallback(resize);
-
-	editor::eventHandler = new Zap::EventHandler(editor::window);
+	editor::window->getResizeEventHandler()->addCallback(windowResizeCallback);
 
 	editor::renderer = new Zap::Renderer(*editor::window);
 
 	editor::gui = new Zap::Gui(*editor::renderer);
 
+	//deserialize
+
+	//Zap::Serializer deserializer;
+	//deserializer.deserialize("./Actors", &editor::actors, &editor::scenes);
+	editor::scenes.push_back(Zap::Scene());
+	editor::scenes.back().init();
+	
 	setupActors();
 
-	editor::scene->update();
+	for(auto& scene : editor::scenes)
+		scene.update();
 
 	editor::gui->init();
 
@@ -388,8 +360,8 @@ int main() {
 
 	editor::renderer->addRenderTemplate(editor::gui);
 
-	editor::mainMenuBar = new editor::MainMenuBar(editor::layers, editor::renderer, editor::scene, editor::eventHandler, editor::actors, editor::selectedActors);
-	editor::layers.push_back(new editor::Viewport(editor::renderer, editor::scene, editor::eventHandler));
+	editor::mainMenuBar = new editor::MainMenuBar(editor::layers, editor::window, editor::renderer, &editor::scenes.back(), editor::actors, editor::selectedActors);
+	editor::layers.push_back(new editor::Viewport(editor::renderer, &editor::scenes.back(), editor::window));
 	editor::layers.push_back(new editor::SceneHierarchyView(editor::actors, editor::selectedActors));
 	editor::layers.push_back(new editor::ComponentView(editor::selectedActors));
 
@@ -404,7 +376,7 @@ int main() {
 		//editor::actors[3].cmpTransform_rotateY(15*dTime);
 
 		if (!editor::window->isIconified()) {
-			ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+			ImGui::DockSpaceOverViewport(0U, ImGui::GetMainViewport());
 
 			ImGui::ShowDemoWindow();
 
@@ -413,7 +385,7 @@ int main() {
 			if (ImGui::Button("Spawn")) {
 				editor::actors.push_back(Zap::Actor());
 				auto* pActor = &editor::actors.back();
-				editor::scene->attachActor(*pActor);
+				editor::scenes.back().attachActor(*pActor);
 				pActor->addTransform(glm::mat4(1));
 				pActor->cmpTransform_setPos(0, 2.5, 0);
 				pActor->addLight({ 1, 1, 1 }, 5);
@@ -448,10 +420,11 @@ int main() {
 		}
 
 		if (editor::mainMenuBar->shouldSimulate() && dTime > 0) {
-			editor::scene->simulate(dTime);
+			for(auto& scene : editor::scenes)
+				scene.simulate(dTime);
 		}
 
-		editor::scene->update();
+		editor::scenes.back().update();
 		editor::renderer->render();
 
 		Zap::Window::pollEvents();
@@ -459,6 +432,13 @@ int main() {
 		dTime = std::chrono::duration_cast<std::chrono::duration<float>>(timeEndFrame - timeStartFrame).count();
 		frameIndex++;
 	}
+	//serialize
+	
+	Zap::Serializer serializer;
+	for (auto actor : editor::actors) {
+		serializer.addActor(actor);
+	}
+	serializer.serialize("./Actors");
 
 	//terminate
 	editor::renderer->destroy();
@@ -471,8 +451,9 @@ int main() {
 	delete editor::renderer;
 	delete editor::window;
 
-	editor::scene->destroy();
-	delete editor::scene;
+	for(auto scene : editor::scenes)
+		scene.destroy();
+	editor::scenes.clear();
 
 	delete editor::gui;
 	delete editor::pbr;

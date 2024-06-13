@@ -9,17 +9,17 @@
 namespace editor {
 	MainMenuBar::MainMenuBar(
 		std::vector<ViewLayer*>& layers,
-		Zap::Renderer* pRenderer, 
-		Zap::Scene* pScene, 
-		Zap::EventHandler* pEventHandler,
+		Zap::Window* pWindow,
+		Zap::Renderer* pRenderer,
+		Zap::Scene* pScene,
 		std::vector<Zap::Actor>& actors,
 		std::vector<Zap::Actor>& selectedActors
 	)
 		:
-		m_layers(layers), 
+		m_layers(layers),
+		m_pWindow(pWindow),
 		m_pRenderer(pRenderer), 
 		m_pScene(pScene), 
-		m_pEventHandler(pEventHandler),
 		m_actors(actors),
 		m_selectedActors(selectedActors)
 	{}
@@ -50,7 +50,7 @@ namespace editor {
 				m_layers.push_back(new ComponentView(m_selectedActors));
 			}
 			if (ImGui::MenuItem("Viewport")) {
-				m_layers.push_back(new Viewport(m_pRenderer, m_pScene, m_pEventHandler));
+				m_layers.push_back(new Viewport(m_pRenderer, m_pScene, m_pWindow));
 			}
 			ImGui::EndMenu();
 		}
