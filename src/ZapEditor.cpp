@@ -47,25 +47,29 @@ namespace editor {
 
 	static MainMenuBar* mainMenuBar;
 	static std::vector<ViewLayer*> layers;
+
+	static Zap::Model spawnModel;
 }
 
 void setupActors() {
 	Zap::ModelLoader modelLoader = Zap::ModelLoader();
 
 	auto woodTexture = modelLoader.loadTexture("woodTexture.png");
-	//auto randomTexture = modelLoader.loadTexture("randomTexture.jpg");
+	auto randomTexture = modelLoader.loadTexture("randomTexture.jpg");
 	//auto reddotsTexture = modelLoader.loadTexture("reddotsTexture.jpg");
 
 	auto cubeModel = modelLoader.load("Models/OBJ/Cube.obj");
+
 	//auto cboxModel = modelLoader.load("Models/gltf/cornellBox.glb");
 	
 	//auto sponzaModel = modelLoader.load("Models/gltf/Sponza.glb");
 
 	auto gearModel = modelLoader.load("Models/gltf/ZapGear.glb");
 
-	//auto giftModel = modelLoader.load("Models/OBJ/Gift.obj");
+	auto giftModel = modelLoader.load("Models/OBJ/Gift.obj");
+	editor::spawnModel = giftModel;
 
-	//auto kimberModel = modelLoader.load("Models/OBJ/PistolKimber/PistolKimber.glb");
+	auto kimberModel = modelLoader.load("Models/OBJ/PistolKimber/PistolKimber.glb");
 
 	auto sphereModel = modelLoader.load("Models/gltf/metalSphere.glb");
 
@@ -261,29 +265,63 @@ void setupActors() {
 	//	}
 	//}
 
-	//for (int i = 0; i < 5; i++) {
-	//	for (int j = 0; j < 5; j++) {
-	//		for (int k = 0; k < 5-j; k++) {
+	editor::actors.push_back(Zap::Actor());
+	pActor = &editor::actors.back();
+	editor::scenes.back().attachActor(*pActor);
+	pActor->addTransform(glm::mat4(1));
+	pActor->cmpTransform_setPos(0, -6, 0);
+	pActor->cmpTransform_setScale(50, 1, 50);
+	pActor->cmpTransform_rotateX(180);
+	pActor->addModel(cubeModel);
+	pActor->cmpModel_setMaterial(cboxMat);
+	{
+		Zap::Shape shape(Zap::BoxGeometry({50, 1, 50}), pxMaterial, true);
+		pActor->addRigidStatic(shape);
+	}
+
+	for (int i = 0; i < 5; i++) {
+		for (int j = 0; j < 5; j++) {
+			for (int k = 0; k < 8-j; k++) {
+				editor::actors.push_back(Zap::Actor());
+				pActor = &editor::actors.back();
+				editor::scenes.back().attachActor(*pActor);
+				pActor->addTransform(glm::mat4(1));
+				pActor->cmpTransform_setPos(i+5, 0.3+j*0.6, k * 0.6 + j * 0.6 / 2.0);
+				pActor->cmpTransform_setScale(0.3, 0.3, 0.3);
+				pActor->addModel(giftModel);
+				Zap::Material material{};
+				material.albedoColor = {sin(i*2), 1, sin(i*5)};
+				material.albedoMap = j%2;
+				material.roughness = std::min<float>(j/5.0+0.1, 1);
+				material.metallic = !k%2;
+				pActor->cmpModel_setMaterial(material);
+				{
+					Zap::Shape shape(Zap::BoxGeometry({ 0.3, 0.3, 0.3 }), pxMaterial, true);
+					pActor->addRigidDynamic(shape);
+				}
+			}
+		}
+	}
+
+	// Kimber Pistol Cube Generator
+	//glm::vec3 kpcPos = { 0, 1, 0 };
+	//float kpcPadding = 0.25;
+	//glm::vec3 kpcSize = { 10, 10, 10 };
+	//glm::vec3 kpcCorner = kpcPos - kpcSize * 0.5f * kpcPadding;
+	//for (float x = 0; x < kpcSize.x*kpcPadding; x += kpcPadding) {
+	//	for (float y = 0; y < kpcSize.y * kpcPadding; y += kpcPadding) {
+	//		for (float z = 0; z < kpcSize.z * kpcPadding; z += kpcPadding) {
 	//			editor::actors.push_back(Zap::Actor());
 	//			pActor = &editor::actors.back();
-	//			editor::scene->attachActor(*pActor);
+	//			editor::scenes.back().attachActor(*pActor);
 	//			pActor->addTransform(glm::mat4(1));
-	//			pActor->cmpTransform_setPos(i+5, 0.3+j*0.6, k * 0.6 + j * 0.6 / 2.0);
-	//			pActor->cmpTransform_setScale(0.3, 0.3, 0.3);
-	//			pActor->addModel(giftModel);
-	//			Zap::Material material{};
-	//			material.albedoColor = {sin(i*2), 1, sin(i*5)};
-	//			material.albedoMap = j%2;
-	//			material.roughness = std::min<float>(j/5.0+0.1, 1);
-	//			material.metallic = !k%2;
-	//			pActor->cmpModel_setMaterial(material);
-	//			{
-	//				Zap::Shape shape(Zap::BoxGeometry({ 0.3, 0.3, 0.3 }), pxMaterial, true);
-	//				pActor->addRigidDynamic(shape);
-	//			}
+	//			pActor->cmpTransform_setPos(kpcCorner + glm::vec3(x, y, z));
+	//			pActor->cmpTransform_setScale(1);
+	//			pActor->addModel(kimberModel);
 	//		}
 	//	}
 	//}
+
 }
 
 void windowResizeCallback(Zap::ResizeEvent& params, void* data) {}
@@ -366,7 +404,7 @@ int main() {
 	editor::layers.push_back(new editor::ComponentView(editor::selectedActors));
 
 	editor::renderer->init();
-
+	Zap::PhysicsMaterial pxMaterial = Zap::PhysicsMaterial(0.5, 1, 0.1);
 	//mainloop
 	float dTime = 0;
 	uint64_t frameIndex = 0;
@@ -387,8 +425,14 @@ int main() {
 				auto* pActor = &editor::actors.back();
 				editor::scenes.back().attachActor(*pActor);
 				pActor->addTransform(glm::mat4(1));
-				pActor->cmpTransform_setPos(0, 2.5, 0);
-				pActor->addLight({ 1, 1, 1 }, 5);
+				pActor->cmpTransform_setPos(10, 5, 0);
+				pActor->cmpTransform_setScale(0.3);
+				pActor->addModel(editor::spawnModel);
+				{
+					Zap::Shape shape(Zap::BoxGeometry({ 0.3, 0.3, 0.3 }), pxMaterial, true);
+					pActor->addRigidDynamic(shape);
+				}
+
 			}
 			if (ImGui::Button("Delete")) {
 				editor::actors.back().destroy();
@@ -438,7 +482,7 @@ int main() {
 	for (auto actor : editor::actors) {
 		serializer.addActor(actor);
 	}
-	serializer.serialize("./Actors");
+	//serializer.serialize("./Actors");
 
 	//terminate
 	editor::renderer->destroy();
