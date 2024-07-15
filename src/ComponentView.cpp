@@ -9,6 +9,8 @@
 
 #include "glm/gtx/matrix_decompose.hpp"
 
+#include <string>
+
 void deleteSave(void* data) {
 	if (data) delete data;
 }
@@ -51,13 +53,13 @@ namespace editor {
 		glm::vec3 rot = glm::degrees(glm::eulerAngles(quat));
 
 		ImGui::SeparatorText("Position");
-		ImGui::DragFloat3("###Position", (float*)&pos, 0.1);
+		ImGui::DragFloat3("##Position", (float*)&pos, 0.1);
 
 		ImGui::SeparatorText("Rotation");
-		ImGui::DragFloat3("###Rotation", (float*)&rot, 0.1);
+		ImGui::DragFloat3("##Rotation", (float*)&rot, 0.1);
 
 		ImGui::SeparatorText("Scale");
-		ImGui::DragFloat3("###Scale", (float*)&scale, 0.1);
+		ImGui::DragFloat3("##Scale", (float*)&scale, 0.1);
 		if (scale.x < 0.01) scale.x = 0.01;
 		if (scale.y < 0.01) scale.y = 0.01;
 		if (scale.z < 0.01) scale.z = 0.01;

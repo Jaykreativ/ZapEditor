@@ -265,43 +265,43 @@ void setupActors() {
 	//	}
 	//}
 
-	editor::actors.push_back(Zap::Actor());
-	pActor = &editor::actors.back();
-	editor::scenes.back().attachActor(*pActor);
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(0, -6, 0);
-	pActor->cmpTransform_setScale(50, 1, 50);
-	pActor->cmpTransform_rotateX(180);
-	pActor->addModel(cubeModel);
-	pActor->cmpModel_setMaterial(cboxMat);
-	{
-		Zap::Shape shape(Zap::BoxGeometry({50, 1, 50}), pxMaterial, true);
-		pActor->addRigidStatic(shape);
-	}
+	//editor::actors.push_back(Zap::Actor());
+	//pActor = &editor::actors.back();
+	//editor::scenes.back().attachActor(*pActor);
+	//pActor->addTransform(glm::mat4(1));
+	//pActor->cmpTransform_setPos(0, -6, 0);
+	//pActor->cmpTransform_setScale(50, 1, 50);
+	//pActor->cmpTransform_rotateX(180);
+	//pActor->addModel(cubeModel);
+	//pActor->cmpModel_setMaterial(cboxMat);
+	//{
+	//	Zap::Shape shape(Zap::BoxGeometry({50, 1, 50}), pxMaterial, true);
+	//	pActor->addRigidStatic(shape);
+	//}
 
-	for (int i = 0; i < 5; i++) {
-		for (int j = 0; j < 5; j++) {
-			for (int k = 0; k < 8-j; k++) {
-				editor::actors.push_back(Zap::Actor());
-				pActor = &editor::actors.back();
-				editor::scenes.back().attachActor(*pActor);
-				pActor->addTransform(glm::mat4(1));
-				pActor->cmpTransform_setPos(i+5, 0.3+j*0.6, k * 0.6 + j * 0.6 / 2.0);
-				pActor->cmpTransform_setScale(0.3, 0.3, 0.3);
-				pActor->addModel(giftModel);
-				Zap::Material material{};
-				material.albedoColor = {sin(i*2), 1, sin(i*5)};
-				material.albedoMap = j%2;
-				material.roughness = std::min<float>(j/5.0+0.1, 1);
-				material.metallic = !k%2;
-				pActor->cmpModel_setMaterial(material);
-				{
-					Zap::Shape shape(Zap::BoxGeometry({ 0.3, 0.3, 0.3 }), pxMaterial, true);
-					pActor->addRigidDynamic(shape);
-				}
-			}
-		}
-	}
+	//for (int i = 0; i < 5; i++) {
+	//	for (int j = 0; j < 5; j++) {
+	//		for (int k = 0; k < 5-j; k++) {
+	//			editor::actors.push_back(Zap::Actor());
+	//			pActor = &editor::actors.back();
+	//			editor::scenes.back().attachActor(*pActor);
+	//			pActor->addTransform(glm::mat4(1));
+	//			pActor->cmpTransform_setPos(i+5, 0.3+j*0.6, k * 0.6 + j * 0.6 / 2.0);
+	//			pActor->cmpTransform_setScale(0.3, 0.3, 0.3);
+	//			pActor->addModel(giftModel);
+	//			Zap::Material material{};
+	//			material.albedoColor = {sin(i*2), 1, sin(i*5)};
+	//			material.albedoMap = j%2;
+	//			material.roughness = std::min<float>(j/5.0+0.1, 1);
+	//			material.metallic = !k%2;
+	//			pActor->cmpModel_setMaterial(material);
+	//			{
+	//				Zap::Shape shape(Zap::BoxGeometry({ 0.3, 0.3, 0.3 }), pxMaterial, true);
+	//				pActor->addRigidDynamic(shape);
+	//			}
+	//		}
+	//	}
+	//}
 
 	// Kimber Pistol Cube Generator
 	//glm::vec3 kpcPos = { 0, 1, 0 };
@@ -385,7 +385,7 @@ int main() {
 	style->Colors[ImGuiCol_SliderGrabActive] = ImVec4(230 /255.0, 135 /255.0, 100 /255.0, 255 /255.0);
 	style->Colors[ImGuiCol_Button] = ImVec4(65 /255.0, 62 /255.0, 60 /255.0, 255 /255.0);
 	style->Colors[ImGuiCol_ButtonHovered] = ImVec4(105 /255.0, 102 /255.0, 100 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_ButtonActive] = ImVec4(200 /255.0, 115 /255.0, 65 /255.0, 255 /255.0);
+	style->Colors[ImGuiCol_ButtonActive] = ImVec4(230 / 255.0, 100 / 255.0, 60 / 255.0, 1);
 	style->Colors[ImGuiCol_DockingPreview] = ImVec4(255 /255.0, 145 /255.0, 85 /255.0, 255 /255.0);
 	style->Colors[ImGuiCol_SeparatorHovered] = ImVec4(190 /255.0, 100 /255.0, 55 /255.0, 255 /255.0);
 	style->Colors[ImGuiCol_SeparatorActive] = ImVec4(200 /255.0, 105 /255.0, 60 /255.0, 255 /255.0);
@@ -398,9 +398,9 @@ int main() {
 
 	editor::renderer->addRenderTemplate(editor::gui);
 
-	editor::mainMenuBar = new editor::MainMenuBar(editor::layers, editor::window, editor::renderer, &editor::scenes.back(), editor::actors, editor::selectedActors);
+	editor::mainMenuBar = new editor::MainMenuBar(editor::layers, editor::window, editor::renderer, editor::gui, &editor::scenes.back(), editor::actors, editor::selectedActors);
 	editor::layers.push_back(new editor::Viewport(editor::renderer, &editor::scenes.back(), editor::window));
-	editor::layers.push_back(new editor::SceneHierarchyView(editor::actors, editor::selectedActors));
+	editor::layers.push_back(new editor::SceneHierarchyView(&editor::scenes.back(), editor::actors, editor::selectedActors));
 	editor::layers.push_back(new editor::ComponentView(editor::selectedActors));
 
 	editor::renderer->init();
@@ -419,25 +419,6 @@ int main() {
 			ImGui::ShowDemoWindow();
 
 			editor::mainMenuBar->draw();
-
-			if (ImGui::Button("Spawn")) {
-				editor::actors.push_back(Zap::Actor());
-				auto* pActor = &editor::actors.back();
-				editor::scenes.back().attachActor(*pActor);
-				pActor->addTransform(glm::mat4(1));
-				pActor->cmpTransform_setPos(10, 5, 0);
-				pActor->cmpTransform_setScale(0.3);
-				pActor->addModel(editor::spawnModel);
-				{
-					Zap::Shape shape(Zap::BoxGeometry({ 0.3, 0.3, 0.3 }), pxMaterial, true);
-					pActor->addRigidDynamic(shape);
-				}
-
-			}
-			if (ImGui::Button("Delete")) {
-				editor::actors.back().destroy();
-				editor::actors.pop_back();
-			}
 
 			uint32_t i = 0;
 			for (auto layer : editor::layers) {
