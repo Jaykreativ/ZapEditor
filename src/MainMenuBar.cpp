@@ -53,7 +53,7 @@ namespace editor {
 				m_layers.push_back(new ComponentView(m_selectedActors));
 			}
 			if (ImGui::MenuItem("Viewport")) {
-				m_layers.push_back(new Viewport(m_pRenderer, m_pScene, m_pWindow));
+				m_layers.push_back(new Viewport(m_pScene, m_pWindow));
 			}
 			if (ImGui::MenuItem("AssetBrowser")) {
 				m_layers.push_back(new AssetBrowser(m_pWindow, m_pGui));

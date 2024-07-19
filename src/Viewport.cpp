@@ -1,7 +1,5 @@
 #include "Viewport.h"
 
-#include "Zap/Rendering/Renderer.h"
-#include "Zap/Rendering/PBRenderer.h"
 #include "Zap/Rendering/RaytracingRenderer.h"
 #include "Zap/EventHandler.h"
 #include "Zap/Rendering/PathTacer.h"
@@ -83,8 +81,8 @@ namespace editor {
 		}
 	}
 
-	Viewport::Viewport(Zap::Renderer* pRenderer, Zap::Scene* pScene, Zap::Window* pWindow)
-		: m_pRenderer(pRenderer), m_pWindow(pWindow)
+	Viewport::Viewport(Zap::Scene* pScene, Zap::Window* pWindow)
+		: m_pWindow(pWindow)
 	{
 		m_pWindow->getKeyEventHandler()->addCallback(keyCallback);
 		m_pWindow->getMouseButtonEventHandler()->addCallback(mouseButtonCallback);
@@ -101,24 +99,24 @@ namespace editor {
 		m_outImage.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		m_outImage.initView();
 
-		m_pbRender = new Zap::PBRenderer(*m_pRenderer, pScene);
-		m_pbRender->setViewport(1, 1, 0, 0);
-		m_pbRender->setRenderTarget(&m_outImage);
-		m_pRenderer->addRenderTemplate(m_pbRender);
+		m_pPBRender = new Zap::PBRenderer(pScene);
+		m_pPBRender->setViewport(1, 1, 0, 0);
+
+		m_renderer.setTarget(&m_outImage);
+		m_renderer.addRenderTask(m_pPBRender);
+		m_renderer.beginRecord();
+		m_renderer.recRenderTemplate(m_pPBRender);
+		m_renderer.endRecord();
 
 		if (Zap::Base::getBase()->getSettings()->enableRaytracing) {
-			m_rtxRender = new Zap::RaytracingRenderer(*m_pRenderer, pScene);
-			m_rtxRender->setRenderTarget(&m_outImage);
-			m_pRenderer->addRenderTemplate(m_rtxRender);
+			m_pRTRender = new Zap::RaytracingRenderer(pScene);
+			m_renderer.addRenderTask(m_pRTRender);
+		
+			m_pPathTracer = new Zap::PathTracer(pScene);
+			m_renderer.addRenderTask(m_pPathTracer);
+		}
 
-			m_pathTracer = new Zap::PathTracer(*m_pRenderer, pScene);
-			m_pathTracer->setRenderTarget(&m_outImage);
-			m_pRenderer->addRenderTemplate(m_pathTracer);
-		}
-		else {
-			m_rtxRender = nullptr;
-			m_pathTracer = nullptr;
-		}
+		m_renderer.init();
 
 		m_sampler.init();
 
@@ -131,14 +129,12 @@ namespace editor {
 	}
 
 	Viewport::~Viewport() {
-		delete m_pbRender;
-		if (Zap::Base::getBase()->getSettings()->enableRaytracing) {
-			delete m_rtxRender;
-			delete m_pathTracer;
-		}
+		m_renderer.destroy();
 		m_sampler.destroy();
 		m_outImage.destroy();
 
+		m_pWindow->getKeyEventHandler()->removeCallback(keyCallback);
+		m_pWindow->getMouseButtonEventHandler()->removeCallback(mouseButtonCallback);
 		m_pWindow->getCursorPosEventHandler()->removeCallback(Viewport::cursorPositionCallback, this);
 	}
 
@@ -247,6 +243,8 @@ namespace editor {
 			}
 			ImGui::EndMenuBar();
 		}
+
+		//Resize outImage and dependencies
 		auto imageExtent = m_outImage.getExtent();
 		auto extent = ImGui::GetContentRegionAvail();
 		if (extent.x != imageExtent.width || extent.y != imageExtent.height) {// resize
@@ -254,7 +252,7 @@ namespace editor {
 			extent.y = std::max<float>(extent.y, 1);
 			m_outImage.setWidth(extent.x);
 			m_outImage.setHeight(extent.y);
-			m_pbRender->setViewport(extent.x, extent.y, 0, 0);
+			m_pPBRender->setViewport(extent.x, extent.y, 0, 0);
 			update();
 		}
 		ImGui::Image(m_imageDescriptorSet, extent);
@@ -265,11 +263,13 @@ namespace editor {
 		dTime = std::chrono::duration_cast<std::chrono::duration<float>>(timeEndFrame - timeStartFrame).count();
 		timeStartFrame = std::chrono::high_resolution_clock::now();
 
-		m_pbRender->updateCamera(m_camera);
+		m_pPBRender->updateCamera(m_camera);
 		if (Zap::Base::getBase()->getSettings()->enableRaytracing) {
-			m_rtxRender->updateCamera(m_camera);
-			m_pathTracer->updateCamera(m_camera);
+			m_pRTRender->updateCamera(m_camera);
+			m_pPathTracer->updateCamera(m_camera);
 		}
+
+		m_renderer.render();
 	}
 
 	ImGuiWindowFlags Viewport::getWindowFlags() {
@@ -286,34 +286,32 @@ namespace editor {
 	void Viewport::update() {
 		ImGui_ImplVulkan_RemoveTexture(m_imageDescriptorSet);
 		m_outImage.update();
-		m_pRenderer->beginRecord();
-		m_pbRender->disable();
+		m_renderer.beginRecord();
+		m_pPBRender->disable();
 		if (Zap::Base::getBase()->getSettings()->enableRaytracing) {
-			m_rtxRender->disable();
-			m_pathTracer->disable();
+			m_pRTRender->disable();
+			m_pPathTracer->disable();
 		}
 		switch (m_renderType)
 		{
 		case ePBR:
-			m_pbRender->resize();
-			m_pRenderer->recRenderTemplate(m_pbRender);
-			m_pRenderer->recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT);
-			m_pbRender->enable();
+			m_renderer.recRenderTemplate(m_pPBRender);
+			m_renderer.recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT);
+			m_pPBRender->enable();
 			break;
 		case eRAYTRACING:
-			m_rtxRender->resize();
-			m_pRenderer->recRenderTemplate(m_rtxRender);
-			m_rtxRender->enable();
+			m_renderer.recRenderTemplate(m_pRTRender);
+			m_pRTRender->enable();
 			break;
 		case ePATHTRACING:
-			m_pathTracer->resize();
-			m_pRenderer->recRenderTemplate(m_pathTracer);
-			m_pathTracer->enable();
+			m_renderer.recRenderTemplate(m_pPathTracer);
+			m_pPathTracer->enable();
 			break;
 		default:
 			break;
 		}
-		m_pRenderer->endRecord();
+		m_renderer.endRecord();
+		m_renderer.resize();
 		m_imageDescriptorSet = ImGui_ImplVulkan_AddTexture(m_sampler, m_outImage.getVkImageView(), VK_IMAGE_LAYOUT_GENERAL);
 
 	}

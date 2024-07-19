@@ -10,8 +10,6 @@
 #include "Zap/Serializer.h"
 #include "Zap/Rendering/Window.h"
 #include "Zap/Rendering/Renderer.h"
-#include "Zap/Rendering/PBRenderer.h"
-#include "Zap/Rendering/RaytracingRenderer.h"
 #include "Zap/Rendering/Gui.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Mesh.h"
@@ -20,6 +18,7 @@
 #include "Zap/Scene/Transform.h"
 #include "Zap/Scene/Material.h"
 #include "Zap/Scene/Model.h"
+
 #include "imgui.h"
 #include "backends/imgui_impl_vulkan.h";
 #include "backends/imgui_impl_glfw.h";
@@ -48,7 +47,45 @@ namespace editor {
 	static MainMenuBar* mainMenuBar;
 	static std::vector<ViewLayer*> layers;
 
-	static Zap::Model spawnModel;
+	static Zap::Model cubeModel;
+	static int spawnCounter;
+}
+
+void setupGuiStyle() {
+	ImGuiStyle* style = &ImGui::GetStyle();
+	style->Colors[ImGuiCol_Header] = ImVec4(100 / 255.0, 95 / 255.0, 90 / 255.0, 80 / 255.0);
+	style->Colors[ImGuiCol_HeaderHovered] = ImVec4(125 / 255.0, 120 / 255.0, 115 / 255.0, 200 / 255.0);
+	style->Colors[ImGuiCol_HeaderActive] = ImVec4(155 / 255.0, 150 / 255.0, 145 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_Separator] = ImVec4(125 / 255.0, 115 / 255.0, 110 / 255.0, 125 / 255.0);
+	style->Colors[ImGuiCol_MenuBarBg] = ImVec4(40 / 255.0, 37 / 255.0, 35 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_TitleBg] = ImVec4(50 / 255.0, 47 / 255.0, 45 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_TitleBgActive] = ImVec4(55 / 255.0, 52 / 255.0, 50 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_Tab] = ImVec4(155 / 255.0, 85 / 255.0, 45 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_TabHovered] = ImVec4(250 / 255.0, 145 / 255.0, 85 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_TabActive] = ImVec4(225 / 255.0, 125 / 255.0, 75 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_TabUnfocused] = ImVec4(75 / 255.0, 72 / 255.0, 70 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_TabUnfocusedActive] = ImVec4(115 / 255.0, 112 / 255.0, 110 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_ResizeGrip] = ImVec4(185 / 255.0, 95 / 255.0, 45 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_ResizeGripHovered] = ImVec4(200 / 255.0, 105 / 255.0, 55 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_ResizeGripActive] = ImVec4(250 / 255.0, 135 / 255.0, 75 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_FrameBg] = ImVec4(55 / 255.0, 52 / 255.0, 50 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_FrameBgHovered] = ImVec4(85 / 255.0, 82 / 255.0, 80 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_FrameBgActive] = ImVec4(175 / 255.0, 100 / 255.0, 55 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_CheckMark] = ImVec4(230 / 255.0, 135 / 255.0, 100 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_SliderGrab] = ImVec4(185 / 255.0, 105 / 255.0, 65 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_SliderGrabActive] = ImVec4(230 / 255.0, 135 / 255.0, 100 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_Button] = ImVec4(65 / 255.0, 62 / 255.0, 60 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_ButtonHovered] = ImVec4(105 / 255.0, 102 / 255.0, 100 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_ButtonActive] = ImVec4(230 / 255.0, 100 / 255.0, 60 / 255.0, 1);
+	style->Colors[ImGuiCol_DockingPreview] = ImVec4(255 / 255.0, 145 / 255.0, 85 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_SeparatorHovered] = ImVec4(190 / 255.0, 100 / 255.0, 55 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_SeparatorActive] = ImVec4(200 / 255.0, 105 / 255.0, 60 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_TextSelectedBg] = ImVec4(250 / 255.0, 135 / 255.0, 85 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_NavHighlight] = ImVec4(250 / 255.0, 135 / 255.0, 85 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_TableHeaderBg] = ImVec4(50 / 255.0, 48 / 255.0, 46 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_TableBorderStrong] = ImVec4(85 / 255.0, 75 / 255.0, 72 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_TableBorderLight] = ImVec4(65 / 255.0, 62 / 255.0, 60 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_Border] = ImVec4(130 / 255.0, 112 / 255.0, 110 / 255.0, 255 / 255.0);
 }
 
 void setupActors() {
@@ -58,7 +95,7 @@ void setupActors() {
 	auto randomTexture = modelLoader.loadTexture("randomTexture.jpg");
 	//auto reddotsTexture = modelLoader.loadTexture("reddotsTexture.jpg");
 
-	auto cubeModel = modelLoader.load("Models/OBJ/Cube.obj");
+	editor::cubeModel = modelLoader.load("Models/OBJ/Cube.obj");
 
 	//auto cboxModel = modelLoader.load("Models/gltf/cornellBox.glb");
 	
@@ -66,10 +103,9 @@ void setupActors() {
 
 	auto gearModel = modelLoader.load("Models/gltf/ZapGear.glb");
 
-	auto giftModel = modelLoader.load("Models/OBJ/Gift.obj");
-	editor::spawnModel = giftModel;
+	//auto giftModel = modelLoader.load("Models/OBJ/Gift.obj");
 
-	auto kimberModel = modelLoader.load("Models/OBJ/PistolKimber/PistolKimber.glb");
+	//auto kimberModel = modelLoader.load("Models/OBJ/PistolKimber/PistolKimber.glb");
 
 	auto sphereModel = modelLoader.load("Models/gltf/metalSphere.glb");
 
@@ -177,7 +213,7 @@ void setupActors() {
 	pActor->addTransform(glm::mat4(1));
 	pActor->cmpTransform_setPos(2, 0, 1);
 	pActor->cmpTransform_setScale(0.1, 2, 3);
-	pActor->addModel(cubeModel);
+	pActor->addModel(editor::cubeModel);
 	cboxMat.albedoColor = { .75, .25, .25 };
 	pActor->cmpModel_setMaterial(cboxMat);
 
@@ -187,7 +223,7 @@ void setupActors() {
 	pActor->addTransform(glm::mat4(1));
 	pActor->cmpTransform_setPos(-2, 0, 1);
 	pActor->cmpTransform_setScale(0.1, 2, 3);
-	pActor->addModel(cubeModel);
+	pActor->addModel(editor::cubeModel);
 	cboxMat.albedoColor = { .25, .25, .75 };
 	pActor->cmpModel_setMaterial(cboxMat);
 	cboxMat.albedoColor = { .75, .75, .75 };
@@ -198,7 +234,7 @@ void setupActors() {
 	pActor->addTransform(glm::mat4(1));
 	pActor->cmpTransform_setPos(0, 0, -2);
 	pActor->cmpTransform_setScale(2, 2, 0.1);
-	pActor->addModel(cubeModel);
+	pActor->addModel(editor::cubeModel);
 	pActor->cmpModel_setMaterial(cboxMat);
 
 	editor::actors.push_back(Zap::Actor());
@@ -207,7 +243,7 @@ void setupActors() {
 	pActor->addTransform(glm::mat4(1));
 	pActor->cmpTransform_setPos(0, 2, 1);
 	pActor->cmpTransform_setScale(2, 0.1, 3);
-	pActor->addModel(cubeModel);
+	pActor->addModel(editor::cubeModel);
 	pActor->cmpModel_setMaterial(cboxMat);
 
 	editor::actors.push_back(Zap::Actor());
@@ -216,7 +252,7 @@ void setupActors() {
 	pActor->addTransform(glm::mat4(1));
 	pActor->cmpTransform_setPos(0, -2, 1);
 	pActor->cmpTransform_setScale(2, 0.1, 3);
-	pActor->addModel(cubeModel);
+	pActor->addModel(editor::cubeModel);
 	pActor->cmpModel_setMaterial(cboxMat);
 
 	editor::actors.push_back(Zap::Actor());
@@ -239,15 +275,15 @@ void setupActors() {
 	pActor->addModel(sphereModel);
 	pActor->cmpModel_setMaterial(cboxMat);
 
-	editor::actors.push_back(Zap::Actor());
-	pActor = &editor::actors.back();
-	editor::scenes.back().attachActor(*pActor);
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(-0.7, -1.2, -0.5);
-	pActor->cmpTransform_setScale(0.8, 0.8, 0.8);
-	pActor->addModel(sphereModel);
-	cboxMat.metallic = 0;
-	pActor->cmpModel_setMaterial(cboxMat);
+	//editor::actors.push_back(Zap::Actor());
+	//pActor = &editor::actors.back();
+	//editor::scenes.back().attachActor(*pActor);
+	//pActor->addTransform(glm::mat4(1));
+	//pActor->cmpTransform_setPos(-0.7, -1.2, -0.5);
+	//pActor->cmpTransform_setScale(0.8, 0.8, 0.8);
+	//pActor->addModel(sphereModel);
+	//cboxMat.metallic = 0;
+	//pActor->cmpModel_setMaterial(cboxMat);
 
 	//for (int x = 0; x < 11; x++) {
 	//	for (int z = 0; z < 2; z++) {
@@ -343,9 +379,10 @@ int main() {
 	//editor::window->setKeyCallback(keybinds::keyCallback);
 	editor::window->getResizeEventHandler()->addCallback(windowResizeCallback);
 
-	editor::renderer = new Zap::Renderer(*editor::window);
+	editor::renderer = new Zap::Renderer();
 
-	editor::gui = new Zap::Gui(*editor::renderer);
+	Zap::Gui::initImGui(editor::window);
+	editor::gui = new Zap::Gui();
 
 	//deserialize
 
@@ -359,51 +396,22 @@ int main() {
 	for(auto& scene : editor::scenes)
 		scene.update();
 
-	editor::gui->init();
+	editor::renderer->setTarget(editor::window);
 
-	ImGuiStyle* style = &ImGui::GetStyle();
-	style->Colors[ImGuiCol_Header] = ImVec4(100 /255.0, 95 /255.0, 90 /255.0, 80 /255.0);
-	style->Colors[ImGuiCol_HeaderHovered] = ImVec4(125 /255.0, 120 /255.0, 115 /255.0, 200 /255.0);
-	style->Colors[ImGuiCol_HeaderActive] = ImVec4(155 /255.0, 150 /255.0, 145 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_Separator] = ImVec4(125 /255.0, 115 /255.0, 110 /255.0, 125 /255.0);
-	style->Colors[ImGuiCol_MenuBarBg] = ImVec4(40 /255.0, 37 /255.0, 35 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_TitleBg] = ImVec4(50 /255.0, 47 /255.0, 45 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_TitleBgActive] = ImVec4(55 /255.0, 52 /255.0, 50 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_Tab] = ImVec4(155 /255.0, 85 /255.0, 45 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_TabHovered] = ImVec4(250 /255.0, 145 /255.0, 85 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_TabActive] = ImVec4(225 /255.0, 125 /255.0, 75 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_TabUnfocused] = ImVec4(75 /255.0, 72 /255.0, 70 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_TabUnfocusedActive] = ImVec4(115 /255.0, 112 /255.0, 110 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_ResizeGrip] = ImVec4(185 /255.0, 95 /255.0, 45 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_ResizeGripHovered] = ImVec4(200 /255.0, 105 /255.0, 55 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_ResizeGripActive] = ImVec4(250 /255.0, 135 /255.0, 75 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_FrameBg] = ImVec4(55 /255.0, 52 /255.0, 50 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_FrameBgHovered] = ImVec4(85 /255.0, 82 /255.0, 80 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_FrameBgActive] = ImVec4(175 /255.0, 100 /255.0, 55 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_CheckMark] = ImVec4(230 /255.0, 135 /255.0, 100 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_SliderGrab] = ImVec4(185 /255.0, 105 /255.0, 65 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_SliderGrabActive] = ImVec4(230 /255.0, 135 /255.0, 100 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_Button] = ImVec4(65 /255.0, 62 /255.0, 60 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_ButtonHovered] = ImVec4(105 /255.0, 102 /255.0, 100 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_ButtonActive] = ImVec4(230 / 255.0, 100 / 255.0, 60 / 255.0, 1);
-	style->Colors[ImGuiCol_DockingPreview] = ImVec4(255 /255.0, 145 /255.0, 85 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_SeparatorHovered] = ImVec4(190 /255.0, 100 /255.0, 55 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_SeparatorActive] = ImVec4(200 /255.0, 105 /255.0, 60 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_TextSelectedBg] = ImVec4(250 /255.0, 135 /255.0, 85 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_NavHighlight] = ImVec4(250 /255.0, 135 /255.0, 85 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_TableHeaderBg] = ImVec4(50 /255.0, 48 /255.0, 46 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_TableBorderStrong] = ImVec4(85 /255.0, 75 /255.0, 72 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_TableBorderLight] = ImVec4(65 /255.0, 62 /255.0, 60 /255.0, 255 /255.0);
-	style->Colors[ImGuiCol_Border] = ImVec4(130 /255.0, 112 /255.0, 110 /255.0, 255 /255.0);
+	editor::renderer->addRenderTask(editor::gui);
 
-	editor::renderer->addRenderTemplate(editor::gui);
+	editor::renderer->init();
+	editor::renderer->beginRecord();
+	editor::renderer->recRenderTemplate(editor::gui);
+	editor::renderer->endRecord();
 
 	editor::mainMenuBar = new editor::MainMenuBar(editor::layers, editor::window, editor::renderer, editor::gui, &editor::scenes.back(), editor::actors, editor::selectedActors);
-	editor::layers.push_back(new editor::Viewport(editor::renderer, &editor::scenes.back(), editor::window));
+	editor::layers.push_back(new editor::Viewport(&editor::scenes.back(), editor::window));
 	editor::layers.push_back(new editor::SceneHierarchyView(&editor::scenes.back(), editor::actors, editor::selectedActors));
 	editor::layers.push_back(new editor::ComponentView(editor::selectedActors));
 
-	editor::renderer->init();
+	setupGuiStyle();
+
 	Zap::PhysicsMaterial pxMaterial = Zap::PhysicsMaterial(0.5, 1, 0.1);
 	//mainloop
 	float dTime = 0;
@@ -417,6 +425,16 @@ int main() {
 			ImGui::DockSpaceOverViewport(0U, ImGui::GetMainViewport());
 
 			ImGui::ShowDemoWindow();
+
+			if (ImGui::Button("Spawn")) {
+				editor::actors.push_back(Zap::Actor());
+				auto* pActor = &editor::actors.back();
+				editor::scenes.back().attachActor(*pActor);
+				pActor->addTransform(glm::mat4(1));
+				pActor->cmpTransform_setPos(1.0f+editor::spawnCounter*2.5f, 2.6f, 2.0f);
+				pActor->addModel(editor::cubeModel);
+				editor::spawnCounter++;
+			}
 
 			editor::mainMenuBar->draw();
 
@@ -452,6 +470,7 @@ int main() {
 		editor::scenes.back().update();
 		editor::renderer->render();
 
+		editor::window->present();
 		Zap::Window::pollEvents();
 		auto timeEndFrame = std::chrono::high_resolution_clock::now();
 		dTime = std::chrono::duration_cast<std::chrono::duration<float>>(timeEndFrame - timeStartFrame).count();
@@ -474,6 +493,9 @@ int main() {
 	editor::layers.clear();
 
 	delete editor::renderer;
+
+	Zap::Gui::destroyImGui();
+
 	delete editor::window;
 
 	for(auto scene : editor::scenes)

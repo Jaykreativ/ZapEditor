@@ -53,6 +53,9 @@ namespace editor {
 					if (!actor.hasModel()) {
 						actor.addModel({ "", {Zap::Material()}, {mesh} });
 					}
+					else {
+						actor.cmpModel_addMesh(mesh);
+					}
 				}
 				ImGui::EndDragDropTarget();
 			}

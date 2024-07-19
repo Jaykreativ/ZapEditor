@@ -23,10 +23,10 @@ namespace editor {
 		Zap::Window* m_pWindow;
 		Zap::Gui* m_pGui;
 
-		glm::vec2 m_previewSize = { 50, 50 };
+		glm::vec2 m_previewSize = { 150, 150 };
 
-		static std::unordered_map<Zap::UUID, Zap::GuiTexture> m_meshPreviews;
-		static std::unordered_map<Zap::UUID, Zap::Image> m_meshPreviewImages;
+		std::unordered_map<Zap::UUID, Zap::GuiTexture> m_meshPreviews = {};
+		std::unordered_map<Zap::UUID, Zap::Image> m_meshPreviewImages = {};
 	};
 }
 

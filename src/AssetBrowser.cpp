@@ -6,9 +6,6 @@
 #include "Zap/Rendering/PBRenderer.h"
 
 namespace editor {
-	std::unordered_map<Zap::UUID, Zap::GuiTexture> AssetBrowser::m_meshPreviews = {};
-	std::unordered_map<Zap::UUID, Zap::Image> AssetBrowser::m_meshPreviewImages = {};
-
 	AssetBrowser::AssetBrowser(Zap::Window* pWindow, Zap::Gui* pGui)
 		: m_pWindow(pWindow), m_pGui(pGui)
 	{
@@ -16,7 +13,10 @@ namespace editor {
 	}
 
 	AssetBrowser::~AssetBrowser() {
-
+		for (auto& previewPair : m_meshPreviews)
+			m_pGui->unloadTexture(previewPair.second);
+		for (auto& imagePair : m_meshPreviewImages)
+			imagePair.second.destroy();
 	}
 
 	std::string AssetBrowser::name() {
@@ -62,32 +62,45 @@ namespace editor {
 				image.initView();
 
 				Zap::Scene scene = Zap::Scene();
-				scene.init();
 
 				Zap::Actor actor;
 				scene.attachActor(actor);
 				actor.addTransform(glm::mat4(1));
 				actor.addModel({"", {Zap::Material()}, {meshPair.first}});
 
+				Zap::Actor light;
+				scene.attachActor(light);
+				light.addTransform(glm::mat4(1));
+				light.cmpTransform_setPos({1, 1, -3});
+				light.addLight({1, 1, 1}, 10);
+
 				Zap::Actor cam;
 				scene.attachActor(cam);
 				cam.addTransform(glm::mat4(1));
-				cam.cmpTransform_setPos({0, 0, -5});
-				cam.addCamera();
+				glm::mat4 camOffset = glm::mat4(1);
+				camOffset[3] = glm::vec4(2, 3, -5, 1);
+				cam.addCamera(camOffset);
+				cam.cmpCamera_lookAtCenter();
 
-				Zap::Renderer renderer = Zap::Renderer(*m_pWindow);
-				auto pbRender = new Zap::PBRenderer(renderer, &scene);
-				pbRender->setViewport(1, 1, 0, 0);
-				pbRender->setRenderTarget(&image);
+				scene.init();
+
+				Zap::Renderer renderer;
+				auto* pbRender = new Zap::PBRenderer(&scene);
+				pbRender->setViewport(m_previewSize.x, m_previewSize.y, 0, 0);
 				pbRender->updateCamera(cam);
-				renderer.addRenderTemplate(pbRender);
-				renderer.init();
-
+				pbRender->clearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
+				renderer.setTarget(&image);
+				renderer.addRenderTask(pbRender);
 				renderer.beginRecord();
 				renderer.recRenderTemplate(pbRender);
 				renderer.endRecord();
-
+				renderer.init();
+				
+				scene.update();
 				renderer.render();
+
+				renderer.destroy();
+				scene.destroy();
 
 				image.changeLayout(VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT);
 				m_meshPreviews[meshPair.first] = m_pGui->loadTexture(&image);

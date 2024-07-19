@@ -3,6 +3,9 @@
 #include "VulkanFramework.h"
 #include "Zap/Scene/Actor.h"
 #include "Zap/Rendering/Window.h"
+#include "Zap/Rendering/Renderer.h"
+#include "Zap/Rendering/PBRenderer.h"
+#include "Zap/Rendering/PathTacer.h"
 #include "ViewLayer.h"
 #include "imgui.h"
 
@@ -22,7 +25,7 @@ namespace editor {
 	public:
 		bool canMove = true;
 
-		Viewport(Zap::Renderer* renderer, Zap::Scene* pScene, Zap::Window* pWindow);
+		Viewport(Zap::Scene* pScene, Zap::Window* pWindow);
 		~Viewport();
 
 		std::string name();
@@ -45,10 +48,10 @@ namespace editor {
 
 	private:
 		Zap::Window* m_pWindow;
-		Zap::PBRenderer* m_pbRender;
-		Zap::RaytracingRenderer* m_rtxRender;
-		Zap::PathTracer* m_pathTracer;
-		Zap::Renderer* m_pRenderer;
+		Zap::Renderer m_renderer;
+		Zap::PBRenderer* m_pPBRender;
+		Zap::RaytracingRenderer* m_pRTRender;
+		Zap::PathTracer* m_pPathTracer;
 		Zap::Actor m_camera;
 
 		RenderType m_renderType = ePBR;
@@ -59,9 +62,9 @@ namespace editor {
 
 		bool m_isHovered = false;
 
-		static void cursorPositionCallback(Zap::CursorPosEvent& params, void* viewportData);
-
 		void update();
+
+		static void cursorPositionCallback(Zap::CursorPosEvent& params, void* viewportData);
 	};
 }
 
