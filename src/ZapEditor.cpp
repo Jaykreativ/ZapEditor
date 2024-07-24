@@ -467,7 +467,7 @@ int main() {
 				scene.simulate(dTime);
 		}
 
-		editor::scenes.back().update();
+		// render GUI only
 		editor::renderer->render();
 
 		editor::window->present();

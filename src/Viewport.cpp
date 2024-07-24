@@ -82,7 +82,7 @@ namespace editor {
 	}
 
 	Viewport::Viewport(Zap::Scene* pScene, Zap::Window* pWindow)
-		: m_pWindow(pWindow)
+		: m_pScene(pScene), m_pWindow(pWindow)
 	{
 		m_pWindow->getKeyEventHandler()->addCallback(keyCallback);
 		m_pWindow->getMouseButtonEventHandler()->addCallback(mouseButtonCallback);
@@ -269,6 +269,7 @@ namespace editor {
 			m_pPathTracer->updateCamera(m_camera);
 		}
 
+		m_pScene->update();
 		m_renderer.render();
 	}
 

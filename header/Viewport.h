@@ -48,6 +48,7 @@ namespace editor {
 
 	private:
 		Zap::Window* m_pWindow;
+		Zap::Scene* m_pScene;
 		Zap::Renderer m_renderer;
 		Zap::PBRenderer* m_pPBRender;
 		Zap::RaytracingRenderer* m_pRTRender;
