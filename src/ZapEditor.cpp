@@ -1,343 +1,512 @@
+#include "MainMenuBar.h";
+#include "Viewport.h";
+#include "SceneHierarchy.h";
+#include "ComponentView.h";
+
 #include "Zap/Zap.h"
-#include "Zap/Window.h"
-#include "Zap/Renderer.h"
-#include "Zap/PBRenderer.h"
-#include "Zap/Gui.h"
+#include "Zap/ModelLoader.h"
+#include "Zap/Event.h"
+#include "Zap/EventHandler.h"
+#include "Zap/Serializer.h"
+#include "Zap/Rendering/Window.h"
+#include "Zap/Rendering/Renderer.h"
+#include "Zap/Rendering/Gui.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Mesh.h"
 #include "Zap/Scene/Shape.h"
 #include "Zap/Scene/Actor.h"
-#include "Zap/Scene/Component.h"
 #include "Zap/Scene/Transform.h"
-#include "Zap/Scene/MeshComponent.h"
+#include "Zap/Scene/Material.h"
+#include "Zap/Scene/Model.h"
+
 #include "imgui.h"
+#include "backends/imgui_impl_vulkan.h";
+#include "backends/imgui_impl_glfw.h";
 #include "PxPhysicsAPI.h"
 #include "glm.hpp"
 #include "gtc/matrix_transform.hpp"
 #include "gtc/type_ptr.hpp"
 
-namespace app {
-	Zap::Base* engineBase = Zap::Base::createBase("Zap Application");
+namespace editor {
+	static Zap::Base* engineBase;
 
-	Zap::Window window = Zap::Window(1000, 600, "Zap Window");
+	static Zap::Window* window;
+	static Zap::Renderer* renderer;
 
-	Zap::Gui gui = Zap::Gui(window);
+	static Zap::Gui* gui;
 
-	Zap::PBRenderer renderer = Zap::PBRenderer(window);
-	Zap::PBRenderer renderer2 = Zap::PBRenderer(window);
+	static Zap::PBRenderer* pbr;
+	static Zap::RaytracingRenderer* rtx;
 
-	Zap::Actor cam = Zap::Actor();
+	static std::vector<Zap::Scene> scenes;
+	
+	static uint32_t cam = 0;
+	static std::vector<Zap::Actor> actors;
+	static std::vector<Zap::Actor> selectedActors;
+
+	static MainMenuBar* mainMenuBar;
+	static std::vector<ViewLayer*> layers;
+
+	static Zap::Model cubeModel;
+	static int spawnCounter;
 }
 
-namespace movement {
-	bool forward = false;
-	bool backward = false;
-	bool left = false;
-	bool right = false;
-	bool down = false;
-	bool up = false;
-	bool lookUp = false;
-	bool lookDown = false;
-	bool lookLeft = false;
-	bool lookRight = false;
-	void move(float dTime) {
-		if (forward) {
-			auto res = app::cam.getTransform();
-			glm::vec3 vec = res[2];
-			res[3] = glm::vec4(glm::vec3(res[3]) + glm::normalize(glm::vec3{ vec.x, 0, vec.z }) * dTime * 2.0f, 1);
-			app::cam.setTransform(res);
-		}
-		if (backward) {
-			auto res = app::cam.getTransform();
-			glm::vec3 vec = -res[2];
-			res[3] = glm::vec4(glm::vec3(res[3]) + glm::normalize(glm::vec3{ vec.x, 0, vec.z }) * dTime * 2.0f, 1);
-			app::cam.setTransform(res);
-		}
-		if (right) {
-			auto res = app::cam.getTransform();
-			glm::vec3 vec = res[0];
-			res[3] = glm::vec4(glm::vec3(res[3]) + glm::normalize(glm::vec3{ vec.x, 0, vec.z }) * dTime * 2.0f, 1);
-			app::cam.setTransform(res);
-		}
-		if (left) {
-			auto res = app::cam.getTransform();
-			glm::vec3 vec = -res[0];
-			res[3] = glm::vec4(glm::vec3(res[3]) + glm::normalize(glm::vec3{ vec.x, 0, vec.z }) * dTime * 2.0f, 1);
-			app::cam.setTransform(res);
-		}
-		if (down) {
-			auto res = app::cam.getTransform();
-			res[3] = glm::vec4(glm::vec3(res[3]) + glm::vec3{ 0, -2, 0 }*dTime, 1);
-			app::cam.setTransform(res);
-		}
-		if (up) {
-			auto res = app::cam.getTransform();
-			res[3] = glm::vec4(glm::vec3(res[3]) + glm::vec3{ 0, 2, 0 }*dTime, 1);
-			app::cam.setTransform(res);
-		}
-		if (lookLeft) {
-			glm::mat4 res = app::cam.getTransform();
-			glm::mat4 rot = glm::rotate(glm::mat4(1), glm::radians<float>(-90 * dTime), glm::vec3{ 0, 1, 0 });
-
-			res[0] = rot * res[0];
-			res[1] = rot * res[1];
-			res[2] = rot * res[2];
-
-			app::cam.setTransform(res);
-		}
-		if (lookRight) {
-			glm::mat4 res = app::cam.getTransform();
-			glm::mat4 rot = glm::rotate(glm::mat4(1), glm::radians<float>(90 * dTime), glm::vec3{ 0, 1, 0 });
-
-			res[0] = rot * res[0];
-			res[1] = rot * res[1];
-			res[2] = rot * res[2];
-
-			app::cam.setTransform(res);
-		}
-		if (lookDown) {
-			app::cam.getTransformComponent()->rotateX(90 * dTime);
-		}
-		if (lookUp) {
-			app::cam.getTransformComponent()->rotateX(-90 * dTime);
-		}
-	}
+void setupGuiStyle() {
+	ImGuiStyle* style = &ImGui::GetStyle();
+	style->Colors[ImGuiCol_Header] = ImVec4(100 / 255.0, 95 / 255.0, 90 / 255.0, 80 / 255.0);
+	style->Colors[ImGuiCol_HeaderHovered] = ImVec4(125 / 255.0, 120 / 255.0, 115 / 255.0, 200 / 255.0);
+	style->Colors[ImGuiCol_HeaderActive] = ImVec4(155 / 255.0, 150 / 255.0, 145 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_Separator] = ImVec4(125 / 255.0, 115 / 255.0, 110 / 255.0, 125 / 255.0);
+	style->Colors[ImGuiCol_MenuBarBg] = ImVec4(40 / 255.0, 37 / 255.0, 35 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_TitleBg] = ImVec4(50 / 255.0, 47 / 255.0, 45 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_TitleBgActive] = ImVec4(55 / 255.0, 52 / 255.0, 50 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_Tab] = ImVec4(155 / 255.0, 85 / 255.0, 45 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_TabHovered] = ImVec4(250 / 255.0, 145 / 255.0, 85 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_TabActive] = ImVec4(225 / 255.0, 125 / 255.0, 75 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_TabUnfocused] = ImVec4(75 / 255.0, 72 / 255.0, 70 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_TabUnfocusedActive] = ImVec4(115 / 255.0, 112 / 255.0, 110 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_ResizeGrip] = ImVec4(185 / 255.0, 95 / 255.0, 45 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_ResizeGripHovered] = ImVec4(200 / 255.0, 105 / 255.0, 55 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_ResizeGripActive] = ImVec4(250 / 255.0, 135 / 255.0, 75 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_FrameBg] = ImVec4(55 / 255.0, 52 / 255.0, 50 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_FrameBgHovered] = ImVec4(85 / 255.0, 82 / 255.0, 80 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_FrameBgActive] = ImVec4(175 / 255.0, 100 / 255.0, 55 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_CheckMark] = ImVec4(230 / 255.0, 135 / 255.0, 100 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_SliderGrab] = ImVec4(185 / 255.0, 105 / 255.0, 65 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_SliderGrabActive] = ImVec4(230 / 255.0, 135 / 255.0, 100 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_Button] = ImVec4(65 / 255.0, 62 / 255.0, 60 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_ButtonHovered] = ImVec4(105 / 255.0, 102 / 255.0, 100 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_ButtonActive] = ImVec4(230 / 255.0, 100 / 255.0, 60 / 255.0, 1);
+	style->Colors[ImGuiCol_DockingPreview] = ImVec4(255 / 255.0, 145 / 255.0, 85 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_SeparatorHovered] = ImVec4(190 / 255.0, 100 / 255.0, 55 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_SeparatorActive] = ImVec4(200 / 255.0, 105 / 255.0, 60 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_TextSelectedBg] = ImVec4(250 / 255.0, 135 / 255.0, 85 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_NavHighlight] = ImVec4(250 / 255.0, 135 / 255.0, 85 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_TableHeaderBg] = ImVec4(50 / 255.0, 48 / 255.0, 46 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_TableBorderStrong] = ImVec4(85 / 255.0, 75 / 255.0, 72 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_TableBorderLight] = ImVec4(65 / 255.0, 62 / 255.0, 60 / 255.0, 255 / 255.0);
+	style->Colors[ImGuiCol_Border] = ImVec4(130 / 255.0, 112 / 255.0, 110 / 255.0, 255 / 255.0);
 }
 
-namespace keybinds {
-	int forward = GLFW_KEY_W;
-	int backward = GLFW_KEY_S;
-	int left = GLFW_KEY_A;
-	int right = GLFW_KEY_D;
-	int down = GLFW_KEY_C;
-	int up = GLFW_KEY_SPACE;
-	int lookUp = GLFW_KEY_UP;
-	int lookDown = GLFW_KEY_DOWN;
-	int lookLeft = GLFW_KEY_LEFT;
-	int lookRight = GLFW_KEY_RIGHT;
-	void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-		if (action == GLFW_PRESS) {
-			if (key == forward) {
-				movement::forward = true;
-			}
-			else if (key == backward) {
-				movement::backward = true;
-			}
-			else if (key == left) {
-				movement::left = true;
-			}
-			else if (key == right) {
-				movement::right = true;
-			}
-			else if (key == down) {
-				movement::down = true;
-			}
-			else if (key == up) {
-				movement::up = true;
-			}
-			else if (key == lookUp) {
-				movement::lookUp = true;
-			}
-			else if (key == lookDown) {
-				movement::lookDown = true;
-			}
-			else if (key == lookLeft) {
-				movement::lookLeft = true;
-			}
-			else if (key == lookRight) {
-				movement::lookRight = true;
-			}
-			/*else if (key == GLFW_KEY_ENTER) {
-				glm::vec3 dir = app::cam.getTransform()[2];
-				px::cubePxActor->addForce(PxVec3(dir.x*500, dir.y*500, dir.z*500));
-				//px::cubePxActor->setGlobalPose(PxTransform(PxVec3(0, 5, 0)));
-			}*/
-		}
-		else if (action == GLFW_RELEASE) {
-			if (key == forward) {
-				movement::forward = false;
-			}
-			else if (key == backward) {
-				movement::backward = false;
-			}
-			else if (key == left) {
-				movement::left = false;
-			}
-			else if (key == right) {
-				movement::right = false;
-			}
-			else if (key == down) {
-				movement::down = false;
-			}
-			else if (key == up) {
-				movement::up = false;
-			}
-			else if (key == lookUp) {
-				movement::lookUp = false;
-			}
-			else if (key == lookDown) {
-				movement::lookDown = false;
-			}
-			else if (key == lookLeft) {
-				movement::lookLeft = false;
-			}
-			else if (key == lookRight) {
-				movement::lookRight = false;
-			}
-		}
-	}
+void setupActors() {
+	Zap::ModelLoader modelLoader = Zap::ModelLoader();
+
+	auto woodTexture = modelLoader.loadTexture("woodTexture.png");
+	auto randomTexture = modelLoader.loadTexture("randomTexture.jpg");
+	//auto reddotsTexture = modelLoader.loadTexture("reddotsTexture.jpg");
+
+	editor::cubeModel = modelLoader.load("Models/OBJ/Cube.obj");
+
+	//auto cboxModel = modelLoader.load("Models/gltf/cornellBox.glb");
+	
+	//auto sponzaModel = modelLoader.load("Models/gltf/Sponza.glb");
+
+	auto gearModel = modelLoader.load("Models/gltf/ZapGear.glb");
+
+	//auto giftModel = modelLoader.load("Models/OBJ/Gift.obj");
+
+	//auto kimberModel = modelLoader.load("Models/OBJ/PistolKimber/PistolKimber.glb");
+
+	auto sphereModel = modelLoader.load("Models/gltf/metalSphere.glb");
+
+	Zap::PhysicsMaterial pxMaterial = Zap::PhysicsMaterial(0.5, 1, 0.1);
+
+	editor::actors.push_back(Zap::Actor());
+	auto pActor = &editor::actors.back();
+	editor::scenes.back().attachActor(*pActor);
+	pActor->addTransform(glm::mat4(1));
+	pActor->cmpTransform_setPos(0, 2.7, 0);
+	pActor->addLight({ 12, 12, 12 });
+
+	editor::actors.push_back(Zap::Actor());
+	pActor = &editor::actors.back();
+	editor::scenes.back().attachActor(*pActor);
+	pActor->addTransform(glm::mat4(1));
+	pActor->cmpTransform_setPos(0, 0, -2.7);
+	pActor->addLight({ 6, 4, 2 });
+	//pActor->addModel(sphereModel);
+	//{
+	//	Zap::Material mat{};
+	//	mat.emissive = {1, 1, 1, 24};
+	//	pActor->cmpModel_setMaterial(mat);
+	//}
+
+	//editor::actors.push_back(Zap::Actor());
+	//pActor = &editor::actors.back();
+	//editor::scenes.back().attachActor(*pActor);
+	//pActor->addTransform(glm::mat4(1));
+	//pActor->cmpTransform_setPos(0, -2, 0);
+	//pActor->addModel(sponzaModel);
+
+	// coordinate helper
+	//editor::actors.push_back(Zap::Actor());
+	//pActor = &editor::actors.back();
+	//editor::scene->attachActor(*pActor);
+	//pActor->addTransform(glm::mat4(1));
+	//pActor->cmpTransform_setPos(0, 5, 0);
+	//pActor->cmpTransform_setScale(0.25, 0.25, 0.25);
+	//pActor->addModel(cubeModel);
+	//{
+	//	Zap::Material mat = Zap::Material();
+	//	mat.albedoColor = { 1, 1, 1 };
+	//	mat.roughness = 0.5;
+	//	mat.metallic = 0;
+	//	mat.emissive = { 1, 1, 1, 5 };
+	//	pActor->cmpModel_setMaterial(mat);
+	//}
+	//
+	//editor::actors.push_back(Zap::Actor());
+	//pActor = &editor::actors.back();
+	//editor::scene->attachActor(*pActor);
+	//pActor->addTransform(glm::mat4(1));
+	//pActor->cmpTransform_setPos(0.5, 5, 0);
+	//pActor->cmpTransform_setScale(0.5, 0.1, 0.1);
+	//pActor->addModel(cubeModel);
+	//{
+	//	Zap::Material mat = Zap::Material();
+	//	mat.albedoColor = { 1, 0, 0 };
+	//	mat.roughness = 0.5;
+	//	mat.metallic = 0;
+	//	mat.emissive = { 1, 0, 0, 2 };
+	//	pActor->cmpModel_setMaterial(mat);
+	//}
+	//
+	//editor::actors.push_back(Zap::Actor());
+	//pActor = &editor::actors.back();
+	//editor::scene->attachActor(*pActor);
+	//pActor->addTransform(glm::mat4(1));
+	//pActor->cmpTransform_setPos(0, 5.5, 0);
+	//pActor->cmpTransform_setScale(0.1, 0.5, 0.1);
+	//pActor->addModel(cubeModel);
+	//{
+	//	Zap::Material mat = Zap::Material();
+	//	mat.albedoColor = { 0, 1, 0 };
+	//	mat.roughness = 0.5;
+	//	mat.metallic = 0;
+	//	mat.emissive = { 0, 1, 0, 2 };
+	//	pActor->cmpModel_setMaterial(mat);
+	//}
+	//
+	//editor::actors.push_back(Zap::Actor());
+	//pActor = &editor::actors.back();
+	//editor::scene->attachActor(*pActor);
+	//pActor->addTransform(glm::mat4(1));
+	//pActor->cmpTransform_setPos(0, 5, 0.5);
+	//pActor->cmpTransform_setScale(0.1, 0.1, 0.5);
+	//pActor->addModel(cubeModel);
+	//{
+	//	Zap::Material mat = Zap::Material();
+	//	mat.albedoColor = { 0, 0, 1 };
+	//	mat.roughness = 0.5;
+	//	mat.metallic = 0;
+	//	mat.emissive = { 0, 0, 1, 5 };
+	//	pActor->cmpModel_setMaterial(mat);
+	//}
+	//
+
+	Zap::Material cboxMat{};
+	cboxMat.roughness = 1;
+
+	editor::actors.push_back(Zap::Actor());
+	pActor = &editor::actors.back();
+	editor::scenes.back().attachActor(*pActor);
+	pActor->addTransform(glm::mat4(1));
+	pActor->cmpTransform_setPos(2, 0, 1);
+	pActor->cmpTransform_setScale(0.1, 2, 3);
+	pActor->addModel(editor::cubeModel);
+	cboxMat.albedoColor = { .75, .25, .25 };
+	pActor->cmpModel_setMaterial(cboxMat);
+
+	editor::actors.push_back(Zap::Actor());
+	pActor = &editor::actors.back();
+	editor::scenes.back().attachActor(*pActor);
+	pActor->addTransform(glm::mat4(1));
+	pActor->cmpTransform_setPos(-2, 0, 1);
+	pActor->cmpTransform_setScale(0.1, 2, 3);
+	pActor->addModel(editor::cubeModel);
+	cboxMat.albedoColor = { .25, .25, .75 };
+	pActor->cmpModel_setMaterial(cboxMat);
+	cboxMat.albedoColor = { .75, .75, .75 };
+
+	editor::actors.push_back(Zap::Actor());
+	pActor = &editor::actors.back();
+	editor::scenes.back().attachActor(*pActor);
+	pActor->addTransform(glm::mat4(1));
+	pActor->cmpTransform_setPos(0, 0, -2);
+	pActor->cmpTransform_setScale(2, 2, 0.1);
+	pActor->addModel(editor::cubeModel);
+	pActor->cmpModel_setMaterial(cboxMat);
+
+	editor::actors.push_back(Zap::Actor());
+	pActor = &editor::actors.back();
+	editor::scenes.back().attachActor(*pActor);
+	pActor->addTransform(glm::mat4(1));
+	pActor->cmpTransform_setPos(0, 2, 1);
+	pActor->cmpTransform_setScale(2, 0.1, 3);
+	pActor->addModel(editor::cubeModel);
+	pActor->cmpModel_setMaterial(cboxMat);
+
+	editor::actors.push_back(Zap::Actor());
+	pActor = &editor::actors.back();
+	editor::scenes.back().attachActor(*pActor);
+	pActor->addTransform(glm::mat4(1));
+	pActor->cmpTransform_setPos(0, -2, 1);
+	pActor->cmpTransform_setScale(2, 0.1, 3);
+	pActor->addModel(editor::cubeModel);
+	pActor->cmpModel_setMaterial(cboxMat);
+
+	editor::actors.push_back(Zap::Actor());
+	pActor = &editor::actors.back();
+	editor::scenes.back().attachActor(*pActor);
+	pActor->addTransform(glm::mat4(1));
+	pActor->cmpTransform_setPos(0, -1, 1.5);
+	pActor->cmpTransform_setScale(0.1, 0.1, 0.1);
+	pActor->addModel(gearModel);
+
+	cboxMat.albedoColor = { .99, .99, .99 };
+	cboxMat.roughness = 0.1;
+	cboxMat.metallic = 1;
+	editor::actors.push_back(Zap::Actor());
+	pActor = &editor::actors.back();
+	editor::scenes.back().attachActor(*pActor);
+	pActor->addTransform(glm::mat4(1));
+	pActor->cmpTransform_setPos(0.65, -1.6, 0.8);
+	pActor->cmpTransform_setScale(0.4, 0.4, 0.7);
+	pActor->addModel(sphereModel);
+	pActor->cmpModel_setMaterial(cboxMat);
+
+	//editor::actors.push_back(Zap::Actor());
+	//pActor = &editor::actors.back();
+	//editor::scenes.back().attachActor(*pActor);
+	//pActor->addTransform(glm::mat4(1));
+	//pActor->cmpTransform_setPos(-0.7, -1.2, -0.5);
+	//pActor->cmpTransform_setScale(0.8, 0.8, 0.8);
+	//pActor->addModel(sphereModel);
+	//cboxMat.metallic = 0;
+	//pActor->cmpModel_setMaterial(cboxMat);
+
+	//for (int x = 0; x < 11; x++) {
+	//	for (int z = 0; z < 2; z++) {
+	//		editor::actors.push_back(Zap::Actor());
+	//		pActor = &editor::actors.back();
+	//		editor::scene->attachActor(*pActor);
+	//		pActor->addTransform(glm::mat4(1));
+	//		pActor->cmpTransform_setPos((x-5)*2, 2, (z-0.5)*3);
+	//		pActor->addModel(sphereModel);
+	//		Zap::Material material{};
+	//		material.albedoColor = {1, 1, 1};
+	//		material.roughness = x/10.0;
+	//		material.metallic = z;
+	//		pActor->cmpModel_setMaterial(material);
+	//	}
+	//}
+
+	//editor::actors.push_back(Zap::Actor());
+	//pActor = &editor::actors.back();
+	//editor::scenes.back().attachActor(*pActor);
+	//pActor->addTransform(glm::mat4(1));
+	//pActor->cmpTransform_setPos(0, -6, 0);
+	//pActor->cmpTransform_setScale(50, 1, 50);
+	//pActor->cmpTransform_rotateX(180);
+	//pActor->addModel(cubeModel);
+	//pActor->cmpModel_setMaterial(cboxMat);
+	//{
+	//	Zap::Shape shape(Zap::BoxGeometry({50, 1, 50}), pxMaterial, true);
+	//	pActor->addRigidStatic(shape);
+	//}
+
+	//for (int i = 0; i < 5; i++) {
+	//	for (int j = 0; j < 5; j++) {
+	//		for (int k = 0; k < 5-j; k++) {
+	//			editor::actors.push_back(Zap::Actor());
+	//			pActor = &editor::actors.back();
+	//			editor::scenes.back().attachActor(*pActor);
+	//			pActor->addTransform(glm::mat4(1));
+	//			pActor->cmpTransform_setPos(i+5, 0.3+j*0.6, k * 0.6 + j * 0.6 / 2.0);
+	//			pActor->cmpTransform_setScale(0.3, 0.3, 0.3);
+	//			pActor->addModel(giftModel);
+	//			Zap::Material material{};
+	//			material.albedoColor = {sin(i*2), 1, sin(i*5)};
+	//			material.albedoMap = j%2;
+	//			material.roughness = std::min<float>(j/5.0+0.1, 1);
+	//			material.metallic = !k%2;
+	//			pActor->cmpModel_setMaterial(material);
+	//			{
+	//				Zap::Shape shape(Zap::BoxGeometry({ 0.3, 0.3, 0.3 }), pxMaterial, true);
+	//				pActor->addRigidDynamic(shape);
+	//			}
+	//		}
+	//	}
+	//}
+
+	// Kimber Pistol Cube Generator
+	//glm::vec3 kpcPos = { 0, 1, 0 };
+	//float kpcPadding = 0.25;
+	//glm::vec3 kpcSize = { 10, 10, 10 };
+	//glm::vec3 kpcCorner = kpcPos - kpcSize * 0.5f * kpcPadding;
+	//for (float x = 0; x < kpcSize.x*kpcPadding; x += kpcPadding) {
+	//	for (float y = 0; y < kpcSize.y * kpcPadding; y += kpcPadding) {
+	//		for (float z = 0; z < kpcSize.z * kpcPadding; z += kpcPadding) {
+	//			editor::actors.push_back(Zap::Actor());
+	//			pActor = &editor::actors.back();
+	//			editor::scenes.back().attachActor(*pActor);
+	//			pActor->addTransform(glm::mat4(1));
+	//			pActor->cmpTransform_setPos(kpcCorner + glm::vec3(x, y, z));
+	//			pActor->cmpTransform_setScale(1);
+	//			pActor->addModel(kimberModel);
+	//		}
+	//	}
+	//}
+
 }
 
-void resize(GLFWwindow* window, int width, int height) {
-	app::renderer.setViewport(width, height, 0, 0);
-	app::gui.setViewport(width, height, 0, 0);
-}
+void windowResizeCallback(Zap::ResizeEvent& params, void* data) {}
 
 int main() {
-	app::engineBase->init();
+	editor::engineBase = Zap::Base::createBase("Zap Application");
+	auto settings = editor::engineBase->getSettings();
+	
+	//std::cout << "Enable raytracing 1(true) | 0(false)\n>>> ";
+	//std::cin >> settings->enableRaytracing;
+	settings->enableRaytracing = true;
 
-	app::window.init();
-	app::window.show();
-	app::window.setKeyCallback(keybinds::keyCallback);
-	app::window.setResizeCallback(resize);
+	editor::engineBase->init();
 
-	app::gui.setViewport(app::window.getWidth(), app::window.getHeight(), 0, 0);
-	app::gui.init();
+	editor::window = new Zap::Window(1000, 600, "Zap Window");
+	editor::window->init();
+	editor::window->show();
+	//editor::window->setMousebButtonCallback(keybinds::mouseButtonCallback);
+	//editor::window->setKeyCallback(keybinds::keyCallback);
+	editor::window->getResizeEventHandler()->addCallback(windowResizeCallback);
 
-	Zap::Mesh model = Zap::Mesh();
-	model.load("Models/OBJ/Cube.obj");
+	editor::renderer = new Zap::Renderer();
 
-	//Zap::Model sponzaModel = Zap::Model();
-	//sponzaModel.load("Models/OBJ/Sponza.obj");
+	Zap::Gui::initImGui(editor::window);
+	editor::gui = new Zap::Gui();
 
-	Zap::Mesh giftModel = Zap::Mesh();
-	giftModel.load("Models/OBJ/Gift.obj");
+	//deserialize
 
-	//Actors
-	Zap::Actor centre;
-	centre.addTransform(glm::mat4(1));
-	centre.getTransformComponent()->setPos(0, 0, 0);
-	centre.getTransformComponent()->setScale(0.25, 0.25, 0.25);
-	centre.addMesh(&model);
+	//Zap::Serializer deserializer;
+	//deserializer.deserialize("./Actors", &editor::actors, &editor::scenes);
+	editor::scenes.push_back(Zap::Scene());
+	editor::scenes.back().init();
+	
+	setupActors();
 
-	Zap::Actor xDir;
-	xDir.addTransform(glm::mat4(1));
-	xDir.getTransformComponent()->setPos(0.75, 0, 0);
-	xDir.getTransformComponent()->setScale(0.5, 0.1, 0.1);
-	xDir.addMesh(&model);
-	xDir.getMeshComponent(0)->m_material.m_AlbedoColor = { 1, 0, 0 };
+	for(auto& scene : editor::scenes)
+		scene.update();
 
-	Zap::Actor yDir;
-	yDir.addTransform(glm::mat4(1));
-	yDir.getTransformComponent()->setPos(0, 0.75, 0);
-	yDir.getTransformComponent()->setScale(0.1, 0.5, 0.1);
-	yDir.addMesh(&model);
-	yDir.getMeshComponent(0)->m_material.m_AlbedoColor = { 0, 1, 0 };
+	editor::renderer->setTarget(editor::window);
 
-	Zap::Actor zDir;
-	zDir.addTransform(glm::mat4(1));
-	zDir.getTransformComponent()->setPos(0, 0, 0.75);
-	zDir.getTransformComponent()->setScale(0.1, 0.1, 0.5);
-	zDir.addMesh(&model);
-	zDir.getMeshComponent(0)->m_material.m_AlbedoColor = { 0, 0, 1 };
+	editor::renderer->addRenderTask(editor::gui);
 
-	auto pxMaterial = Zap::PhysicsMaterial(0.5, 0.5, 0.6);
+	editor::renderer->init();
+	editor::renderer->beginRecord();
+	editor::renderer->recRenderTemplate(editor::gui);
+	editor::renderer->endRecord();
 
-	Zap::Actor physicstest;
-	physicstest.addTransform(glm::mat4(1));
-	physicstest.getTransformComponent()->setPos({ 0, 5, 0 });
-	physicstest.getTransformComponent()->setScale({ 0.5, 0.5, 0.5 });
-	{
-		auto geometry = Zap::BoxGeometry({ 1, 1, 1 });
-		auto shape = Zap::Shape(geometry, pxMaterial, true);
-		physicstest.addPhysics(Zap::PHYSICS_TYPE_RIGID_DYNAMIC, shape);
-	}
+	editor::mainMenuBar = new editor::MainMenuBar(editor::layers, editor::window, editor::renderer, editor::gui, &editor::scenes.back(), editor::actors, editor::selectedActors);
+	editor::layers.push_back(new editor::Viewport(&editor::scenes.back(), editor::window));
+	editor::layers.push_back(new editor::SceneHierarchyView(&editor::scenes.back(), editor::actors, editor::selectedActors));
+	editor::layers.push_back(new editor::ComponentView(editor::selectedActors));
 
-	physicstest.addCamera({ 0, 0, 0 });
-	physicstest.addMesh(&giftModel);
-	physicstest.addLight({ 0.25, 1, 3 });
+	setupGuiStyle();
 
-	Zap::Actor rotatingGift;
-	rotatingGift.addTransform(glm::mat4(1));
-	rotatingGift.getTransformComponent()->setPos(3, 2, 2);
-	rotatingGift.addMesh(&giftModel);
-	rotatingGift.getMeshComponent(0)->m_material.m_AlbedoColor = { 0.5, 1, 0.5 };
-
-	Zap::Actor ground;
-	ground.addTransform(glm::mat4(1));
-	ground.getTransformComponent()->setPos(0, -2, 0);
-	ground.getTransformComponent()->setScale(500, 1, 500);
-	{
-		auto geometry = Zap::PlaneGeometry();
-		glm::mat4 localTransform = glm::mat4(1);
-		localTransform = glm::translate(localTransform, glm::vec3(0, 1, 0));
-		localTransform = glm::rotate(localTransform, glm::radians<float>(90), glm::vec3(0, 0, 1));
-		auto shape = Zap::Shape(geometry, pxMaterial, true, localTransform);
-		ground.addPhysics(Zap::PHYSICS_TYPE_RIGID_STATIC, shape);
-	}
-	ground.addMesh(&model);
-
-	Zap::Actor skybox;
-	skybox.addTransform(glm::mat4(1));
-	skybox.getTransformComponent()->setPos(0, 0, 0);
-	skybox.getTransformComponent()->setScale(500, 500, 500);
-	skybox.addMesh(&model);
-
-	Zap::Actor light;
-	light.addTransform(glm::mat4(1));
-	light.getTransformComponent()->setPos({ -3, 2, 0 });
-	light.addLight({ 2.5, 2.5, 2.5 });
-
-	Zap::Actor light2;
-	light2.addTransform(glm::mat4(1));
-	light2.getTransformComponent()->setPos({ 3, 2, 0 });
-	light2.addLight({ 3, 1.5, 0.6 });
-
-	app::cam.addTransform(glm::mat4(1));
-	app::cam.getTransformComponent()->setPos(-1, 1, -5);
-	app::cam.addCamera(glm::vec3(0, 0, 0));
-
-	app::renderer.setViewport(1000, 600, 0, 0);
-	app::renderer.init();
-
-	app::renderer2.setViewport(500, 300, 0, 0);
-	app::renderer2.init();
-
+	Zap::PhysicsMaterial pxMaterial = Zap::PhysicsMaterial(0.5, 1, 0.1);
 	//mainloop
 	float dTime = 0;
-	while (!app::window.shouldClose()) {
+	uint64_t frameIndex = 0;
+	while (!editor::window->shouldClose()) {
 		auto timeStartFrame = std::chrono::high_resolution_clock::now();
-		movement::move(dTime);
+		
+		//editor::actors[3].cmpTransform_rotateY(15*dTime);
 
-		rotatingGift.getTransformComponent()->rotateY(45 * dTime);
+		if (!editor::window->isIconified()) {
+			ImGui::DockSpaceOverViewport(0U, ImGui::GetMainViewport());
 
-		ImGui::ShowDemoWindow();
+			ImGui::ShowDemoWindow();
 
-		if (dTime > 0) {
-			Zap::Scene::simulate(dTime);
+			if (ImGui::Button("Spawn")) {
+				editor::actors.push_back(Zap::Actor());
+				auto* pActor = &editor::actors.back();
+				editor::scenes.back().attachActor(*pActor);
+				pActor->addTransform(glm::mat4(1));
+				pActor->cmpTransform_setPos(1.0f+editor::spawnCounter*2.5f, 2.6f, 2.0f);
+				pActor->addModel(editor::cubeModel);
+				editor::spawnCounter++;
+			}
+
+			editor::mainMenuBar->draw();
+
+			uint32_t i = 0;
+			for (auto layer : editor::layers) {
+				ImGui::Begin((layer->name() + std::string("###") + std::to_string(i + 1)).c_str(), nullptr, layer->getWindowFlags() | ImGuiWindowFlags_MenuBar);
+
+				ImGui::BeginMenuBar();
+				bool isClosed = false;
+				if (ImGui::BeginMenu("View")) {
+					if (ImGui::MenuItem("Close")) {
+						delete layer;
+						editor::layers.erase(editor::layers.begin()+i);
+						isClosed = true;
+					}
+					ImGui::EndMenu();
+				}
+				ImGui::EndMenuBar();
+
+				if(!isClosed)
+					layer->draw();
+
+				ImGui::End();
+				i++;
+			}
 		}
 
-		app::window.clear();
+		if (editor::mainMenuBar->shouldSimulate() && dTime > 0) {
+			for(auto& scene : editor::scenes)
+				scene.simulate(dTime);
+		}
 
-		app::renderer.render(app::cam.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
-		app::window.clearDepthStencil();
-		app::renderer2.render(physicstest.getComponentIDs(Zap::COMPONENT_TYPE_CAMERA)[0]);
-		app::window.clearDepthStencil();
-		app::gui.render(0);
+		// render GUI only
+		editor::renderer->render();
 
-		app::window.swapBuffers();
+		editor::window->present();
 		Zap::Window::pollEvents();
 		auto timeEndFrame = std::chrono::high_resolution_clock::now();
 		dTime = std::chrono::duration_cast<std::chrono::duration<float>>(timeEndFrame - timeStartFrame).count();
+		frameIndex++;
 	}
+	//serialize
+	
+	Zap::Serializer serializer;
+	for (auto actor : editor::actors) {
+		serializer.addActor(actor);
+	}
+	//serializer.serialize("./Actors");
 
 	//terminate
-	app::renderer.~PBRenderer();
-	app::renderer2.~PBRenderer();
-	app::gui.~Gui();
-	app::window.~Window();
+	editor::renderer->destroy();
 
-	app::engineBase->terminate();
+	for (auto layer : editor::layers) {
+		delete layer;
+	}
+	editor::layers.clear();
+
+	delete editor::renderer;
+
+	Zap::Gui::destroyImGui();
+
+	delete editor::window;
+
+	for(auto scene : editor::scenes)
+		scene.destroy();
+	editor::scenes.clear();
+
+	delete editor::gui;
+	delete editor::pbr;
+
+	editor::engineBase->terminate();
+	Zap::Base::releaseBase();
 
 #ifdef _DEBUG
 	system("pause");

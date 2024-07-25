@@ -10,6 +10,7 @@ CMakeCache*
 CMakeFiles
 *.sln
 *.cmake
+*.spv
 
 # User-specific files
 *.rsuser
@@ -404,4 +405,6 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Auto ignores
 /imgui.ini
