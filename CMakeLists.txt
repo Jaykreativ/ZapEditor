@@ -7,11 +7,18 @@ file(GLOB ZapEditor_SRC
     "header/*.h"
 )
 
+file(GLOB_RECURSE ZapEditor_Shader
+    "Shader/*"
+)
+
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-add_executable(ZapEditor ${ZapEditor_SRC})
+add_executable(ZapEditor ${ZapEditor_SRC} ${ZapEditor_Shader})
+
+source_group("Source" FILES ${ZapEditor_SRC})
+source_group("Shader" FILES ${ZapEditor_Shader})
 
 add_subdirectory("../Zap" "${PROJECT_SOURCE_DIR}/../Zap")
 

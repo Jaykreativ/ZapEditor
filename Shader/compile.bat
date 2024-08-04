@@ -1,6 +1,8 @@
 cd %~dp0/..
-%VULKAN_SDK%\Bin\glslangValidator.exe -V Shader\src\shader.vert -o .\shader.vert.spv
-%VULKAN_SDK%\Bin\glslangValidator.exe -V Shader\src\shader.frag -o .\shader.frag.spv
-%VULKAN_SDK%\Bin\glslangValidator.exe -V Shader\src\PBRShader.vert -o .\PBRShader.vert.spv
-%VULKAN_SDK%\Bin\glslangValidator.exe -V Shader\src\PBRShader.frag -o .\PBRShader.frag.spv
+%VULKAN_SDK%\Bin\glslangValidator.exe -V Shader\src\outlinePlain.vert -o .\outlinePlain.vert.spv
+%VULKAN_SDK%\Bin\glslangValidator.exe -V Shader\src\outlinePlain.frag -o .\outlinePlain.frag.spv
+%VULKAN_SDK%\Bin\glslangValidator.exe -V Shader\src\outlineBlur.vert -o .\outlineBlur.vert.spv
+%VULKAN_SDK%\Bin\glslangValidator.exe -V Shader\src\outlineBlurA.frag -o .\outlineBlurA.frag.spv
+%VULKAN_SDK%\Bin\glslangValidator.exe -V Shader\src\outlineBlurB.frag -o .\outlineBlurB.frag.spv
+%VULKAN_SDK%\Bin\glslangValidator.exe -V Shader\src\outline.frag -o .\outline.frag.spv
 pause

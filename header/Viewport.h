@@ -4,8 +4,6 @@
 #include "Zap/Scene/Actor.h"
 #include "Zap/Rendering/Window.h"
 #include "Zap/Rendering/Renderer.h"
-#include "Zap/Rendering/PBRenderer.h"
-#include "Zap/Rendering/PathTacer.h"
 #include "ViewLayer.h"
 #include "imgui.h"
 
@@ -13,19 +11,24 @@ namespace Zap{
 	class PBRenderer;
 	class RaytracingRenderer;
 	class PathTracer;
-	class Gui;
 	class Renderer;
 	class Scene;
 	class Actor;
 }
 
 namespace editor {
+	class OutlineRenderTask;
+
+	struct ViewportSettings {
+		bool enableOutlines = true;
+	};
+
 	class Viewport : public ViewLayer
 	{
 	public:
 		bool canMove = true;
 
-		Viewport(Zap::Scene* pScene, Zap::Window* pWindow);
+		Viewport(Zap::Scene* pScene, Zap::Window* pWindow, std::vector<Zap::Actor>& selectedActors);
 		~Viewport();
 
 		std::string name();
@@ -47,12 +50,19 @@ namespace editor {
 		bool isHovered() { return m_isHovered; }
 
 	private:
+		ViewportSettings m_settings = {};
+
+		std::vector<Zap::Actor>& m_selectedActors;
+
 		Zap::Window* m_pWindow;
 		Zap::Scene* m_pScene;
+
 		Zap::Renderer m_renderer;
 		Zap::PBRenderer* m_pPBRender;
 		Zap::RaytracingRenderer* m_pRTRender;
 		Zap::PathTracer* m_pPathTracer;
+		OutlineRenderTask* m_pOutlineRenderTask;
+
 		Zap::Actor m_camera;
 
 		RenderType m_renderType = ePBR;

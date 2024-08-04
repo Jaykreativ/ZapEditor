@@ -263,17 +263,17 @@ void setupActors() {
 	pActor->cmpTransform_setScale(0.1, 0.1, 0.1);
 	pActor->addModel(gearModel);
 
-	cboxMat.albedoColor = { .99, .99, .99 };
-	cboxMat.roughness = 0.1;
-	cboxMat.metallic = 1;
-	editor::actors.push_back(Zap::Actor());
-	pActor = &editor::actors.back();
-	editor::scenes.back().attachActor(*pActor);
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(0.65, -1.6, 0.8);
-	pActor->cmpTransform_setScale(0.4, 0.4, 0.7);
-	pActor->addModel(sphereModel);
-	pActor->cmpModel_setMaterial(cboxMat);
+	//cboxMat.albedoColor = { .99, .99, .99 };
+	//cboxMat.roughness = 0.1;
+	//cboxMat.metallic = 1;
+	//editor::actors.push_back(Zap::Actor());
+	//pActor = &editor::actors.back();
+	//editor::scenes.back().attachActor(*pActor);
+	//pActor->addTransform(glm::mat4(1));
+	//pActor->cmpTransform_setPos(0.65, -1.6, 0.8);
+	//pActor->cmpTransform_setScale(0.4, 0.4, 0.7);
+	//pActor->addModel(sphereModel);
+	//pActor->cmpModel_setMaterial(cboxMat);
 
 	//editor::actors.push_back(Zap::Actor());
 	//pActor = &editor::actors.back();
@@ -284,7 +284,7 @@ void setupActors() {
 	//pActor->addModel(sphereModel);
 	//cboxMat.metallic = 0;
 	//pActor->cmpModel_setMaterial(cboxMat);
-
+	
 	//for (int x = 0; x < 11; x++) {
 	//	for (int z = 0; z < 2; z++) {
 	//		editor::actors.push_back(Zap::Actor());
@@ -374,9 +374,6 @@ int main() {
 
 	editor::window = new Zap::Window(1000, 600, "Zap Window");
 	editor::window->init();
-	editor::window->show();
-	//editor::window->setMousebButtonCallback(keybinds::mouseButtonCallback);
-	//editor::window->setKeyCallback(keybinds::keyCallback);
 	editor::window->getResizeEventHandler()->addCallback(windowResizeCallback);
 
 	editor::renderer = new Zap::Renderer();
@@ -406,11 +403,13 @@ int main() {
 	editor::renderer->endRecord();
 
 	editor::mainMenuBar = new editor::MainMenuBar(editor::layers, editor::window, editor::renderer, editor::gui, &editor::scenes.back(), editor::actors, editor::selectedActors);
-	editor::layers.push_back(new editor::Viewport(&editor::scenes.back(), editor::window));
+	editor::layers.push_back(new editor::Viewport(&editor::scenes.back(), editor::window, editor::selectedActors));
 	editor::layers.push_back(new editor::SceneHierarchyView(&editor::scenes.back(), editor::actors, editor::selectedActors));
 	editor::layers.push_back(new editor::ComponentView(editor::selectedActors));
 
 	setupGuiStyle();
+
+	editor::window->show();
 
 	Zap::PhysicsMaterial pxMaterial = Zap::PhysicsMaterial(0.5, 1, 0.1);
 	//mainloop
