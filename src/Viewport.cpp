@@ -13,7 +13,7 @@
 #include <chrono>
 
 namespace editor {
-	int forward    = GLFW_KEY_W;// move keybinds to editor::preferences
+	int forward    = GLFW_KEY_W;// move keybinds to editor::settings
 	int backward   = GLFW_KEY_S;
 	int right      = GLFW_KEY_D;
 	int left       = GLFW_KEY_A;
@@ -965,6 +965,7 @@ namespace editor {
 	}
 
 	void Viewport::move(float dTime) {
+		if (!m_isFocused) return;
 		if (forwardPressed) {
 			auto res = m_camera.cmpTransform_getTransform();
 			glm::vec3 vec = res[2];
@@ -1001,30 +1002,26 @@ namespace editor {
 		}
 	}
 
-	double xlast = 0;
-	double ylast = 0;
 	float sensitivityX = 0.2;
 	float sensitivityY = 0.15;
 	void Viewport::cursorPositionCallback(Zap::CursorPosEvent& params, void* viewportData) {
 		Viewport* pViewport = (Viewport*)viewportData;
 		if (turnCameraPressed && pViewport->isHovered()) {
 			glm::mat4 res = pViewport->m_camera.cmpTransform_getTransform();
-			glm::mat4 rot = glm::rotate(glm::mat4(1), glm::radians<float>((params.xPos - xlast) * sensitivityX), glm::vec3{ 0, 1, 0 });
+			glm::mat4 rot = glm::rotate(glm::mat4(1), glm::radians<float>((params.xPos - pViewport->m_xlast) * sensitivityX), glm::vec3{ 0, 1, 0 });
 			
 			res[0] = rot * res[0];
 			res[1] = rot * res[1];
 			res[2] = rot * res[2];
 			
 			pViewport->m_camera.cmpTransform_setTransform(res);
-			pViewport->m_camera.cmpTransform_rotateX((params.yPos - ylast) * sensitivityY);
+			pViewport->m_camera.cmpTransform_rotateX((params.yPos - pViewport->m_ylast) * sensitivityY);
 		}
 		
-		xlast = params.xPos;
-		ylast = params.yPos;
+		pViewport->m_xlast = params.xPos;
+		pViewport->m_ylast = params.yPos;
 	}
 
-	float dTime = 0;
-	std::chrono::steady_clock::time_point timeStartFrame;
 	void Viewport::draw() {
 		if (ImGui::BeginMenuBar()) {
 			std::string mode;
@@ -1078,24 +1075,29 @@ namespace editor {
 			ImGui::EndMenuBar();
 		}
 
-		//Resize outImage and dependencies
 		auto imageExtent = m_outImage.getExtent();
 		auto extent = ImGui::GetContentRegionAvail();
-		if (extent.x != imageExtent.width || extent.y != imageExtent.height) {// resize
-			extent.x = std::max<float>(extent.x, 1);
-			extent.y = std::max<float>(extent.y, 1);
-			m_outImage.setWidth(extent.x);
-			m_outImage.setHeight(extent.y);
-			m_pPBRender->setViewport(extent.x, extent.y, 0, 0);
-			update();
+
+		//Resize outImage and dependencies
+		{
+			if (extent.x != imageExtent.width || extent.y != imageExtent.height) {// resize
+				extent.x = std::max<float>(extent.x, 1);
+				extent.y = std::max<float>(extent.y, 1);
+				m_outImage.setWidth(extent.x);
+				m_outImage.setHeight(extent.y);
+				m_pPBRender->setViewport(extent.x, extent.y, 0, 0);
+				update();
+			}
 		}
-		ImGui::Image(m_imageDescriptorSet, extent);
+
+		ImGui::Image(m_imageDescriptorSet, extent);// Draw the viewport image
+
 		m_isHovered = ImGui::IsItemHovered();
+		m_isFocused = ImGui::IsWindowFocused();
 
 		auto timeEndFrame = std::chrono::high_resolution_clock::now();
+		extern float dTime;
 		move(dTime);
-		dTime = std::chrono::duration_cast<std::chrono::duration<float>>(timeEndFrame - timeStartFrame).count();
-		timeStartFrame = std::chrono::high_resolution_clock::now();
 
 		m_pPBRender->updateCamera(m_camera);
 		m_pOutlineRenderTask->updateCamera(m_camera);

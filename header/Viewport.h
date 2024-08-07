@@ -71,7 +71,11 @@ namespace editor {
 		vk::Sampler m_sampler;
 		VkDescriptorSet m_imageDescriptorSet;
 
+		bool m_isFocused = false;
 		bool m_isHovered = false;
+
+		double m_xlast = 0;
+		double m_ylast = 0;
 
 		void update();
 
