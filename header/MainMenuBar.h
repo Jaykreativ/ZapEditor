@@ -1,6 +1,9 @@
 #pragma once
 
+#include "ZapEditor.h"
+
 #include "Zap/Rendering/Renderer.h"
+#include "Zap/Rendering/Gui.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/EventHandler.h"
 
@@ -12,6 +15,7 @@ namespace editor {
 	{
 	public:
 		MainMenuBar(
+			EditorData* pEditorData,
 			std::vector<ViewLayer*>& layers,
 			Zap::Window* pWindow,
 			Zap::Renderer* pRenderer,
@@ -28,6 +32,7 @@ namespace editor {
 
 	private:
 		bool m_shouldSimulate = false;
+		EditorData* m_pEditorData;
 		std::vector<ViewLayer*>& m_layers;
 		Zap::Window* m_pWindow;
 		Zap::Renderer* m_pRenderer;

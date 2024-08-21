@@ -9,6 +9,7 @@
 
 namespace editor {
 	MainMenuBar::MainMenuBar(
+		EditorData* pEditorData,
 		std::vector<ViewLayer*>& layers,
 		Zap::Window* pWindow,
 		Zap::Renderer* pRenderer,
@@ -18,6 +19,7 @@ namespace editor {
 		std::vector<Zap::Actor>& selectedActors
 	)
 		:
+		m_pEditorData(pEditorData),
 		m_layers(layers),
 		m_pWindow(pWindow),
 		m_pRenderer(pRenderer), 
@@ -47,10 +49,10 @@ namespace editor {
 		ImGui::PopStyleColor(3);
 		if (ImGui::BeginMenu("View")) {
 			if (ImGui::MenuItem("SceneHierarchy")) {
-				m_layers.push_back(new SceneHierarchyView(m_pScene, m_actors, m_selectedActors));
+				m_layers.push_back(new SceneHierarchyView(m_pEditorData, m_pScene, m_actors, m_selectedActors));
 			}
 			if (ImGui::MenuItem("ComponentView")) {
-				m_layers.push_back(new ComponentView(m_selectedActors));
+				m_layers.push_back(new ComponentView(m_pEditorData, m_layers, m_selectedActors));
 			}
 			if (ImGui::MenuItem("Viewport")) {
 				m_layers.push_back(new Viewport(m_pScene, m_pWindow, m_selectedActors));
