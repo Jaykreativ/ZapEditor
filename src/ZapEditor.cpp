@@ -105,6 +105,9 @@ void setupActors() {
 
 	auto sphereModel = modelLoader.load("Models/gltf/metalSphere.glb");
 
+	glm::u8vec4 texCol = { 255, 180, 50, 255 };
+	modelLoader.loadTexture(&texCol, 1, 1);
+
 	Zap::PhysicsMaterial pxMaterial = Zap::PhysicsMaterial(0.5, 1, 0.1);
 
 	editor::actors.push_back(Zap::Actor());

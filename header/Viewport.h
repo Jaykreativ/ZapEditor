@@ -18,9 +18,11 @@ namespace Zap{
 
 namespace editor {
 	class OutlineRenderTask;
+	class DebugRenderTask;
 
 	struct ViewportSettings {
 		bool enableOutlines = true;
+		bool enablePxDebug = false;
 	};
 
 	class Viewport : public ViewLayer
@@ -62,6 +64,7 @@ namespace editor {
 		Zap::RaytracingRenderer* m_pRTRender;
 		Zap::PathTracer* m_pPathTracer;
 		OutlineRenderTask* m_pOutlineRenderTask;
+		DebugRenderTask* m_pDebugRenderTask;
 
 		Zap::Actor m_camera;
 
@@ -76,6 +79,8 @@ namespace editor {
 
 		double m_xlast = 0;
 		double m_ylast = 0;
+
+		vk::Buffer m_debugVertexBuffer;
 
 		void update();
 
