@@ -22,6 +22,7 @@ namespace editor {
 
 	struct ViewportSettings {
 		bool enableOutlines = true;
+		bool enableTransformVisual = true;
 		bool enablePxDebug = false;
 	};
 

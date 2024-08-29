@@ -1387,6 +1387,29 @@ namespace editor {
 		pViewport->m_ylast = params.yPos;
 	}
 
+	uint32_t countTransformLines() {
+		return 3;
+	}
+
+	void drawTransformLines(uint32_t& offset, DebugRenderVertex* data, Zap::Actor actor) {
+		data += offset*2;
+
+		glm::vec3 pos = actor.cmpTransform_getPos();
+		auto transform = actor.cmpTransform_getTransform();
+		glm::vec3 xAxis = {1, 0, 0};
+		glm::vec3 yAxis = {0, 1, 0};
+		glm::vec3 zAxis = {0, 0, 1};
+
+		data[0] = { pos,   {255, 0,   0  } };
+		data[1] = { pos + xAxis, {255, 0,   0  } };
+		data[2] = { pos,   {0,   255, 0  } };
+		data[3] = { pos + yAxis, {0,   255, 0  } };
+		data[4] = { pos,   {0,   0,   255} };
+		data[5] = { pos + zAxis, {0,   0,   255} };
+
+		offset += 3;
+	}
+
 	void Viewport::draw() {
 		if (ImGui::BeginMenuBar()) {
 			std::string mode;
@@ -1432,9 +1455,8 @@ namespace editor {
 					if (ImGui::Checkbox("Outlines", &m_settings.enableOutlines)) {
 						shouldUpdate = true;
 					}
-					if (ImGui::Checkbox("PhysXDebug", &m_settings.enablePxDebug)) {
-						shouldUpdate = true;
-					}
+					ImGui::Checkbox("TransformVisualEditing", &m_settings.enableTransformVisual);
+					ImGui::Checkbox("PhysXDebug", &m_settings.enablePxDebug);
 					if (shouldUpdate)
 						update();
 					ImGui::EndMenu();
@@ -1479,34 +1501,66 @@ namespace editor {
 
 		m_pScene->update();
 
-		// render physx debug visualization
-		if (m_settings.enablePxDebug) {
-			auto* renderBuffer = m_pScene->getPxRenderBuffer();
-			uint32_t size = renderBuffer->getNbLines();
-			auto* lines = renderBuffer->getLines();
-			m_debugVertexBuffer.resize(sizeof(DebugRenderVertex)*size*2);
+		// render debug visualization
+		{
+			uint32_t size = 0;
+			uint32_t offset = 0;
+
+			// find the line count
+			if (m_settings.enableTransformVisual) {
+				for (auto actor : m_selectedActors) {
+					if (actor.hasTransform()) {
+						size += countTransformLines();
+					}
+				}
+			}
+
+			if (m_settings.enablePxDebug) {
+				auto* renderBuffer = m_pScene->getPxRenderBuffer();
+				uint32_t pxSize = renderBuffer->getNbLines();
+				size += pxSize;
+			}
+
+			//render all lines
 			if (size > 0) {
+				m_debugVertexBuffer.resize(sizeof(DebugRenderVertex)*size*2);
 				void* rawData;
 				m_debugVertexBuffer.map(&rawData);
 				DebugRenderVertex* data = (DebugRenderVertex*)rawData;
-				for (uint32_t i = 0; i < size; i++) {
-					uint8_t r0 = lines[i].color0;
-					uint8_t g0 = lines[i].color0 >> 8;
-					uint8_t b0 = lines[i].color0 >> 16;
-					uint8_t r1 = lines[i].color1;
-					uint8_t g1 = lines[i].color1 >> 8;
-					uint8_t b1 = lines[i].color1 >> 16;
-					data[i*2] = DebugRenderVertex({ lines[i].pos0.x, lines[i].pos0.y, lines[i].pos0.z }, {r0, g0, b0});
-					data[i*2+1] = DebugRenderVertex({ lines[i].pos1.x, lines[i].pos1.y, lines[i].pos1.z }, { r1, g1, b1 });
+
+				if (m_settings.enableTransformVisual) {
+					for (auto actor : m_selectedActors) {
+						if (actor.hasTransform()) {
+							drawTransformLines(offset, data, actor);
+						}
+					}
 				}
+
+				if (m_settings.enablePxDebug) {
+					auto* renderBuffer = m_pScene->getPxRenderBuffer();
+					uint32_t pxSize = renderBuffer->getNbLines();
+					auto* lines = renderBuffer->getLines();
+					for (uint32_t i = 0; i < pxSize; i++) {
+						uint8_t r0 = lines[i].color0;
+						uint8_t g0 = lines[i].color0 >> 8;
+						uint8_t b0 = lines[i].color0 >> 16;
+						uint8_t r1 = lines[i].color1;
+						uint8_t g1 = lines[i].color1 >> 8;
+						uint8_t b1 = lines[i].color1 >> 16;
+						data[(i+offset)*2] = DebugRenderVertex({ lines[i].pos0.x, lines[i].pos0.y, lines[i].pos0.z }, {r0, g0, b0});
+						data[(i+offset)*2+1] = DebugRenderVertex({ lines[i].pos1.x, lines[i].pos1.y, lines[i].pos1.z }, { r1, g1, b1 });
+					}
+					offset += pxSize;
+				}
+		
 				m_debugVertexBuffer.unmap();
 			}
-		}
 
-		//check if debug vertexBuffer is valid
-		m_pDebugRenderTask->delLineVertexBuffers();
-		if (m_debugVertexBuffer.getSize() > 0 && m_settings.enablePxDebug)
-			m_pDebugRenderTask->addLineVertexBuffer(&m_debugVertexBuffer);
+			//check if debug vertexBuffer is valid
+			m_pDebugRenderTask->delLineVertexBuffers();
+			if (size)
+				m_pDebugRenderTask->addLineVertexBuffer(&m_debugVertexBuffer);
+		}
 
 		m_renderer.render();
 	}
@@ -1534,22 +1588,19 @@ namespace editor {
 		switch (m_renderType)
 		{
 		case ePBR:
+			m_renderer.recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
 			m_renderer.recRenderTemplate(m_pPBRender);
 			m_pPBRender->enable();
-			if (!m_settings.enableOutlines)
-				m_renderer.recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT);
 			break;
 		case eRAYTRACING:
 			m_renderer.recRenderTemplate(m_pRTRender);
 			m_pRTRender->enable();
-			if(m_settings.enableOutlines)
-				m_renderer.recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+			m_renderer.recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
 			break;
 		case ePATHTRACING:
 			m_renderer.recRenderTemplate(m_pPathTracer);
 			m_pPathTracer->enable();
-			if (m_settings.enableOutlines)
-				m_renderer.recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+			m_renderer.recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
 			break;
 		default:
 			break;
