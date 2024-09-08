@@ -1312,6 +1312,32 @@ namespace editor {
 		pScene->attachActor(m_camera);
 		m_camera.addTransform(glm::mat4(1));
 		m_camera.addCamera();
+
+		m_transformEditScene = Zap::Scene();
+		m_transformEditScene.init();
+		m_transformEditScene.attachActor(m_transformX);
+		m_transformEditScene.attachActor(m_transformY);
+		m_transformEditScene.attachActor(m_transformZ);
+
+		m_transformMaterial = new Zap::PhysicsMaterial(1, 0.5, 0.2);
+		Zap::BoxGeometry box = Zap::BoxGeometry({0.5, 0.05, 0.05});
+		{
+			Zap::Shape shape = Zap::Shape(box, *m_transformMaterial, true, glm::mat4(1), physx::PxShapeFlag::eVISUALIZATION | physx::PxShapeFlag::eSCENE_QUERY_SHAPE);
+			m_transformX.addTransform(glm::mat4(1));
+			m_transformX.addRigidDynamic(shape);
+		}
+		{
+			Zap::Shape shape = Zap::Shape(box, *m_transformMaterial, true, glm::mat4(1), physx::PxShapeFlag::eVISUALIZATION | physx::PxShapeFlag::eSCENE_QUERY_SHAPE);
+			m_transformY.addTransform(glm::mat4(1));
+			m_transformY.cmpTransform_rotateZ(90);
+			m_transformY.addRigidDynamic(shape);
+		}
+		{
+			Zap::Shape shape = Zap::Shape(box, *m_transformMaterial, true, glm::mat4(1), physx::PxShapeFlag::eVISUALIZATION | physx::PxShapeFlag::eSCENE_QUERY_SHAPE);
+			m_transformZ.addTransform(glm::mat4(1));
+			m_transformZ.cmpTransform_rotateY(-90);
+			m_transformZ.addRigidDynamic(shape);
+		}
 	}
 
 	Viewport::~Viewport() {
@@ -1319,6 +1345,7 @@ namespace editor {
 		m_sampler.destroy();
 		m_outImage.destroy();
 		m_debugVertexBuffer.destroy();
+		m_transformEditScene.destroy();
 
 		m_pWindow->getKeyEventHandler()->removeCallback(keyCallback);
 		m_pWindow->getMouseButtonEventHandler()->removeCallback(mouseButtonCallback);
@@ -1391,23 +1418,47 @@ namespace editor {
 		return 3;
 	}
 
-	void drawTransformLines(uint32_t& offset, DebugRenderVertex* data, Zap::Actor actor) {
+	void drawTransformLines(uint32_t& offset, DebugRenderVertex* data, Zap::Actor actor, uint32_t select, float scale) {
 		data += offset*2;
 
 		glm::vec3 pos = actor.cmpTransform_getPos();
 		auto transform = actor.cmpTransform_getTransform();
-		glm::vec3 xAxis = {1, 0, 0};
-		glm::vec3 yAxis = {0, 1, 0};
-		glm::vec3 zAxis = {0, 0, 1};
+		glm::vec3 xAxis = glm::vec3(1, 0, 0)*scale;
+		glm::vec3 yAxis = glm::vec3(0, 1, 0)*scale;
+		glm::vec3 zAxis = glm::vec3(0, 0, 1)*scale;
 
-		data[0] = { pos,   {255, 0,   0  } };
-		data[1] = { pos + xAxis, {255, 0,   0  } };
-		data[2] = { pos,   {0,   255, 0  } };
-		data[3] = { pos + yAxis, {0,   255, 0  } };
-		data[4] = { pos,   {0,   0,   255} };
-		data[5] = { pos + zAxis, {0,   0,   255} };
+		uint8_t highlight;
+
+		if (select == 0) highlight = 200;
+		else highlight = 0;
+		data[0] = { pos,         {255,       highlight, highlight} };
+		data[1] = { pos + xAxis, {255,       highlight, highlight} };
+		if (select == 1) highlight = 200;
+		else highlight = 0;
+		data[2] = { pos,         {highlight, 255,       highlight} };
+		data[3] = { pos + yAxis, {highlight, 255,       highlight} };
+		if (select == 2) highlight = 200;
+		else highlight = 0;
+		data[4] = { pos,         {highlight, highlight, 255      } };
+		data[5] = { pos + zAxis, {highlight, highlight, 255      } };
 
 		offset += 3;
+	}
+
+	bool intersectPlane(const glm::vec3& n, const glm::vec3& p0, const glm::vec3& l0, const glm::vec3& l, glm::vec3& p)
+	{
+		// Assuming vectors are all normalized
+		float denom = glm::dot(n, l);
+		if (std::abs(denom) > 1e-6) {
+			glm::vec3 p0l0 = p0 - l0;
+			float t = glm::dot(p0l0, n) / denom;
+			if (t >= 0) {
+				p = l * t + l0;
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	void Viewport::draw() {
@@ -1501,7 +1552,92 @@ namespace editor {
 
 		m_pScene->update();
 
-		// render debug visualization
+		// update TransformEditScene
+		if(!m_isTransformDragged)
+			m_axisIndex = 0xFFFFFFFF;
+		if (m_settings.enableTransformVisual && m_selectedActors.size() > 0) {
+			auto actor = m_selectedActors.back();
+			if (actor.hasTransform()) {
+				float scale = glm::length(actor.cmpTransform_getPos() - m_camera.cmpTransform_getPos()) / 5.f;
+				Zap::BoxGeometry box = Zap::BoxGeometry(glm::vec3(0.5, 0.05, 0.05)*scale);
+
+				m_transformX.cmpTransform_setPos(actor.cmpTransform_getPos()+glm::vec3(0.5 * scale, 0, 0));
+				m_transformX.cmpRigidDynamic_updatePose();
+				m_transformX.cmpRigidDynamic_getShapes()[0].setGeometry(box);
+
+				m_transformY.cmpTransform_setPos(actor.cmpTransform_getPos()+glm::vec3(0, 0.5 * scale, 0));
+				m_transformY.cmpRigidDynamic_updatePose();
+				m_transformY.cmpRigidDynamic_getShapes()[0].setGeometry(box);
+
+				m_transformZ.cmpTransform_setPos(actor.cmpTransform_getPos()+glm::vec3(0, 0, 0.5 * scale));
+				m_transformZ.cmpRigidDynamic_updatePose();
+				m_transformZ.cmpRigidDynamic_getShapes()[0].setGeometry(box);
+
+				float minx = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMin().x;
+				float miny = ImGui::GetWindowPos().y + ImGui::GetWindowContentRegionMin().y;
+				float sizex = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x - minx;
+				float sizey = ImGui::GetWindowPos().y + ImGui::GetWindowContentRegionMax().y - miny;
+				float mouseX = ((ImGui::GetMousePos().x - minx) / sizex) * 2.0 - 1.0;
+				float mouseY = ((ImGui::GetMousePos().y - miny) / sizey) * 2.0 - 1.0;
+
+				if (mouseX > -1 && mouseX < 1 && mouseY > -1 && mouseY < 1) {
+					glm::vec3 origin = m_camera.cmpTransform_getPos();
+					glm::vec4 localDir = glm::inverse(m_camera.cmpCamera_getPerspective(imageExtent.width / (float)imageExtent.height)) * glm::vec4(mouseX, -mouseY, 1, 1);
+					glm::vec4 direction = glm::inverse(m_camera.cmpCamera_getView()) * glm::vec4(glm::normalize(glm::vec3(localDir)), 0);
+					glm::vec3 axis;
+
+					if (!m_isTransformDragged) {
+						Zap::Scene::RaycastOutput out{};
+						m_transformEditScene.raycast(origin, direction, 0xFFFFFFFF, &out);
+						if (out.actor == m_transformX) {
+							m_axisIndex = 0;
+						}
+						else if (out.actor == m_transformY) {
+							m_axisIndex = 1;
+						}
+						else if (out.actor == m_transformZ) {
+							m_axisIndex = 2;
+						}
+					}
+
+					switch (m_axisIndex)
+					{
+					case 0:
+						axis = { 1, 0, 0 };
+						break;
+					case 1:
+						axis = { 0, 1, 0 };
+						break;
+					case 2:
+						axis = { 0, 0, 1 };
+						break;
+					default:
+						axis = { 0, 0, 0 };
+						break;
+					}
+
+					if (m_isTransformDragged) {
+						m_isTransformDragged = ImGui::IsMouseDown(ImGuiMouseButton_Right);
+					}
+					else {
+						m_isTransformDragged = ImGui::IsMouseDown(ImGuiMouseButton_Right) && m_axisIndex < 0xFFFFFFFF;
+						if (m_isTransformDragged)
+							intersectPlane(glm::normalize(glm::cross(axis, glm::vec3(m_camera.cmpTransform_getTransform()[0]))), actor.cmpTransform_getPos(), origin, direction, m_mousePlanePos);
+					}
+
+					auto oldMousePlanePos = m_mousePlanePos;
+					glm::vec3 deltaMousePlane = {0, 0, 0};
+					if (m_isTransformDragged && intersectPlane(glm::normalize(glm::cross(axis, glm::vec3(m_camera.cmpTransform_getTransform()[0]))), actor.cmpTransform_getPos(), origin, direction, m_mousePlanePos)) {
+						deltaMousePlane = m_mousePlanePos - oldMousePlanePos;
+						actor.cmpTransform_setPos(actor.cmpTransform_getPos()+deltaMousePlane*axis);
+						if(m_pPathTracer)
+							m_pPathTracer->resetRender();
+					}
+				}
+			}
+		}
+
+		// render lines
 		{
 			uint32_t size = 0;
 			uint32_t offset = 0;
@@ -1521,6 +1657,9 @@ namespace editor {
 				size += pxSize;
 			}
 
+			size += m_debugLineVector.size() / 2;
+			size += 2;
+
 			//render all lines
 			if (size > 0) {
 				m_debugVertexBuffer.resize(sizeof(DebugRenderVertex)*size*2);
@@ -1531,7 +1670,7 @@ namespace editor {
 				if (m_settings.enableTransformVisual) {
 					for (auto actor : m_selectedActors) {
 						if (actor.hasTransform()) {
-							drawTransformLines(offset, data, actor);
+							drawTransformLines(offset, data, actor, m_axisIndex, glm::length(actor.cmpTransform_getPos() - m_camera.cmpTransform_getPos())/5.f);
 						}
 					}
 				}
@@ -1552,6 +1691,10 @@ namespace editor {
 					}
 					offset += pxSize;
 				}
+
+				memcpy(&data[offset*2], m_debugLineVector.data(), m_debugLineVector.size()*sizeof(DebugRenderVertex));
+				offset += m_debugLineVector.size() / 2;
+				m_debugLineVector.clear();
 		
 				m_debugVertexBuffer.unmap();
 			}

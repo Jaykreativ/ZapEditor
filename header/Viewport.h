@@ -1,6 +1,7 @@
 #pragma once
 
 #include "VulkanFramework.h"
+#include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
 #include "Zap/Rendering/Window.h"
 #include "Zap/Rendering/Renderer.h"
@@ -13,12 +14,12 @@ namespace Zap{
 	class PathTracer;
 	class Renderer;
 	class Scene;
-	class Actor;
 }
 
 namespace editor {
 	class OutlineRenderTask;
 	class DebugRenderTask;
+	class DebugRenderVertex;
 
 	struct ViewportSettings {
 		bool enableOutlines = true;
@@ -82,6 +83,16 @@ namespace editor {
 		double m_ylast = 0;
 
 		vk::Buffer m_debugVertexBuffer;
+		std::vector<DebugRenderVertex> m_debugLineVector = {};
+
+		Zap::Scene m_transformEditScene;
+		Zap::PhysicsMaterial* m_transformMaterial;
+		Zap::Actor m_transformX;
+		Zap::Actor m_transformY;
+		Zap::Actor m_transformZ;
+		uint32_t m_axisIndex = 0xFFFFFFFF;
+		glm::vec3 m_mousePlanePos = { 0, 0, 0 };
+		bool m_isTransformDragged = false;
 
 		void update();
 
