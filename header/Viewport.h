@@ -1,6 +1,7 @@
 #pragma once
 
 #include "VulkanFramework.h"
+#include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
 #include "Zap/Rendering/Window.h"
 #include "Zap/Rendering/Renderer.h"
@@ -11,9 +12,10 @@ namespace Zap{
 	class PBRenderer;
 	class RaytracingRenderer;
 	class PathTracer;
+	class DebugRenderVertex;
+	class DebugRenderTask;
 	class Renderer;
 	class Scene;
-	class Actor;
 }
 
 namespace editor {
@@ -21,6 +23,8 @@ namespace editor {
 
 	struct ViewportSettings {
 		bool enableOutlines = true;
+		bool enableTransformVisual = true;
+		bool enablePxDebug = false;
 	};
 
 	class Viewport : public ViewLayer
@@ -58,10 +62,11 @@ namespace editor {
 		Zap::Scene* m_pScene;
 
 		Zap::Renderer m_renderer;
-		Zap::PBRenderer* m_pPBRender;
-		Zap::RaytracingRenderer* m_pRTRender;
-		Zap::PathTracer* m_pPathTracer;
-		OutlineRenderTask* m_pOutlineRenderTask;
+		Zap::PBRenderer* m_pPBRender = nullptr;
+		Zap::RaytracingRenderer* m_pRTRender = nullptr;
+		Zap::PathTracer* m_pPathTracer = nullptr;
+		OutlineRenderTask* m_pOutlineRenderTask = nullptr;
+		Zap::DebugRenderTask* m_pDebugRenderTask = nullptr;
 
 		Zap::Actor m_camera;
 
@@ -71,7 +76,23 @@ namespace editor {
 		vk::Sampler m_sampler;
 		VkDescriptorSet m_imageDescriptorSet;
 
+		bool m_isFocused = false;
 		bool m_isHovered = false;
+
+		double m_xlast = 0;
+		double m_ylast = 0;
+
+		vk::Buffer m_debugVertexBuffer;
+		std::vector<Zap::DebugRenderVertex> m_debugLineVector = {};
+
+		Zap::Scene m_transformEditScene;
+		Zap::PhysicsMaterial* m_transformMaterial;
+		Zap::Actor m_transformX;
+		Zap::Actor m_transformY;
+		Zap::Actor m_transformZ;
+		uint32_t m_axisIndex = 0xFFFFFFFF;
+		glm::vec3 m_mousePlanePos = { 0, 0, 0 };
+		bool m_isTransformDragged = false;
 
 		void update();
 

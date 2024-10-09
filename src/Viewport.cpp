@@ -5,6 +5,7 @@
 #include "Zap/Rendering/PBRenderer.h"
 #include "Zap/Rendering/RaytracingRenderer.h"
 #include "Zap/Rendering/PathTacer.h"
+#include "Zap/Rendering/DebugRenderTask.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Mesh.h"
 #include "glm/gtc/matrix_transform.hpp"
@@ -13,7 +14,7 @@
 #include <chrono>
 
 namespace editor {
-	int forward    = GLFW_KEY_W;// move keybinds to editor::preferences
+	int forward    = GLFW_KEY_W;// move keybinds to editor::settings
 	int backward   = GLFW_KEY_S;
 	int right      = GLFW_KEY_D;
 	int left       = GLFW_KEY_A;
@@ -316,7 +317,7 @@ namespace editor {
 			m_outlineDescriptorSet.allocate();
 			m_outlineDescriptorSet.update();
 
-			/*RenderPasses*/
+			/*RenderPass*/
 			m_renderPass = vk::RenderPass();
 			{
 				VkAttachmentDescription plainColorAttachment;
@@ -920,10 +921,18 @@ namespace editor {
 		m_pPBRender->setViewport(1, 1, 0, 0);
 
 		m_pOutlineRenderTask = new OutlineRenderTask(pScene, m_selectedActors);
+		m_pDebugRenderTask = new Zap::DebugRenderTask();
+
+		m_debugVertexBuffer = vk::Buffer(0, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+		m_debugVertexBuffer.init();
+		m_debugVertexBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+		m_pDebugRenderTask->addLineVertexBuffer(&m_debugVertexBuffer);
 
 		m_renderer.setTarget(&m_outImage);
 		m_renderer.addRenderTask(m_pPBRender);
 		m_renderer.addRenderTask(m_pOutlineRenderTask);
+		m_renderer.addRenderTask(m_pDebugRenderTask);
 
 		if (Zap::Base::getBase()->getSettings()->enableRaytracing) {
 			m_pRTRender = new Zap::RaytracingRenderer(pScene);
@@ -935,7 +944,9 @@ namespace editor {
 
 		m_renderer.beginRecord();
 		m_renderer.recRenderTemplate(m_pPBRender);
-		m_renderer.recRenderTemplate(m_pOutlineRenderTask);
+		if (m_settings.enableOutlines)
+			m_renderer.recRenderTemplate(m_pOutlineRenderTask);
+		m_renderer.recRenderTemplate(m_pDebugRenderTask);
 		m_renderer.endRecord();
 
 		m_renderer.init();
@@ -948,12 +959,40 @@ namespace editor {
 		pScene->attachActor(m_camera);
 		m_camera.addTransform(glm::mat4(1));
 		m_camera.addCamera();
+
+		m_transformEditScene = Zap::Scene();
+		m_transformEditScene.init();
+		m_transformEditScene.attachActor(m_transformX);
+		m_transformEditScene.attachActor(m_transformY);
+		m_transformEditScene.attachActor(m_transformZ);
+
+		m_transformMaterial = new Zap::PhysicsMaterial(1, 0.5, 0.2);
+		Zap::BoxGeometry box = Zap::BoxGeometry(glm::vec3(0.5, 0.05, 0.05));
+		{
+			Zap::Shape shape = Zap::Shape(box, *m_transformMaterial, true, glm::mat4(1), physx::PxShapeFlag::eVISUALIZATION | physx::PxShapeFlag::eSCENE_QUERY_SHAPE);
+			m_transformX.addTransform(glm::mat4(1));
+			m_transformX.addRigidDynamic(shape);
+		}
+		{
+			Zap::Shape shape = Zap::Shape(box, *m_transformMaterial, true, glm::mat4(1), physx::PxShapeFlag::eVISUALIZATION | physx::PxShapeFlag::eSCENE_QUERY_SHAPE);
+			m_transformY.addTransform(glm::mat4(1));
+			m_transformY.cmpTransform_rotateZ(90);
+			m_transformY.addRigidDynamic(shape);
+		}
+		{
+			Zap::Shape shape = Zap::Shape(box, *m_transformMaterial, true, glm::mat4(1), physx::PxShapeFlag::eVISUALIZATION | physx::PxShapeFlag::eSCENE_QUERY_SHAPE);
+			m_transformZ.addTransform(glm::mat4(1));
+			m_transformZ.cmpTransform_rotateY(-90);
+			m_transformZ.addRigidDynamic(shape);
+		}
 	}
 
 	Viewport::~Viewport() {
 		m_renderer.destroy();
 		m_sampler.destroy();
 		m_outImage.destroy();
+		m_debugVertexBuffer.destroy();
+		m_transformEditScene.destroy();
 
 		m_pWindow->getKeyEventHandler()->removeCallback(keyCallback);
 		m_pWindow->getMouseButtonEventHandler()->removeCallback(mouseButtonCallback);
@@ -965,6 +1004,7 @@ namespace editor {
 	}
 
 	void Viewport::move(float dTime) {
+		if (!m_isFocused) return;
 		if (forwardPressed) {
 			auto res = m_camera.cmpTransform_getTransform();
 			glm::vec3 vec = res[2];
@@ -1001,30 +1041,73 @@ namespace editor {
 		}
 	}
 
-	double xlast = 0;
-	double ylast = 0;
 	float sensitivityX = 0.2;
 	float sensitivityY = 0.15;
 	void Viewport::cursorPositionCallback(Zap::CursorPosEvent& params, void* viewportData) {
 		Viewport* pViewport = (Viewport*)viewportData;
 		if (turnCameraPressed && pViewport->isHovered()) {
 			glm::mat4 res = pViewport->m_camera.cmpTransform_getTransform();
-			glm::mat4 rot = glm::rotate(glm::mat4(1), glm::radians<float>((params.xPos - xlast) * sensitivityX), glm::vec3{ 0, 1, 0 });
+			glm::mat4 rot = glm::rotate(glm::mat4(1), glm::radians<float>((params.xPos - pViewport->m_xlast) * sensitivityX), glm::vec3{ 0, 1, 0 });
 			
 			res[0] = rot * res[0];
 			res[1] = rot * res[1];
 			res[2] = rot * res[2];
 			
 			pViewport->m_camera.cmpTransform_setTransform(res);
-			pViewport->m_camera.cmpTransform_rotateX((params.yPos - ylast) * sensitivityY);
+			pViewport->m_camera.cmpTransform_rotateX((params.yPos - pViewport->m_ylast) * sensitivityY);
 		}
 		
-		xlast = params.xPos;
-		ylast = params.yPos;
+		pViewport->m_xlast = params.xPos;
+		pViewport->m_ylast = params.yPos;
 	}
 
-	float dTime = 0;
-	std::chrono::steady_clock::time_point timeStartFrame;
+	uint32_t countTransformLines() {
+		return 3;
+	}
+
+	void drawTransformLines(uint32_t& offset, Zap::DebugRenderVertex* data, Zap::Actor actor, uint32_t select, float scale) {
+		data += offset*2;
+
+		glm::vec3 pos = actor.cmpTransform_getPos();
+		auto transform = actor.cmpTransform_getTransform();
+		glm::vec3 xAxis = glm::vec3(1, 0, 0)*scale;
+		glm::vec3 yAxis = glm::vec3(0, 1, 0)*scale;
+		glm::vec3 zAxis = glm::vec3(0, 0, 1)*scale;
+
+		uint8_t highlight;
+
+		if (select == 0) highlight = 200;
+		else highlight = 0;
+		data[0] = { pos,         {255,       highlight, highlight} };
+		data[1] = { pos + xAxis, {255,       highlight, highlight} };
+		if (select == 1) highlight = 200;
+		else highlight = 0;
+		data[2] = { pos,         {highlight, 255,       highlight} };
+		data[3] = { pos + yAxis, {highlight, 255,       highlight} };
+		if (select == 2) highlight = 200;
+		else highlight = 0;
+		data[4] = { pos,         {highlight, highlight, 255      } };
+		data[5] = { pos + zAxis, {highlight, highlight, 255      } };
+
+		offset += 3;
+	}
+
+	bool intersectPlane(const glm::vec3& n, const glm::vec3& p0, const glm::vec3& l0, const glm::vec3& l, glm::vec3& p)
+	{
+		// Assuming vectors are all normalized
+		float denom = glm::dot(n, l);
+		if (std::abs(denom) > 1e-6) {
+			glm::vec3 p0l0 = p0 - l0;
+			float t = glm::dot(p0l0, n) / denom;
+			if (t >= 0) {
+				p = l * t + l0;
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	void Viewport::draw() {
 		if (ImGui::BeginMenuBar()) {
 			std::string mode;
@@ -1064,47 +1147,202 @@ namespace editor {
 				ImGui::EndMenu();
 			}
 
-			if (ImGui::BeginMenu("Settings")) {
-				bool shouldUpdate = false;
-				if (ImGui::MenuItem(("outlines: " + std::to_string(m_settings.enableOutlines)).c_str())) {
-					m_settings.enableOutlines = !m_settings.enableOutlines;
-					shouldUpdate = true;
+			if (ImGui::BeginMenu("View")) {
+				if (ImGui::BeginMenu("Settings")) {
+					bool shouldUpdate = false;
+					if (ImGui::Checkbox("Outlines", &m_settings.enableOutlines)) {
+						shouldUpdate = true;
+					}
+					ImGui::Checkbox("TransformVisualEditing", &m_settings.enableTransformVisual);
+					ImGui::Checkbox("PhysXDebug", &m_settings.enablePxDebug);
+					if (shouldUpdate)
+						update();
+					ImGui::EndMenu();
 				}
 				ImGui::EndMenu();
-				if (shouldUpdate)
-					update();
 			}
 
 			ImGui::EndMenuBar();
 		}
 
-		//Resize outImage and dependencies
 		auto imageExtent = m_outImage.getExtent();
 		auto extent = ImGui::GetContentRegionAvail();
-		if (extent.x != imageExtent.width || extent.y != imageExtent.height) {// resize
-			extent.x = std::max<float>(extent.x, 1);
-			extent.y = std::max<float>(extent.y, 1);
-			m_outImage.setWidth(extent.x);
-			m_outImage.setHeight(extent.y);
-			m_pPBRender->setViewport(extent.x, extent.y, 0, 0);
-			update();
+
+		//Resize outImage and dependencies
+		{
+			if (extent.x != imageExtent.width || extent.y != imageExtent.height) {// resize
+				extent.x = std::max<float>(extent.x, 1);
+				extent.y = std::max<float>(extent.y, 1);
+				m_outImage.setWidth(extent.x);
+				m_outImage.setHeight(extent.y);
+				m_pPBRender->setViewport(extent.x, extent.y, 0, 0);
+				update();
+			}
 		}
-		ImGui::Image(m_imageDescriptorSet, extent);
+
+		ImGui::Image(m_imageDescriptorSet, extent);// Draw the viewport image
+
 		m_isHovered = ImGui::IsItemHovered();
+		m_isFocused = ImGui::IsWindowFocused();
 
 		auto timeEndFrame = std::chrono::high_resolution_clock::now();
+		extern float dTime;
 		move(dTime);
-		dTime = std::chrono::duration_cast<std::chrono::duration<float>>(timeEndFrame - timeStartFrame).count();
-		timeStartFrame = std::chrono::high_resolution_clock::now();
 
 		m_pPBRender->updateCamera(m_camera);
 		m_pOutlineRenderTask->updateCamera(m_camera);
+		m_pDebugRenderTask->updateCamera(m_camera);
 		if (Zap::Base::getBase()->getSettings()->enableRaytracing) {
 			m_pRTRender->updateCamera(m_camera);
 			m_pPathTracer->updateCamera(m_camera);
 		}
 
 		m_pScene->update();
+
+		// update TransformEditScene
+		if(!m_isTransformDragged)
+			m_axisIndex = 0xFFFFFFFF;
+		if (m_settings.enableTransformVisual && m_selectedActors.size() > 0) {
+			auto actor = m_selectedActors.back();
+			if (actor.hasTransform()) {
+				float scale = glm::length(actor.cmpTransform_getPos() - m_camera.cmpTransform_getPos()) / 5.f;
+				Zap::BoxGeometry box = Zap::BoxGeometry(glm::vec3(0.5, 0.05, 0.05)*scale);
+
+				m_transformX.cmpTransform_setPos(actor.cmpTransform_getPos()+glm::vec3(0.5 * scale, 0, 0));
+				m_transformX.cmpRigidDynamic_updatePose();
+				m_transformX.cmpRigidDynamic_getShapes()[0].setGeometry(box);
+
+				m_transformY.cmpTransform_setPos(actor.cmpTransform_getPos()+glm::vec3(0, 0.5 * scale, 0));
+				m_transformY.cmpRigidDynamic_updatePose();
+				m_transformY.cmpRigidDynamic_getShapes()[0].setGeometry(box);
+
+				m_transformZ.cmpTransform_setPos(actor.cmpTransform_getPos()+glm::vec3(0, 0, 0.5 * scale));
+				m_transformZ.cmpRigidDynamic_updatePose();
+				m_transformZ.cmpRigidDynamic_getShapes()[0].setGeometry(box);
+
+				float minx = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMin().x;
+				float miny = ImGui::GetWindowPos().y + ImGui::GetWindowContentRegionMin().y;
+				float sizex = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x - minx;
+				float sizey = ImGui::GetWindowPos().y + ImGui::GetWindowContentRegionMax().y - miny;
+				float mouseX = ((ImGui::GetMousePos().x - minx) / sizex) * 2.0 - 1.0;
+				float mouseY = ((ImGui::GetMousePos().y - miny) / sizey) * 2.0 - 1.0;
+
+				if (mouseX > -1 && mouseX < 1 && mouseY > -1 && mouseY < 1) {
+					glm::vec3 origin = m_camera.cmpTransform_getPos();
+					glm::vec4 localDir = glm::inverse(m_camera.cmpCamera_getPerspective(imageExtent.width / (float)imageExtent.height)) * glm::vec4(mouseX, -mouseY, 1, 1);
+					glm::vec4 direction = glm::inverse(m_camera.cmpCamera_getView()) * glm::vec4(glm::normalize(glm::vec3(localDir)), 0);
+					glm::vec3 axis;
+
+					if (!m_isTransformDragged) {
+						Zap::Scene::RaycastOutput out{};
+						m_transformEditScene.raycast(origin, direction, 0xFFFFFFFF, &out);
+						if (out.actor == m_transformX) {
+							m_axisIndex = 0;
+						}
+						else if (out.actor == m_transformY) {
+							m_axisIndex = 1;
+						}
+						else if (out.actor == m_transformZ) {
+							m_axisIndex = 2;
+						}
+					}
+
+					switch (m_axisIndex)
+					{
+					case 0:
+						axis = { 1, 0, 0 };
+						break;
+					case 1:
+						axis = { 0, 1, 0 };
+						break;
+					case 2:
+						axis = { 0, 0, 1 };
+						break;
+					default:
+						axis = { 0, 0, 0 };
+						break;
+					}
+
+					if (m_isTransformDragged) {
+						m_isTransformDragged = ImGui::IsMouseDown(ImGuiMouseButton_Right);
+						if (!m_isTransformDragged && actor.hasRigidDynamic()) {
+							actor.cmpRigidDynamic_updatePose();
+						}
+					}
+					else {
+						m_isTransformDragged = ImGui::IsMouseDown(ImGuiMouseButton_Right) && m_axisIndex < 0xFFFFFFFF;
+						if (m_isTransformDragged)
+							intersectPlane(glm::normalize(glm::cross(axis, glm::vec3(m_camera.cmpTransform_getTransform()[0]))), actor.cmpTransform_getPos(), origin, direction, m_mousePlanePos);
+					}
+
+					auto oldMousePlanePos = m_mousePlanePos;
+					glm::vec3 deltaMousePlane = {0, 0, 0};
+					if (m_isTransformDragged && intersectPlane(glm::normalize(glm::cross(axis, glm::vec3(m_camera.cmpTransform_getTransform()[0]))), actor.cmpTransform_getPos(), origin, direction, m_mousePlanePos)) {
+						deltaMousePlane = m_mousePlanePos - oldMousePlanePos;
+						actor.cmpTransform_setPos(actor.cmpTransform_getPos()+deltaMousePlane*axis);
+						if(m_pPathTracer)
+							m_pPathTracer->resetRender();
+					}
+				}
+			}
+		}
+
+		// render lines
+		{
+			uint32_t size = 0;
+			uint32_t offset = 0;
+
+			// find the line count
+			if (m_settings.enableTransformVisual) {
+				for (auto actor : m_selectedActors) {
+					if (actor.hasTransform()) {
+						size += countTransformLines();
+					}
+				}
+			}
+
+			std::vector<Zap::DebugRenderVertex> pxDebugVertices = {};
+			if (m_settings.enablePxDebug) {
+				m_pScene->getPxDebugVertices(pxDebugVertices);
+			}
+
+			size += pxDebugVertices.size()/2;
+			size += m_debugLineVector.size() / 2;
+			size += 2;
+
+			//render all lines
+			if (size > 0) {
+				m_debugVertexBuffer.resize(sizeof(Zap::DebugRenderVertex)*size*2);
+				void* rawData;
+				m_debugVertexBuffer.map(&rawData);
+				Zap::DebugRenderVertex* data = (Zap::DebugRenderVertex*)rawData;
+
+				if (m_settings.enableTransformVisual) {
+					for (auto actor : m_selectedActors) {
+						if (actor.hasTransform()) {
+							drawTransformLines(offset, data, actor, m_axisIndex, glm::length(actor.cmpTransform_getPos() - m_camera.cmpTransform_getPos())/5.f);
+						}
+					}
+				}
+
+				if (m_settings.enablePxDebug) {
+					memcpy(&data[offset*2], pxDebugVertices.data(), sizeof(Zap::DebugRenderVertex)*pxDebugVertices.size());
+					offset += pxDebugVertices.size() / 2;
+				}
+
+				memcpy(&data[offset*2], m_debugLineVector.data(), m_debugLineVector.size()*sizeof(Zap::DebugRenderVertex));
+				offset += m_debugLineVector.size() / 2;
+				m_debugLineVector.clear();
+		
+				m_debugVertexBuffer.unmap();
+			}
+
+			//check if debug vertexBuffer is valid
+			m_pDebugRenderTask->delLineVertexBuffers();
+			if (size)
+				m_pDebugRenderTask->addLineVertexBuffer(&m_debugVertexBuffer);
+		}
+
 		m_renderer.render();
 	}
 
@@ -1131,30 +1369,28 @@ namespace editor {
 		switch (m_renderType)
 		{
 		case ePBR:
+			m_renderer.recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
 			m_renderer.recRenderTemplate(m_pPBRender);
 			m_pPBRender->enable();
-			if (!m_settings.enableOutlines)
-				m_renderer.recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT);
 			break;
 		case eRAYTRACING:
 			m_renderer.recRenderTemplate(m_pRTRender);
 			m_pRTRender->enable();
-			if(m_settings.enableOutlines)
-				m_renderer.recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+			m_renderer.recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
 			break;
 		case ePATHTRACING:
 			m_renderer.recRenderTemplate(m_pPathTracer);
 			m_pPathTracer->enable();
-			if (m_settings.enableOutlines)
-				m_renderer.recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+			m_renderer.recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
 			break;
 		default:
 			break;
 		}
 		if (m_settings.enableOutlines) {
 			m_renderer.recRenderTemplate(m_pOutlineRenderTask);
-			m_renderer.recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT);
 		}
+		m_renderer.recRenderTemplate(m_pDebugRenderTask);
+		m_renderer.recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT);
 		m_renderer.endRecord();
 		m_renderer.resize();
 		m_imageDescriptorSet = ImGui_ImplVulkan_AddTexture(m_sampler, m_outImage.getVkImageView(), VK_IMAGE_LAYOUT_GENERAL);
