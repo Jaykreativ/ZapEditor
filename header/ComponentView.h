@@ -59,7 +59,7 @@ namespace editor {
 		MaterialCreationInfo m_materialCreationInfo = {};
 
 		struct ShapeCreationInfo {
-			Zap::PhysicsGeometryType geometryType = Zap::eGEOMETRY_TYPE_BOX;
+			uint32_t geometryType = 1;
 			uint32_t materialIndex = 0;
 			glm::vec3 boxExtent = { 1, 1, 1 };
 		};

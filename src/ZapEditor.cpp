@@ -46,13 +46,10 @@ namespace editor {
 	static uint32_t cam = 0;
 	static std::vector<Zap::Actor> actors;
 
-	static std::vector<Zap::Actor> selectedActors;
-
 	static MainMenuBar* mainMenuBar;
 	static std::vector<ViewLayer*> layers;
 
 	static Zap::Model cubeModel;
-	static int spawnCounter;
 }
 
 void setupGuiStyle() {
@@ -319,7 +316,7 @@ void setupActors() {
 	pActor->addModel(editor::cubeModel);
 	pActor->cmpModel_setMaterial(cboxMat);
 	{
-		auto geometry = Zap::BoxGeometry({ 50, 1, 50 });
+		auto geometry = Zap::BoxGeometry(glm::vec3(50, 1, 50 ));
 		Zap::Shape shape(geometry, pxMaterial, true);
 		pActor->addRigidStatic(shape);
 	}
@@ -411,10 +408,10 @@ int main() {
 	editor::renderer->recRenderTemplate(editor::gui);
 	editor::renderer->endRecord();
 
-	editor::mainMenuBar = new editor::MainMenuBar(&editor::editorData, editor::layers, editor::window, editor::renderer, editor::gui, &editor::scenes.back(), editor::actors, editor::selectedActors);
-	editor::layers.push_back(new editor::Viewport(&editor::scenes.back(), editor::window, editor::selectedActors));
-	editor::layers.push_back(new editor::SceneHierarchyView(&editor::editorData, &editor::scenes.back(), editor::actors, editor::selectedActors));
-	editor::layers.push_back(new editor::ComponentView(&editor::editorData, editor::layers, editor::selectedActors));
+	editor::mainMenuBar = new editor::MainMenuBar(&editor::editorData, editor::layers, editor::window, editor::renderer, editor::gui, &editor::scenes.back(), editor::actors, editor::editorData.selectedActors);
+	editor::layers.push_back(new editor::Viewport(&editor::scenes.back(), editor::window, editor::editorData.selectedActors));
+	editor::layers.push_back(new editor::SceneHierarchyView(&editor::editorData, &editor::scenes.back(), editor::actors, editor::editorData.selectedActors));
+	editor::layers.push_back(new editor::ComponentView(&editor::editorData, editor::layers, editor::editorData.selectedActors));
 
 	setupGuiStyle();
 

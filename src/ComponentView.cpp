@@ -221,7 +221,7 @@ namespace editor {
 			uint32_t i = 0;
 			for (auto& shape : m_pEditorData->physicsShapes) {
 				if (ImGui::Button(("shape" + std::to_string(i)).c_str())) {
-					selectedActor.cmpRigidDynamic_addShape(shape);
+					selectedActor.cmpRigidDynamic_attachShape(shape);
 				}
 				i++;
 			}
@@ -320,7 +320,7 @@ namespace editor {
 				}
 				}
 				Zap::Shape shape(*pGeometry, m_pEditorData->physicsMaterials[m_shapeCreationInfo.materialIndex], true);
-				selectedActor.cmpRigidDynamic_addShape(shape);
+				selectedActor.cmpRigidDynamic_attachShape(shape);
 				shape.release();
 				delete pGeometry;
 				ImGui::CloseCurrentPopup();
@@ -432,7 +432,7 @@ namespace editor {
 			return "ComponentView";
 		}
 		else {
-			return "ComponentView - " + std::to_string(m_selectedActors[0].m_handle);
+			return "ComponentView - " + std::to_string(m_selectedActors[0].getHandle());
 		}
 	}
 

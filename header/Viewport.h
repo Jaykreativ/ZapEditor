@@ -12,14 +12,14 @@ namespace Zap{
 	class PBRenderer;
 	class RaytracingRenderer;
 	class PathTracer;
+	class DebugRenderVertex;
+	class DebugRenderTask;
 	class Renderer;
 	class Scene;
 }
 
 namespace editor {
 	class OutlineRenderTask;
-	class DebugRenderTask;
-	class DebugRenderVertex;
 
 	struct ViewportSettings {
 		bool enableOutlines = true;
@@ -62,11 +62,11 @@ namespace editor {
 		Zap::Scene* m_pScene;
 
 		Zap::Renderer m_renderer;
-		Zap::PBRenderer* m_pPBRender;
-		Zap::RaytracingRenderer* m_pRTRender;
-		Zap::PathTracer* m_pPathTracer;
-		OutlineRenderTask* m_pOutlineRenderTask;
-		DebugRenderTask* m_pDebugRenderTask;
+		Zap::PBRenderer* m_pPBRender = nullptr;
+		Zap::RaytracingRenderer* m_pRTRender = nullptr;
+		Zap::PathTracer* m_pPathTracer = nullptr;
+		OutlineRenderTask* m_pOutlineRenderTask = nullptr;
+		Zap::DebugRenderTask* m_pDebugRenderTask = nullptr;
 
 		Zap::Actor m_camera;
 
@@ -83,7 +83,7 @@ namespace editor {
 		double m_ylast = 0;
 
 		vk::Buffer m_debugVertexBuffer;
-		std::vector<DebugRenderVertex> m_debugLineVector = {};
+		std::vector<Zap::DebugRenderVertex> m_debugLineVector = {};
 
 		Zap::Scene m_transformEditScene;
 		Zap::PhysicsMaterial* m_transformMaterial;

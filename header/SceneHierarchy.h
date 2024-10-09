@@ -19,7 +19,7 @@ namespace editor {
 
 		void draw() override;
 
-		ImGuiWindowFlags getWindowFlags();
+		ImGuiWindowFlags getWindowFlags() override;
 
 	private:
 		EditorData* m_pEditorData = nullptr;

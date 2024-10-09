@@ -4,6 +4,7 @@
 #include "SceneHierarchy.h"
 #include "ComponentView.h"
 #include "AssetBrowser.h"
+#include "HitboxEditor.h"
 
 #include "imgui.h"
 
@@ -59,6 +60,9 @@ namespace editor {
 			}
 			if (ImGui::MenuItem("AssetBrowser")) {
 				m_layers.push_back(new AssetBrowser(m_pWindow, m_pGui));
+			}
+			if (ImGui::MenuItem("HitboxEditor")) {
+				m_layers.push_back(new HitboxEditor(m_pEditorData));
 			}
 			ImGui::EndMenu();
 		}
