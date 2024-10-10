@@ -202,9 +202,6 @@ void setupActors() {
 	//}
 	//
 
-	Zap::Material cboxMat{};
-	cboxMat.roughness = 1;
-
 	editor::actors.push_back(Zap::Actor());
 	pActor = &editor::actors.back();
 	editor::scenes.back().attachActor(*pActor);
@@ -213,8 +210,12 @@ void setupActors() {
 	pActor->cmpTransform_setPos(2, 0, 1);
 	pActor->cmpTransform_setScale(0.1, 2, 3);
 	pActor->addModel(editor::cubeModel);
-	cboxMat.albedoColor = { .75, .25, .25 };
-	pActor->cmpModel_setMaterial(cboxMat);
+	{
+		auto mat = Zap::Material();
+		mat.setRoughness(0.75);
+		mat.setAlbedo({ .75, .25, .25, 1.0});
+		pActor->cmpModel_setMaterial(mat);
+	}
 
 	editor::actors.push_back(Zap::Actor());
 	pActor = &editor::actors.back();
@@ -224,10 +225,12 @@ void setupActors() {
 	pActor->cmpTransform_setPos(-2, 0, 1);
 	pActor->cmpTransform_setScale(0.1, 2, 3);
 	pActor->addModel(editor::cubeModel);
-	cboxMat.albedoColor = { .25, .25, .75 };
-	pActor->cmpModel_setMaterial(cboxMat);
-	cboxMat.albedoColor = { .75, .75, .75 };
-
+	{
+		auto mat = Zap::Material();
+		mat.setRoughness(0.75);
+		mat.setAlbedo({ .25, .25, .75, 1.0 });
+		pActor->cmpModel_setMaterial(mat);
+	}
 	editor::actors.push_back(Zap::Actor());
 	pActor = &editor::actors.back();
 	editor::scenes.back().attachActor(*pActor);
@@ -236,7 +239,12 @@ void setupActors() {
 	pActor->cmpTransform_setPos(0, 0, -2);
 	pActor->cmpTransform_setScale(2, 2, 0.1);
 	pActor->addModel(editor::cubeModel);
-	pActor->cmpModel_setMaterial(cboxMat);
+	{
+		auto mat = Zap::Material();
+		mat.setRoughness(0.75);
+		mat.setAlbedo({ .75, .75, .75, 1.0 });
+		pActor->cmpModel_setMaterial(mat);
+	}
 
 	editor::actors.push_back(Zap::Actor());
 	pActor = &editor::actors.back();
@@ -246,7 +254,12 @@ void setupActors() {
 	pActor->cmpTransform_setPos(0, 2, 1);
 	pActor->cmpTransform_setScale(2, 0.1, 3);
 	pActor->addModel(editor::cubeModel);
-	pActor->cmpModel_setMaterial(cboxMat);
+	{
+		auto mat = Zap::Material();
+		mat.setRoughness(0.75);
+		mat.setAlbedo({ .75, .75, .75, 1.0 });
+		pActor->cmpModel_setMaterial(mat);
+	}
 
 	editor::actors.push_back(Zap::Actor());
 	pActor = &editor::actors.back();
@@ -256,7 +269,12 @@ void setupActors() {
 	pActor->cmpTransform_setPos(0, -2, 1);
 	pActor->cmpTransform_setScale(2, 0.1, 3);
 	pActor->addModel(editor::cubeModel);
-	pActor->cmpModel_setMaterial(cboxMat);
+	{
+		auto mat = Zap::Material();
+		mat.setRoughness(0.75);
+		mat.setAlbedo({ .75, .75, .75, 1.0 });
+		pActor->cmpModel_setMaterial(mat);
+	}
 
 	editor::actors.push_back(Zap::Actor());
 	pActor = &editor::actors.back();
@@ -314,7 +332,12 @@ void setupActors() {
 	pActor->cmpTransform_setScale(50, 1, 50);
 	pActor->cmpTransform_rotateX(180);
 	pActor->addModel(editor::cubeModel);
-	pActor->cmpModel_setMaterial(cboxMat);
+	{
+		auto mat = Zap::Material();
+		mat.setRoughness(0.75);
+		mat.setAlbedo({ .75, .75, .75, 1.0 });
+		pActor->cmpModel_setMaterial(mat);
+	}
 	{
 		auto geometry = Zap::BoxGeometry(glm::vec3(50, 1, 50 ));
 		Zap::Shape shape(geometry, pxMaterial, true);
