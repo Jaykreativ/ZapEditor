@@ -20,6 +20,7 @@ add_executable(ZapEditor ${ZapEditor_SRC} ${ZapEditor_Shader})
 source_group("Source" FILES ${ZapEditor_SRC})
 source_group("Shader" FILES ${ZapEditor_Shader})
 
+set(${CMAKE_BUILD_PARALLEL_LEVEL} 16)
 add_subdirectory("../Zap" "${PROJECT_SOURCE_DIR}/../Zap")
 
 set(Zap_DIR "${PROJECT_SOURCE_DIR}/../Zap")

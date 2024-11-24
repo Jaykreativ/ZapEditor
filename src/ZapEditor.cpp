@@ -4,7 +4,7 @@
 #include "ComponentView.h";
 
 #include "Zap/Zap.h"
-#include "Zap/ModelLoader.h"
+#include "Zap/FileLoader.h"
 #include "Zap/Event.h"
 #include "Zap/EventHandler.h"
 #include "Zap/Serializer.h"
@@ -91,19 +91,21 @@ void setupGuiStyle() {
 
 void setupActors() {
 	Zap::ModelLoader modelLoader = Zap::ModelLoader();
+	Zap::ActorLoader actorLoader = Zap::ActorLoader();
 
 	editor::cubeModel = modelLoader.load("Models/OBJ/Cube.obj");
 
 	//auto cboxModel = modelLoader.load("Models/gltf/cornellBox.glb");
 	
+	//auto sponzaModel = modelLoader.load("Models/OBJ/Sponza/Sponza.obj");
 	//auto sponzaModel = modelLoader.load("Models/gltf/Sponza.glb");
 
-	auto gearModel = modelLoader.load("Models/gltf/ZapGear.glb");
+	//auto gearModel = modelLoader.load("Models/gltf/ZapGear.glb");
 
-	auto sphereModel = modelLoader.load("Models/gltf/metalSphere.glb");
+	//auto sphereModel = modelLoader.load("Models/gltf/metalSphere.glb");
 
-	glm::u8vec4 texCol = { 255, 180, 50, 255 };
-	modelLoader.loadTexture(&texCol, 1, 1);
+	//glm::u8vec4 texCol = { 255, 180, 50, 255 };
+	//modelLoader.loadTexture(&texCol, 1, 1);
 
 	Zap::PhysicsMaterial pxMaterial = Zap::PhysicsMaterial(0.5, 1, 0.1);
 
@@ -114,6 +116,7 @@ void setupActors() {
 	pActor->addTransform(glm::mat4(1));
 	pActor->cmpTransform_setPos(0, 2.7, 0);
 	pActor->addLight({ 12, 12, 12 });
+	//actorLoader.store("./Assets/light.zac", editor::actors.back());
 
 	editor::actors.push_back(Zap::Actor());
 	pActor = &editor::actors.back();
@@ -122,6 +125,17 @@ void setupActors() {
 	pActor->addTransform(glm::mat4(1));
 	pActor->cmpTransform_setPos(0, 0, -2.7);
 	pActor->addLight({ 6, 4, 2 });
+	//actorLoader.store("./Assets/lightOrange.zac", editor::actors.back());
+
+	editor::actors.push_back(Zap::Actor());
+	pActor = &editor::actors.back();
+	editor::scenes.back().attachActor(*pActor);
+	editor::editorData.actorNameMap[*pActor] = "Cube";
+	pActor->addTransform(glm::mat4(1));
+	pActor->cmpTransform_setPos(0, 0, -2.7);
+	pActor->addModel(editor::cubeModel);
+	//actorLoader.store("./Assets/cube.zac", editor::actors.back());
+
 	//pActor->addModel(sphereModel);
 	//{
 	//	Zap::Material mat{};
@@ -134,6 +148,7 @@ void setupActors() {
 	//editor::scenes.back().attachActor(*pActor);
 	//pActor->addTransform(glm::mat4(1));
 	//pActor->cmpTransform_setPos(0, -2, 0);
+	//pActor->cmpTransform_setScale(0.01);
 	//pActor->addModel(sponzaModel);
 
 	// coordinate helper
@@ -202,88 +217,88 @@ void setupActors() {
 	//}
 	//
 
-	editor::actors.push_back(Zap::Actor());
-	pActor = &editor::actors.back();
-	editor::scenes.back().attachActor(*pActor);
-	editor::editorData.actorNameMap[*pActor] = "RedWall";
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(2, 0, 1);
-	pActor->cmpTransform_setScale(0.1, 2, 3);
-	pActor->addModel(editor::cubeModel);
-	{
-		auto mat = Zap::Material();
-		mat.setRoughness(0.75);
-		mat.setAlbedo({ .75, .25, .25, 1.0});
-		pActor->cmpModel_setMaterial(mat);
-	}
+	//editor::actors.push_back(Zap::Actor());
+	//pActor = &editor::actors.back();
+	//editor::scenes.back().attachActor(*pActor);
+	//editor::editorData.actorNameMap[*pActor] = "RedWall";
+	//pActor->addTransform(glm::mat4(1));
+	//pActor->cmpTransform_setPos(2, 0, 1);
+	//pActor->cmpTransform_setScale(0.1, 2, 3);
+	//pActor->addModel(editor::cubeModel);
+	//{
+	//	auto mat = Zap::Material();
+	//	mat.setRoughness(0.75);
+	//	mat.setAlbedo({ .75, .25, .25, 1.0});
+	//	pActor->cmpModel_setMaterial(mat);
+	//}
+	//
+	//editor::actors.push_back(Zap::Actor());
+	//pActor = &editor::actors.back();
+	//editor::scenes.back().attachActor(*pActor);
+	//editor::editorData.actorNameMap[*pActor] = "BlueWall";
+	//pActor->addTransform(glm::mat4(1));
+	//pActor->cmpTransform_setPos(-2, 0, 1);
+	//pActor->cmpTransform_setScale(0.1, 2, 3);
+	//pActor->addModel(editor::cubeModel);
+	//{
+	//	auto mat = Zap::Material();
+	//	mat.setRoughness(0.75);
+	//	mat.setAlbedo({ .25, .25, .75, 1.0 });
+	//	pActor->cmpModel_setMaterial(mat);
+	//}
+	//editor::actors.push_back(Zap::Actor());
+	//pActor = &editor::actors.back();
+	//editor::scenes.back().attachActor(*pActor);
+	//editor::editorData.actorNameMap[*pActor] = "WhiteWallBack";
+	//pActor->addTransform(glm::mat4(1));
+	//pActor->cmpTransform_setPos(0, 0, -2);
+	//pActor->cmpTransform_setScale(2, 2, 0.1);
+	//pActor->addModel(editor::cubeModel);
+	//{
+	//	auto mat = Zap::Material();
+	//	mat.setRoughness(0.75);
+	//	mat.setAlbedo({ .75, .75, .75, 1.0 });
+	//	pActor->cmpModel_setMaterial(mat);
+	//}
+	//
+	//editor::actors.push_back(Zap::Actor());
+	//pActor = &editor::actors.back();
+	//editor::scenes.back().attachActor(*pActor);
+	//editor::editorData.actorNameMap[*pActor] = "WhiteWallTop";
+	//pActor->addTransform(glm::mat4(1));
+	//pActor->cmpTransform_setPos(0, 2, 1);
+	//pActor->cmpTransform_setScale(2, 0.1, 3);
+	//pActor->addModel(editor::cubeModel);
+	//{
+	//	auto mat = Zap::Material();
+	//	mat.setRoughness(0.75);
+	//	mat.setAlbedo({ .75, .75, .75, 1.0 });
+	//	pActor->cmpModel_setMaterial(mat);
+	//}
+	//
+	//editor::actors.push_back(Zap::Actor());
+	//pActor = &editor::actors.back();
+	//editor::scenes.back().attachActor(*pActor);
+	//editor::editorData.actorNameMap[*pActor] = "WhiteWallBottom";
+	//pActor->addTransform(glm::mat4(1));
+	//pActor->cmpTransform_setPos(0, -2, 1);
+	//pActor->cmpTransform_setScale(2, 0.1, 3);
+	//pActor->addModel(editor::cubeModel);
+	//{
+	//	auto mat = Zap::Material();
+	//	mat.setRoughness(0.75);
+	//	mat.setAlbedo({ .75, .75, .75, 1.0 });
+	//	pActor->cmpModel_setMaterial(mat);
+	//}
 
-	editor::actors.push_back(Zap::Actor());
-	pActor = &editor::actors.back();
-	editor::scenes.back().attachActor(*pActor);
-	editor::editorData.actorNameMap[*pActor] = "BlueWall";
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(-2, 0, 1);
-	pActor->cmpTransform_setScale(0.1, 2, 3);
-	pActor->addModel(editor::cubeModel);
-	{
-		auto mat = Zap::Material();
-		mat.setRoughness(0.75);
-		mat.setAlbedo({ .25, .25, .75, 1.0 });
-		pActor->cmpModel_setMaterial(mat);
-	}
-	editor::actors.push_back(Zap::Actor());
-	pActor = &editor::actors.back();
-	editor::scenes.back().attachActor(*pActor);
-	editor::editorData.actorNameMap[*pActor] = "WhiteWallBack";
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(0, 0, -2);
-	pActor->cmpTransform_setScale(2, 2, 0.1);
-	pActor->addModel(editor::cubeModel);
-	{
-		auto mat = Zap::Material();
-		mat.setRoughness(0.75);
-		mat.setAlbedo({ .75, .75, .75, 1.0 });
-		pActor->cmpModel_setMaterial(mat);
-	}
-
-	editor::actors.push_back(Zap::Actor());
-	pActor = &editor::actors.back();
-	editor::scenes.back().attachActor(*pActor);
-	editor::editorData.actorNameMap[*pActor] = "WhiteWallTop";
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(0, 2, 1);
-	pActor->cmpTransform_setScale(2, 0.1, 3);
-	pActor->addModel(editor::cubeModel);
-	{
-		auto mat = Zap::Material();
-		mat.setRoughness(0.75);
-		mat.setAlbedo({ .75, .75, .75, 1.0 });
-		pActor->cmpModel_setMaterial(mat);
-	}
-
-	editor::actors.push_back(Zap::Actor());
-	pActor = &editor::actors.back();
-	editor::scenes.back().attachActor(*pActor);
-	editor::editorData.actorNameMap[*pActor] = "WhiteWallBottom";
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(0, -2, 1);
-	pActor->cmpTransform_setScale(2, 0.1, 3);
-	pActor->addModel(editor::cubeModel);
-	{
-		auto mat = Zap::Material();
-		mat.setRoughness(0.75);
-		mat.setAlbedo({ .75, .75, .75, 1.0 });
-		pActor->cmpModel_setMaterial(mat);
-	}
-
-	editor::actors.push_back(Zap::Actor());
-	pActor = &editor::actors.back();
-	editor::scenes.back().attachActor(*pActor);
-	editor::editorData.actorNameMap[*pActor] = "ZapGears";
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(0, -1, 1.5);
-	pActor->cmpTransform_setScale(0.1, 0.1, 0.1);
-	pActor->addModel(gearModel);
+	//editor::actors.push_back(Zap::Actor());
+	//pActor = &editor::actors.back();
+	//editor::scenes.back().attachActor(*pActor);
+	//editor::editorData.actorNameMap[*pActor] = "ZapGears";
+	//pActor->addTransform(glm::mat4(1));
+	//pActor->cmpTransform_setPos(0, -1, 1.5);
+	//pActor->cmpTransform_setScale(0.1, 0.1, 0.1);
+	//pActor->addModel(gearModel);
 
 	//cboxMat.albedoColor = { .99, .99, .99 };
 	//cboxMat.roughness = 0.1;
@@ -333,16 +348,11 @@ void setupActors() {
 	pActor->cmpTransform_rotateX(180);
 	pActor->addModel(editor::cubeModel);
 	{
-		auto mat = Zap::Material();
-		mat.setRoughness(0.75);
-		mat.setAlbedo({ .75, .75, .75, 1.0 });
-		pActor->cmpModel_setMaterial(mat);
-	}
-	{
 		auto geometry = Zap::BoxGeometry(glm::vec3(50, 1, 50 ));
 		Zap::Shape shape(geometry, pxMaterial, true);
 		pActor->addRigidStatic(shape);
 	}
+	//actorLoader.store("./Assets/ground.zac", editor::actors.back());
 
 	//for (int i = 0; i < 5; i++) {
 	//	for (int j = 0; j < 5; j++) {
@@ -412,12 +422,15 @@ int main() {
 
 	//deserialize
 
-	//Zap::Serializer deserializer;
-	//deserializer.deserialize("./Actors", &editor::actors, &editor::scenes);
 	editor::scenes.push_back(Zap::Scene());
 	editor::scenes.back().init();
 	
 	setupActors();
+	//Zap::ActorLoader actorLoader;
+	//editor::actors.push_back(actorLoader.load("Actors/cube.zac", &editor::scenes.back()));
+	//editor::actors.push_back(actorLoader.load("Actors/ground.zac", &editor::scenes.back()));
+	//editor::actors.push_back(actorLoader.load("Actors/light.zac", &editor::scenes.back()));
+	//editor::actors.push_back(actorLoader.load("Actors/lightOrange.zac", &editor::scenes.back()));
 
 	for(auto& scene : editor::scenes)
 		scene.update();
@@ -492,13 +505,11 @@ int main() {
 		frameIndex++;
 	}
 	//serialize
+	//actorLoader.store("Actors/cube.zac", editor::actors[0]);
+	//actorLoader.store("Actors/ground.zac", editor::actors[1]);
+	//actorLoader.store("Actors/light.zac", editor::actors[2]);
+	//actorLoader.store("Actors/lightOrange.zac", editor::actors[3]);
 	
-	Zap::Serializer serializer;
-	for (auto actor : editor::actors) {
-		serializer.addActor(actor);
-	}
-	//serializer.serialize("./Actors");
-
 	//terminate
 	editor::renderer->destroy();
 

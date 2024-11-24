@@ -408,3 +408,6 @@ FodyWeavers.xsd
 
 # Auto ignores
 /imgui.ini
+/Assets
+/Actors
+/Editor.zal
