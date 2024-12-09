@@ -40,11 +40,8 @@ namespace editor {
 	static Zap::Renderer* renderer;
 
 	static Zap::Gui* gui;
-
-	static std::vector<Zap::Scene> scenes;
 	
 	static uint32_t cam = 0;
-	static std::vector<Zap::Actor> actors;
 
 	static MainMenuBar* mainMenuBar;
 	static std::vector<ViewLayer*> layers;
@@ -104,32 +101,34 @@ void setupActors() {
 
 	//auto sphereModel = modelLoader.load("Models/gltf/metalSphere.glb");
 
+	auto pistolKimber = modelLoader.load("Models/gltf/PistolKimber/PistolKimber.glb");
+
 	//glm::u8vec4 texCol = { 255, 180, 50, 255 };
 	//modelLoader.loadTexture(&texCol, 1, 1);
 
 	Zap::PhysicsMaterial pxMaterial = Zap::PhysicsMaterial(0.5, 1, 0.1);
 
-	editor::actors.push_back(Zap::Actor());
-	auto pActor = &editor::actors.back();
-	editor::scenes.back().attachActor(*pActor);
+	editor::editorData.actors.push_back(Zap::Actor());
+	auto pActor = &editor::editorData.actors.back();
+	editor::editorData.scenes.back().attachActor(*pActor);
 	editor::editorData.actorNameMap[*pActor] = "LightWhite";
 	pActor->addTransform(glm::mat4(1));
 	pActor->cmpTransform_setPos(0, 2.7, 0);
 	pActor->addLight({ 12, 12, 12 });
 	//actorLoader.store("./Assets/light.zac", editor::actors.back());
 
-	editor::actors.push_back(Zap::Actor());
-	pActor = &editor::actors.back();
-	editor::scenes.back().attachActor(*pActor);
+	editor::editorData.actors.push_back(Zap::Actor());
+	pActor = &editor::editorData.actors.back();
+	editor::editorData.scenes.back().attachActor(*pActor);
 	editor::editorData.actorNameMap[*pActor] = "LightOrange";
 	pActor->addTransform(glm::mat4(1));
 	pActor->cmpTransform_setPos(0, 0, -2.7);
 	pActor->addLight({ 6, 4, 2 });
 	//actorLoader.store("./Assets/lightOrange.zac", editor::actors.back());
 
-	editor::actors.push_back(Zap::Actor());
-	pActor = &editor::actors.back();
-	editor::scenes.back().attachActor(*pActor);
+	editor::editorData.actors.push_back(Zap::Actor());
+	pActor = &editor::editorData.actors.back();
+	editor::editorData.scenes.back().attachActor(*pActor);
 	editor::editorData.actorNameMap[*pActor] = "Cube";
 	pActor->addTransform(glm::mat4(1));
 	pActor->cmpTransform_setPos(0, 0, -2.7);
@@ -338,9 +337,9 @@ void setupActors() {
 	//	}
 	//}
 
-	editor::actors.push_back(Zap::Actor());
-	pActor = &editor::actors.back();
-	editor::scenes.back().attachActor(*pActor);
+	editor::editorData.actors.push_back(Zap::Actor());
+	pActor = &editor::editorData.actors.back();
+	editor::editorData.scenes.back().attachActor(*pActor);
 	editor::editorData.actorNameMap[*pActor] = "Ground";
 	pActor->addTransform(glm::mat4(1));
 	pActor->cmpTransform_setPos(0, -6, 0);
@@ -379,23 +378,23 @@ void setupActors() {
 	//}
 
 	// Kimber Pistol Cube Generator
-	//glm::vec3 kpcPos = { 0, 1, 0 };
-	//float kpcPadding = 0.25;
-	//glm::vec3 kpcSize = { 10, 10, 10 };
-	//glm::vec3 kpcCorner = kpcPos - kpcSize * 0.5f * kpcPadding;
-	//for (float x = 0; x < kpcSize.x*kpcPadding; x += kpcPadding) {
-	//	for (float y = 0; y < kpcSize.y * kpcPadding; y += kpcPadding) {
-	//		for (float z = 0; z < kpcSize.z * kpcPadding; z += kpcPadding) {
-	//			editor::actors.push_back(Zap::Actor());
-	//			pActor = &editor::actors.back();
-	//			editor::scenes.back().attachActor(*pActor);
-	//			pActor->addTransform(glm::mat4(1));
-	//			pActor->cmpTransform_setPos(kpcCorner + glm::vec3(x, y, z));
-	//			pActor->cmpTransform_setScale(1);
-	//			pActor->addModel(kimberModel);
-	//		}
-	//	}
-	//}
+	glm::vec3 kpcPos = { 0, 1, 0 };
+	float kpcPadding = 0.25;
+	glm::vec3 kpcSize = { 3, 3, 3 };
+	glm::vec3 kpcCorner = kpcPos - kpcSize * 0.5f * kpcPadding;
+	for (float x = 0; x < kpcSize.x*kpcPadding; x += kpcPadding) {
+		for (float y = 0; y < kpcSize.y * kpcPadding; y += kpcPadding) {
+			for (float z = 0; z < kpcSize.z * kpcPadding; z += kpcPadding) {
+				editor::editorData.actors.push_back(Zap::Actor());
+				pActor = &editor::editorData.actors.back();
+				editor::editorData.scenes.back().attachActor(*pActor);
+				pActor->addTransform(glm::mat4(1));
+				pActor->cmpTransform_setPos(kpcCorner + glm::vec3(x, y, z));
+				pActor->cmpTransform_setScale(1);
+				pActor->addModel(pistolKimber);
+			}
+		}
+	}
 
 }
 
@@ -422,8 +421,8 @@ int main() {
 
 	//deserialize
 
-	editor::scenes.push_back(Zap::Scene());
-	editor::scenes.back().init();
+	editor::editorData.scenes.push_back(Zap::Scene());
+	editor::editorData.scenes.back().init();
 	
 	setupActors();
 	//Zap::ActorLoader actorLoader;
@@ -432,7 +431,7 @@ int main() {
 	//editor::actors.push_back(actorLoader.load("Actors/light.zac", &editor::scenes.back()));
 	//editor::actors.push_back(actorLoader.load("Actors/lightOrange.zac", &editor::scenes.back()));
 
-	for(auto& scene : editor::scenes)
+	for(auto& scene : editor::editorData.scenes)
 		scene.update();
 
 	editor::renderer->setTarget(editor::window);
@@ -444,9 +443,9 @@ int main() {
 	editor::renderer->recRenderTemplate(editor::gui);
 	editor::renderer->endRecord();
 
-	editor::mainMenuBar = new editor::MainMenuBar(&editor::editorData, editor::layers, editor::window, editor::renderer, editor::gui, &editor::scenes.back(), editor::actors, editor::editorData.selectedActors);
-	editor::layers.push_back(new editor::Viewport(&editor::scenes.back(), editor::window, editor::editorData.selectedActors));
-	editor::layers.push_back(new editor::SceneHierarchyView(&editor::editorData, &editor::scenes.back(), editor::actors, editor::editorData.selectedActors));
+	editor::mainMenuBar = new editor::MainMenuBar(&editor::editorData, editor::layers, editor::window, editor::renderer, editor::gui, &editor::editorData.scenes.back(), editor::editorData.actors, editor::editorData.selectedActors);
+	editor::layers.push_back(new editor::Viewport(editor::editorData, &editor::editorData.scenes.back(), editor::window));
+	editor::layers.push_back(new editor::SceneHierarchyView(&editor::editorData, &editor::editorData.scenes.back(), editor::editorData.actors, editor::editorData.selectedActors));
 	editor::layers.push_back(new editor::ComponentView(&editor::editorData, editor::layers, editor::editorData.selectedActors));
 
 	setupGuiStyle();
@@ -491,7 +490,7 @@ int main() {
 		}
 
 		if (editor::mainMenuBar->shouldSimulate() && dTime > 0) {
-			for(auto& scene : editor::scenes)
+			for(auto& scene : editor::editorData.scenes)
 				scene.simulate(dTime);
 		}
 
@@ -524,9 +523,9 @@ int main() {
 
 	delete editor::window;
 
-	for(auto scene : editor::scenes)
+	for(auto scene : editor::editorData.scenes)
 		scene.destroy();
-	editor::scenes.clear();
+	editor::editorData.scenes.clear();
 
 	delete editor::gui;
 

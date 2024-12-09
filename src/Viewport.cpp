@@ -1,6 +1,9 @@
 #include "Viewport.h"
 
+#include "FileHandling.h"
+
 #include "Zap/EventHandler.h"
+#include "Zap/FileLoader.h"
 #include "Zap/Rendering/RenderTaskTemplate.h"
 #include "Zap/Rendering/PBRenderer.h"
 #include "Zap/Rendering/RaytracingRenderer.h"
@@ -830,7 +833,7 @@ namespace editor {
 			vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_plainPipeline.getVkPipelineLayout(), 0, 1, boundSets, 0, nullptr);
 
 			for (auto actor : m_actors) {
-				if (actor.hasModel()) {
+				if (actor.isValid() && actor.hasModel()) {
 					auto* pModel = getActorModel(actor);
 					for (Zap::Mesh mesh : pModel->meshes) {
 						VkDeviceSize offsets[] = { 0 };
@@ -899,12 +902,13 @@ namespace editor {
 		}
 	};
 
-	Viewport::Viewport(Zap::Scene* pScene, Zap::Window* pWindow, std::vector<Zap::Actor>& selectedActors)
-		: m_pScene(pScene), m_pWindow(pWindow), m_selectedActors(selectedActors)
+	Viewport::Viewport(EditorData& editorData, Zap::Scene* pScene, Zap::Window* pWindow)
+		: m_editorData(editorData), m_pScene(pScene), m_pWindow(pWindow), m_selectedActors(editorData.selectedActors)
 	{
 		m_pWindow->getKeyEventHandler()->addCallback(keyCallback);
 		m_pWindow->getMouseButtonEventHandler()->addCallback(mouseButtonCallback);
 		m_pWindow->getCursorPosEventHandler()->addCallback(Viewport::cursorPositionCallback, this);
+		m_pWindow->getDragDropEventHandler()->addCallback(Viewport::dragDropCallback, this);
 
 		m_outImage.setFormat(Zap::GlobalSettings::getColorFormat());
 		m_outImage.setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
@@ -1061,6 +1065,13 @@ namespace editor {
 		pViewport->m_ylast = params.yPos;
 	}
 
+	void Viewport::dragDropCallback(Zap::DragDropEvent& params, void* viewportData) {
+		Viewport* pViewport = (Viewport*)viewportData;
+		for (int i = 0; i < params.pathCount; i++) {
+			loadFile(params.paths[i], pViewport->m_editorData);
+		}
+	}
+
 	uint32_t countTransformLines() {
 		return 3;
 	}
@@ -1204,7 +1215,7 @@ namespace editor {
 			m_axisIndex = 0xFFFFFFFF;
 		if (m_settings.enableTransformVisual && m_selectedActors.size() > 0) {
 			auto actor = m_selectedActors.back();
-			if (actor.hasTransform()) {
+			if (actor.isValid() && actor.hasTransform()) {
 				float scale = glm::length(actor.cmpTransform_getPos() - m_camera.cmpTransform_getPos()) / 5.f;
 				Zap::BoxGeometry box = Zap::BoxGeometry(glm::vec3(0.5, 0.05, 0.05)*scale);
 
@@ -1295,7 +1306,7 @@ namespace editor {
 			// find the line count
 			if (m_settings.enableTransformVisual) {
 				for (auto actor : m_selectedActors) {
-					if (actor.hasTransform()) {
+					if (actor.isValid() && actor.hasTransform()) {
 						size += countTransformLines();
 					}
 				}
@@ -1319,7 +1330,7 @@ namespace editor {
 
 				if (m_settings.enableTransformVisual) {
 					for (auto actor : m_selectedActors) {
-						if (actor.hasTransform()) {
+						if (actor.isValid() && actor.hasTransform()) {
 							drawTransformLines(offset, data, actor, m_axisIndex, glm::length(actor.cmpTransform_getPos() - m_camera.cmpTransform_getPos())/5.f);
 						}
 					}

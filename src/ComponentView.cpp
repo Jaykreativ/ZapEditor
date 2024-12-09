@@ -443,7 +443,14 @@ namespace editor {
 			ImGui::EndDisabled();
 			return;
 		}
+
 		Zap::Actor selectedActor = m_selectedActors[0];
+		if (!selectedActor.isValid()) {
+			ImGui::BeginDisabled();
+			ImGui::Text("Invalid Actor selected");
+			ImGui::EndDisabled();
+			return;
+		}
 
 		ImGui::BeginChild("Selection", ImVec2(0, 0), ImGuiChildFlags_AutoResizeX);
 		if (selectedActor.hasTransform())
