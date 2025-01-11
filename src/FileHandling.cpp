@@ -30,7 +30,14 @@ namespace editor {
 	}
 
 	void loadActorFile(std::string filepath, EditorData& editorData) {
+		auto first = std::min(filepath.find_last_of("\\"), filepath.size() - 1) + 1;
+		auto last = std::min(filepath.find_first_of("."), filepath.size() - 1);
+		std::string filename = filepath.substr(first, last - first);
 
+		Zap::ActorLoader loader;
+		editorData.actors.push_back(loader.load(filepath, &editorData.scenes.back()));
+		Zap::Actor& actor = editorData.actors.back();
+		editorData.actorNameMap[actor] = filename;
 	}
 
 	void loadFile(std::string filepath, EditorData& editorData) {

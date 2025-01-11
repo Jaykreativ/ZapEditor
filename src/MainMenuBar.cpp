@@ -5,8 +5,13 @@
 #include "ComponentView.h"
 #include "AssetBrowser.h"
 #include "HitboxEditor.h"
+#include "ProjectHandling.h"
+
+#include "Zap/Serializer.h"
 
 #include "imgui.h"
+
+#include <chrono>
 
 namespace editor {
 	MainMenuBar::MainMenuBar(
@@ -66,6 +71,107 @@ namespace editor {
 			}
 			ImGui::EndMenu();
 		}
+
+		if (ImGui::BeginMenu("Project")) {
+			if(m_pEditorData->project.name != "")
+				ImGui::Text(m_pEditorData->project.name.c_str());
+			if (m_pEditorData->project.fileDir != "")
+				ImGui::Text(m_pEditorData->project.fileDir.c_str());
+			if (m_pEditorData->project.editorFileDir != "")
+				ImGui::Text(m_pEditorData->project.editorFileDir.c_str());
+
+			// Create Project
+			if (ImGui::Button("Create")) {
+				ImGui::OpenPopup("ProjectCreationPopup");
+			}
+
+			if (ImGui::BeginPopup("ProjectCreationPopup")) {
+				const size_t nameBufferSize = 50;
+				static char nameBuffer[nameBufferSize] = {};
+				ImGui::InputText("Name", nameBuffer, nameBufferSize);
+
+				const size_t dirBufferSize = 150;
+				static char dirBuffer[dirBufferSize] = {};
+				ImGui::InputText("Directory", dirBuffer, dirBufferSize);
+
+				if (ImGui::Button("Done")) {
+					project::create(*m_pEditorData, nameBuffer, dirBuffer);
+					ImGui::CloseCurrentPopup();
+				}
+
+				ImGui::EndPopup();
+			}
+
+			//Open Project
+			if (ImGui::Button("Open")) {
+				ImGui::OpenPopup("ProjectOpenPopup");
+			}
+
+			if (ImGui::BeginPopup("ProjectOpenPopup")) {
+				const size_t fileBufferSize = 150;
+				static char fileBuffer[fileBufferSize] = {};
+				ImGui::InputText("Filepath", fileBuffer, fileBufferSize);
+
+				std::string filepath = fileBuffer;
+				auto end = filepath.size();
+				auto dot = std::min<size_t>(filepath.find_first_of('.'), end);
+				auto slash = filepath.find_last_of('/');
+				auto backslash = filepath.find_last_of('\\');
+				if (slash >= end) slash = 0;
+				if (backslash >= end) backslash = 0;
+				auto nameFirst = std::min<size_t>(std::max<size_t>(slash, backslash) + 1, dot);
+				auto dirLast = std::max<size_t>(nameFirst - 1, 0);
+
+				std::string directory = filepath.substr(0, dirLast);
+				std::string name = filepath.substr(nameFirst, dot - nameFirst);
+				std::string type = filepath.substr(dot, end - dot);
+
+				std::cout << "dir: " << directory << "\n";
+				std::cout << "name: " << name << "\n";
+				std::cout << "type: " << type << "\n";
+
+				bool isValidPath =
+					type == ".zproj" ||
+					type == ".zproj.edit";
+
+				if (FILE* file = fopen((directory + "/" + name + type).c_str(), "r")) {
+					fclose(file);
+				}
+				else
+					isValidPath = false;
+
+				if (!isValidPath)
+					ImGui::BeginDisabled();
+
+				if (ImGui::Button("Done")) {
+					project::open(*m_pEditorData, name, directory);
+					ImGui::CloseCurrentPopup();
+				}
+
+				if (!isValidPath)
+					ImGui::EndDisabled();
+
+				ImGui::EndPopup();
+			}
+
+			bool disabled = !m_pEditorData->project.isOpen;
+			if (disabled)
+				ImGui::BeginDisabled();
+			//Close Project
+			if (ImGui::Button("Close")) {
+				project::close(*m_pEditorData);
+			}
+
+			// Save Project
+			if (ImGui::Button("Save")) {
+				project::save(*m_pEditorData);
+			}
+			if (disabled)
+				ImGui::EndDisabled();
+			
+			ImGui::EndMenu();
+		}
+
 		ImGui::EndMainMenuBar();
 	}
 
