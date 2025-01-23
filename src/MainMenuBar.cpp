@@ -6,6 +6,7 @@
 #include "AssetBrowser.h"
 #include "HitboxEditor.h"
 #include "ProjectHandling.h"
+#include "FileHandling.h"
 
 #include "Zap/Serializer.h"
 
@@ -113,28 +114,17 @@ namespace editor {
 				ImGui::InputText("Filepath", fileBuffer, fileBufferSize);
 
 				std::string filepath = fileBuffer;
-				auto end = filepath.size();
-				auto dot = std::min<size_t>(filepath.find_first_of('.'), end);
-				auto slash = filepath.find_last_of('/');
-				auto backslash = filepath.find_last_of('\\');
-				if (slash >= end) slash = 0;
-				if (backslash >= end) backslash = 0;
-				auto nameFirst = std::min<size_t>(std::max<size_t>(slash, backslash) + 1, dot);
-				auto dirLast = std::max<size_t>(nameFirst - 1, 0);
+				std::string directory = "";
+				std::string name = "";
+				std::string extension = "";
 
-				std::string directory = filepath.substr(0, dirLast);
-				std::string name = filepath.substr(nameFirst, dot - nameFirst);
-				std::string type = filepath.substr(dot, end - dot);
-
-				std::cout << "dir: " << directory << "\n";
-				std::cout << "name: " << name << "\n";
-				std::cout << "type: " << type << "\n";
+				seperatePath(filepath, directory, name, extension);
 
 				bool isValidPath =
-					type == ".zproj" ||
-					type == ".zproj.edit";
+					extension == projectFileExtension ||
+					extension == projectEditorFileExtension;
 
-				if (FILE* file = fopen((directory + "/" + name + type).c_str(), "r")) {
+				if (FILE* file = fopen((directory + "/" + name + "." + extension).c_str(), "r")) {
 					fclose(file);
 				}
 				else

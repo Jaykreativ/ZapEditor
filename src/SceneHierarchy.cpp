@@ -1,6 +1,8 @@
 #define ZP_ENTITY_COMPONENT_SYSTEM_ACCESS
 
 #include "SceneHierarchy.h"
+#include "FileHandling.h"
+#include "SceneHandling.h"
 
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Model.h"
@@ -86,9 +88,8 @@ namespace editor {
 		bool shouldSceneEditPopupClose = false;
 		if (ImGui::BeginPopup("SceneEdit##Popup")) {
 			if (ImGui::Button("Add")) {
+				m_actorCreationData = {};
 				m_actorCreationData.newActor = Zap::Actor();// setup one time data for actor creation
-				char data[50] = "";
-				memcpy(m_actorCreationData.nameInputBuffer, data, sizeof(char)*50);
 				ImGui::OpenPopup("ActorCreation##Popup");
 			}
 
@@ -109,14 +110,15 @@ namespace editor {
 					m_actorCreationData.transform.transform[3] = glm::vec4(pos, 1);
 				}
 
-				if (ImGui::Button("Done")) {
-					m_allActors.push_back(m_actorCreationData.newActor);
-					Zap::Actor* pActor = &m_allActors.back();
-					m_pScene->attachActor(*pActor);
-					if (m_actorCreationData.createName)
-						m_pEditorData->actorNameMap[*pActor] = m_actorCreationData.name;
+				if (ImGui::Button("Done") || ImGui::IsKeyPressed(ImGuiKey_Enter, false)) {
+					Zap::Actor actor = m_actorCreationData.newActor;
+					if (!m_actorCreationData.createName)
+						m_actorCreationData.name = "";
+					m_pScene->attachActor(actor);
+					scene::createActor(*m_pEditorData, actor, m_actorCreationData.name);
+						m_pEditorData->actorNameMap[actor] = m_actorCreationData.name;
 					if (m_actorCreationData.createTransform)
-						pActor->addTransform(m_actorCreationData.transform);
+						actor.addTransform(m_actorCreationData.transform);
 
 					m_actorCreationData = {};
 					ImGui::CloseCurrentPopup();
@@ -136,6 +138,29 @@ namespace editor {
 					ImGui::CloseCurrentPopup();
 				}
 			}
+
+			if (m_hoveredActorIndex < 0xFFFFFFFF) {
+				if (ImGui::Button("Save")) {
+					Zap::Actor actor = m_allActors[m_hoveredActorIndex];
+					if (m_pEditorData->actorPathMap.count(actor))
+						saveActorFile(m_pEditorData->actorPathMap.at(actor), actor, *m_pEditorData);
+					else {
+						m_actorSaveData = {};
+						m_actorSaveData.actor = actor;
+						ImGui::OpenPopup("ActorSave##Popup");
+					}
+				}
+			}
+
+			if (ImGui::BeginPopup("ActorSave##Popup")) {
+				ImGui::InputText("filepath", m_actorSaveData.pathInputBuffer, m_actorSaveData.pathInputSize);
+				if (ImGui::Button("Done") || ImGui::IsKeyPressed(ImGuiKey_Enter, false)) {
+					saveActorFile(m_actorSaveData.pathInputBuffer, m_actorSaveData.actor, *m_pEditorData);
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::EndPopup();
+			}
+
 			if (shouldSceneEditPopupClose)
 				ImGui::CloseCurrentPopup();
 			ImGui::EndPopup();

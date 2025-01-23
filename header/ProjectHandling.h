@@ -7,6 +7,7 @@ namespace editor {
 		void create(EditorData& editorData, std::string name, std::string directory);
 
 		void open(EditorData& editorData, std::string name, std::string directory);
+		void open(EditorData& editorData, std::string filepath);
 
 		void close(EditorData& editorData);
 

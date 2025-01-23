@@ -448,6 +448,8 @@ namespace editor {
 		if (!selectedActor.isValid()) {
 			ImGui::BeginDisabled();
 			ImGui::Text("Invalid Actor selected");
+			if (!selectedActor.getScene())
+				ImGui::Text("Not attached to any scene");
 			ImGui::EndDisabled();
 			return;
 		}

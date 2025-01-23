@@ -30,13 +30,18 @@ namespace editor {
 
 		struct ActorCreationData {
 			Zap::Actor newActor;
-			bool createName = false;
+			bool createName = true;
 			char nameInputBuffer[50] = "";
 			std::string name = {};
 			bool createTransform = true;
 			Zap::Transform transform = {};
-		};
-		ActorCreationData m_actorCreationData = {};
+		} m_actorCreationData;
+
+		struct ActorSaveData {
+			Zap::Actor actor;
+			static const size_t pathInputSize = 256;
+			char pathInputBuffer[pathInputSize] = "";
+		} m_actorSaveData;
 	};
 }
 

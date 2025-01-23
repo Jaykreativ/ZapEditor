@@ -11,11 +11,11 @@ namespace editor {
 			ProjectData& project = editorData.project;
 			Zap::Serializer serializer;
 
-			project.fileDir = name + ".zproj";
-			project.editorFileDir = name + ".zproj.edit";
+			project.fileDir = directory + "/" + name + "." + projectFileExtension;
+			project.editorFileDir = directory + "/" + name + "." + projectEditorFileExtension;
 
 			// read contents of *.zproj
-			bool success = serializer.beginDeserialization((directory + "/" + name + ".zproj").c_str());
+			bool success = serializer.beginDeserialization(project.fileDir.c_str());
 			if (success) {
 
 				project.name = serializer.readAttribute("name", &success);
@@ -30,17 +30,26 @@ namespace editor {
 
 			}
 			serializer.endDeserialization();
-			ZP_WARN(success, ("Failed to load project file: " + directory + "/" + name + ".zproj").c_str());
+			ZP_WARN(success, ("Failed to load project file: " + project.fileDir).c_str());
 
 			// read contents of *.zproj.edit
-			success = success && serializer.beginDeserialization((directory + "/" + name + ".zproj.edit").c_str());
+			success = success && serializer.beginDeserialization(project.editorFileDir.c_str());
 			if (success) {
 
 			}
 			serializer.endDeserialization();
-			ZP_WARN(success, ("Failed to load project file: " + directory + "/" + name + ".zproj.edit").c_str());
+			ZP_WARN(success, ("Failed to load project file: " + project.editorFileDir).c_str());
 
 			return success;
+		}
+		bool readFiles(EditorData& editorData, std::string filepath) {
+			std::string directory = "";
+			std::string name = "";
+			std::string extension = "";
+
+			seperatePath(filepath, directory, name, extension);
+
+			return readFiles(editorData, name, directory);
 		}
 
 		// writes all project information to file
@@ -53,9 +62,9 @@ namespace editor {
 			serializer.writeAttribute("name", project.name);
 
 			serializer.beginElement("ActorPaths");
-			serializer.writeAttribute("actorPathCount", project.actorPathMap.size());
+			serializer.writeAttribute("actorPathCount", editorData.actorPathMap.size());
 			size_t i = 0;
-			for (auto& actorPathPair : project.actorPathMap) {
+			for (auto& actorPathPair : editorData.actorPathMap) {
 				serializer.writeAttribute("actorPath" + std::to_string(i), actorPathPair.second);
 				i++;
 			}
@@ -72,8 +81,8 @@ namespace editor {
 		void create(EditorData& editorData, std::string name, std::string directory) {
 			ProjectData& project = editorData.project;
 			project.name = name;
-			project.fileDir = directory + "/" + project.name + ".zproj";
-			project.editorFileDir = directory + "/" + project.name + ".zproj.edit";
+			project.fileDir = directory + "/" + project.name + "." + projectFileExtension;
+			project.editorFileDir = directory + "/" + project.name + "." + projectEditorFileExtension;
 
 			writeFiles(editorData);
 
@@ -82,11 +91,19 @@ namespace editor {
 		}
 
 		void open(EditorData& editorData, std::string name, std::string directory) {
-			if (!readFiles(editorData, name, directory))
+			if (!readFiles(editorData, name, directory)) {
 				close(editorData);
+				return;
+			}
 
 			editorData.project.isOpen = true;
-
+		}
+		void open(EditorData& editorData, std::string filepath) {
+			if (!readFiles(editorData, filepath)) {
+				close(editorData);
+				return;
+			}
+			editorData.project.isOpen = true;
 		}
 
 		void close(EditorData& editorData) {
@@ -95,6 +112,9 @@ namespace editor {
 		}
 
 		void save(EditorData& editorData) {
+			for (auto actor : editorData.actors) {
+				saveActorFile("Actors", actor, editorData);
+			}
 			writeFiles(editorData);
 		}
 	}

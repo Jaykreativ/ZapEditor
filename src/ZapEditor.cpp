@@ -2,6 +2,7 @@
 #include "Viewport.h";
 #include "SceneHierarchy.h";
 #include "ComponentView.h";
+#include "FileHandling.h"
 
 #include "Zap/Zap.h"
 #include "Zap/FileLoader.h"
@@ -337,20 +338,20 @@ void setupActors() {
 	//	}
 	//}
 
-	editor::editorData.actors.push_back(Zap::Actor());
-	pActor = &editor::editorData.actors.back();
-	editor::editorData.scenes.back().attachActor(*pActor);
-	editor::editorData.actorNameMap[*pActor] = "Ground";
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(0, -6, 0);
-	pActor->cmpTransform_setScale(50, 1, 50);
-	pActor->cmpTransform_rotateX(180);
-	pActor->addModel(editor::cubeModel);
-	{
-		auto geometry = Zap::BoxGeometry(glm::vec3(50, 1, 50 ));
-		Zap::Shape shape(geometry, pxMaterial, true);
-		pActor->addRigidStatic(shape);
-	}
+	//editor::editorData.actors.push_back(Zap::Actor());
+	//pActor = &editor::editorData.actors.back();
+	//editor::editorData.scenes.back().attachActor(*pActor);
+	//editor::editorData.actorNameMap[*pActor] = "Ground";
+	//pActor->addTransform(glm::mat4(1));
+	//pActor->cmpTransform_setPos(0, -6, 0);
+	//pActor->cmpTransform_setScale(50, 1, 50);
+	//pActor->cmpTransform_rotateX(180);
+	//pActor->addModel(editor::cubeModel);
+	//{
+	//	auto geometry = Zap::BoxGeometry(glm::vec3(50, 1, 50 ));
+	//	Zap::Shape shape(geometry, pxMaterial, true);
+	//	pActor->addRigidStatic(shape);
+	//}
 	//actorLoader.store("./Assets/ground.zac", editor::actors.back());
 
 	//for (int i = 0; i < 5; i++) {
@@ -378,23 +379,23 @@ void setupActors() {
 	//}
 
 	// Kimber Pistol Cube Generator
-	glm::vec3 kpcPos = { 0, 1, 0 };
-	float kpcPadding = 0.25;
-	glm::vec3 kpcSize = { 3, 3, 3 };
-	glm::vec3 kpcCorner = kpcPos - kpcSize * 0.5f * kpcPadding;
-	for (float x = 0; x < kpcSize.x*kpcPadding; x += kpcPadding) {
-		for (float y = 0; y < kpcSize.y * kpcPadding; y += kpcPadding) {
-			for (float z = 0; z < kpcSize.z * kpcPadding; z += kpcPadding) {
-				editor::editorData.actors.push_back(Zap::Actor());
-				pActor = &editor::editorData.actors.back();
-				editor::editorData.scenes.back().attachActor(*pActor);
-				pActor->addTransform(glm::mat4(1));
-				pActor->cmpTransform_setPos(kpcCorner + glm::vec3(x, y, z));
-				pActor->cmpTransform_setScale(1);
-				pActor->addModel(pistolKimber);
-			}
-		}
-	}
+	//glm::vec3 kpcPos = { 0, 1, 0 };
+	//float kpcPadding = 0.25;
+	//glm::vec3 kpcSize = { 3, 3, 3 };
+	//glm::vec3 kpcCorner = kpcPos - kpcSize * 0.5f * kpcPadding;
+	//for (float x = 0; x < kpcSize.x*kpcPadding; x += kpcPadding) {
+	//	for (float y = 0; y < kpcSize.y * kpcPadding; y += kpcPadding) {
+	//		for (float z = 0; z < kpcSize.z * kpcPadding; z += kpcPadding) {
+	//			editor::editorData.actors.push_back(Zap::Actor());
+	//			pActor = &editor::editorData.actors.back();
+	//			editor::editorData.scenes.back().attachActor(*pActor);
+	//			pActor->addTransform(glm::mat4(1));
+	//			pActor->cmpTransform_setPos(kpcCorner + glm::vec3(x, y, z));
+	//			pActor->cmpTransform_setScale(1);
+	//			pActor->addModel(pistolKimber);
+	//		}
+	//	}
+	//}
 
 }
 
@@ -424,7 +425,7 @@ int main() {
 	editor::editorData.scenes.push_back(Zap::Scene());
 	editor::editorData.scenes.back().init();
 	
-	setupActors();
+	//setupActors();
 	//Zap::ActorLoader actorLoader;
 	//editor::actors.push_back(actorLoader.load("Actors/cube.zac", &editor::scenes.back()));
 	//editor::actors.push_back(actorLoader.load("Actors/ground.zac", &editor::scenes.back()));
@@ -462,6 +463,16 @@ int main() {
 			ImGui::DockSpaceOverViewport(0U, ImGui::GetMainViewport());
 
 			ImGui::ShowDemoWindow();
+
+			// for quick string modification testing
+			//static char cbuf[50] = {};
+			//ImGui::InputText("testSeperation", cbuf, 50);
+			//std::string directory = "";
+			//std::string name = "";
+			//std::string extension = "";
+			//
+			//editor::seperatePath(cbuf, directory, name, extension);
+			//ImGui::Text(("directory: " + directory + " name: " + name + " extension: " + extension).c_str());
 
 			editor::mainMenuBar->draw();
 
