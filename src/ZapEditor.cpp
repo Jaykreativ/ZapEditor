@@ -401,6 +401,12 @@ void setupActors() {
 
 void windowResizeCallback(Zap::ResizeEvent& params, void* data) {}
 
+void dragDropCallback(Zap::DragDropEvent& params, void* customData) {
+	for (int i = 0; i < params.pathCount; i++) {
+		loadFile(params.paths[i], editor::editorData);
+	}
+}
+
 int main() {
 	editor::engineBase = Zap::Base::createBase("Zap Application");
 	auto settings = editor::engineBase->getSettings();
@@ -414,6 +420,7 @@ int main() {
 	editor::window = new Zap::Window(1000, 600, "Zap Window");
 	editor::window->init();
 	editor::window->getResizeEventHandler()->addCallback(windowResizeCallback);
+	editor::window->getDragDropEventHandler()->addCallback(dragDropCallback);
 
 	editor::renderer = new Zap::Renderer();
 

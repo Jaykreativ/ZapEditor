@@ -102,8 +102,6 @@ namespace editor {
 		void update();
 
 		static void cursorPositionCallback(Zap::CursorPosEvent& params, void* viewportData);
-
-		static void dragDropCallback(Zap::DragDropEvent& params, void* viewportData);
 	};
 }
 

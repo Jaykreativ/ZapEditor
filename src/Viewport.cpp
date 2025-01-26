@@ -908,7 +908,6 @@ namespace editor {
 		m_pWindow->getKeyEventHandler()->addCallback(keyCallback);
 		m_pWindow->getMouseButtonEventHandler()->addCallback(mouseButtonCallback);
 		m_pWindow->getCursorPosEventHandler()->addCallback(Viewport::cursorPositionCallback, this);
-		m_pWindow->getDragDropEventHandler()->addCallback(Viewport::dragDropCallback, this);
 
 		m_outImage.setFormat(Zap::GlobalSettings::getColorFormat());
 		m_outImage.setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
@@ -1063,13 +1062,6 @@ namespace editor {
 		
 		pViewport->m_xlast = params.xPos;
 		pViewport->m_ylast = params.yPos;
-	}
-
-	void Viewport::dragDropCallback(Zap::DragDropEvent& params, void* viewportData) {
-		Viewport* pViewport = (Viewport*)viewportData;
-		for (int i = 0; i < params.pathCount; i++) {
-			loadFile(params.paths[i], pViewport->m_editorData);
-		}
 	}
 
 	uint32_t countTransformLines() {
