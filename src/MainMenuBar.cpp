@@ -56,7 +56,7 @@ namespace editor {
 		ImGui::PopStyleColor(3);
 		if (ImGui::BeginMenu("View")) {
 			if (ImGui::MenuItem("SceneHierarchy")) {
-				m_layers.push_back(new SceneHierarchyView(m_pEditorData, m_pScene, m_actors, m_selectedActors));
+				m_layers.push_back(new SceneHierarchyView(m_pEditorData, m_pScene));
 			}
 			if (ImGui::MenuItem("ComponentView")) {
 				m_layers.push_back(new ComponentView(m_pEditorData, m_layers, m_selectedActors));

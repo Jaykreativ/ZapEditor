@@ -3,6 +3,7 @@
 #include "SceneHierarchy.h";
 #include "ComponentView.h";
 #include "FileHandling.h"
+#include "SceneHandling.h"
 
 #include "Zap/Zap.h"
 #include "Zap/FileLoader.h"
@@ -429,15 +430,11 @@ int main() {
 
 	//deserialize
 
-	editor::editorData.scenes.push_back(Zap::Scene());
-	editor::editorData.scenes.back().init();
+	auto& scene = editor::scene::createScene(editor::editorData);
+	scene.init();
+	editor::scene::selectScene(editor::editorData, scene);
 	
 	//setupActors();
-	//Zap::ActorLoader actorLoader;
-	//editor::actors.push_back(actorLoader.load("Actors/cube.zac", &editor::scenes.back()));
-	//editor::actors.push_back(actorLoader.load("Actors/ground.zac", &editor::scenes.back()));
-	//editor::actors.push_back(actorLoader.load("Actors/light.zac", &editor::scenes.back()));
-	//editor::actors.push_back(actorLoader.load("Actors/lightOrange.zac", &editor::scenes.back()));
 
 	for(auto& scene : editor::editorData.scenes)
 		scene.update();
@@ -453,7 +450,7 @@ int main() {
 
 	editor::mainMenuBar = new editor::MainMenuBar(&editor::editorData, editor::layers, editor::window, editor::renderer, editor::gui, &editor::editorData.scenes.back(), editor::editorData.actors, editor::editorData.selectedActors);
 	editor::layers.push_back(new editor::Viewport(editor::editorData, &editor::editorData.scenes.back(), editor::window));
-	editor::layers.push_back(new editor::SceneHierarchyView(&editor::editorData, &editor::editorData.scenes.back(), editor::editorData.actors, editor::editorData.selectedActors));
+	editor::layers.push_back(new editor::SceneHierarchyView(&editor::editorData, &editor::editorData.scenes.back()));
 	editor::layers.push_back(new editor::ComponentView(&editor::editorData, editor::layers, editor::editorData.selectedActors));
 
 	setupGuiStyle();
@@ -544,6 +541,7 @@ int main() {
 	for(auto scene : editor::editorData.scenes)
 		scene.destroy();
 	editor::editorData.scenes.clear();
+	editor::editorData.actors.clear();
 
 	delete editor::gui;
 

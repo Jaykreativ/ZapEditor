@@ -1,6 +1,7 @@
 #include "ProjectHandling.h"
 
 #include "FileHandling.h"
+#include "SceneHandling.h"
 
 #include "Zap/Serializer.h"
 
@@ -107,6 +108,9 @@ namespace editor {
 		}
 
 		void close(EditorData& editorData) {
+			for (auto& actor : editorData.actors) {
+				scene::destroyActor(editorData, 0);
+			}
 			ProjectData& project = editorData.project;
 			project = {};
 		}

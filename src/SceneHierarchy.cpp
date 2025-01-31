@@ -14,8 +14,8 @@
 #include <string>
 
 namespace editor {
-	SceneHierarchyView::SceneHierarchyView(EditorData* pEditorData, Zap::Scene* pScene, std::vector<Zap::Actor>& allActors, std::vector<Zap::Actor>& selectedActors)
-		: m_pEditorData(pEditorData), m_pScene(pScene), m_allActors(allActors), m_selectedActors(selectedActors)
+	SceneHierarchyView::SceneHierarchyView(EditorData* pEditorData, Zap::Scene* pScene)
+		: m_pEditorData(pEditorData), m_pScene(pScene)
 	{}
 
 	SceneHierarchyView::~SceneHierarchyView(){}
@@ -29,7 +29,7 @@ namespace editor {
 			m_hoveredActorIndex = 0xFFFFFFFF;
 
 		uint32_t i = 0;
-		for (Zap::Actor actor : m_allActors) {
+		for (Zap::Actor actor : m_pEditorData->actors) {
 			std::string actorName;
 			if (m_pEditorData->actorNameMap.count(actor))
 				actorName = m_pEditorData->actorNameMap.at(actor);
@@ -41,7 +41,7 @@ namespace editor {
 
 			//check if actor is selected
 			bool selected = false;
-			for (auto selectedActor : m_selectedActors) {
+			for (auto selectedActor : m_pEditorData->selectedActors) {
 				if (selectedActor == actor) {
 					selected = true;
 				}
@@ -53,8 +53,8 @@ namespace editor {
 			}
 
 			if (ImGui::Button(actorName.c_str())) {
-				m_selectedActors.clear();
-				m_selectedActors.push_back(actor);
+				m_pEditorData->selectedActors.clear();
+				m_pEditorData->selectedActors.push_back(actor);
 			}
 
 			// DragDrop MeshToActor
@@ -79,7 +79,7 @@ namespace editor {
 		}
 		if (ImGui::IsWindowHovered()) {
 			if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && m_hoveredActorIndex == 0xFFFFFFFF)
-				m_selectedActors.clear();
+				m_pEditorData->selectedActors.clear();
 			if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
 				ImGui::OpenPopup("SceneEdit##Popup");
 		}
@@ -87,6 +87,8 @@ namespace editor {
 		// SceneEditPopup
 		bool shouldSceneEditPopupClose = false;
 		if (ImGui::BeginPopup("SceneEdit##Popup")) {
+
+			// Create Actor
 			if (ImGui::Button("Add")) {
 				m_actorCreationData = {};
 				m_actorCreationData.newActor = Zap::Actor();// setup one time data for actor creation
@@ -127,21 +129,22 @@ namespace editor {
 				ImGui::EndPopup();
 			}
 
+			// Delete Actor
 			if (m_hoveredActorIndex < 0xFFFFFFFF) {
 				if (ImGui::Button("Delete")) {
 					//delete custom data
-					if(m_pEditorData->actorNameMap.count(m_allActors[m_hoveredActorIndex]))
-						m_pEditorData->actorNameMap.erase(m_allActors[m_hoveredActorIndex]);
+					if(m_pEditorData->actorNameMap.count(m_pEditorData->actors[m_hoveredActorIndex]))
+						m_pEditorData->actorNameMap.erase(m_pEditorData->actors[m_hoveredActorIndex]);
 					//delete actor
-					m_allActors[m_hoveredActorIndex].destroy();
-					m_allActors.erase(m_allActors.begin() + m_hoveredActorIndex);
+					m_pEditorData->actors[m_hoveredActorIndex].destroy();
+					m_pEditorData->actors.erase(m_pEditorData->actors.begin() + m_hoveredActorIndex);
 					ImGui::CloseCurrentPopup();
 				}
 			}
 
 			if (m_hoveredActorIndex < 0xFFFFFFFF) {
 				if (ImGui::Button("Save")) {
-					Zap::Actor actor = m_allActors[m_hoveredActorIndex];
+					Zap::Actor actor = m_pEditorData->actors[m_hoveredActorIndex];
 					if (m_pEditorData->actorPathMap.count(actor))
 						saveActorFile(m_pEditorData->actorPathMap.at(actor), actor, *m_pEditorData);
 					else {

@@ -25,13 +25,15 @@ namespace editor {
 		std::vector<Zap::Actor> actors = {};
 
 		// custom ECS components
-		std::unordered_map<Zap::UUID, std::string> actorNameMap     = {};
+		std::unordered_map<Zap::UUID, std::string> actorNameMap = {};
 		std::unordered_map<Zap::UUID, std::string> actorPathMap = {};
 		std::unordered_map<Zap::UUID, std::string> scenePathMap = {};
 
-		std::vector<Zap::Shape>                    physicsShapes    = {};
-		std::vector<Zap::PhysicsMaterial>          physicsMaterials = {};
-		std::vector<Zap::Actor>                    selectedActors   = {};
+		std::vector<Zap::Shape>           physicsShapes    = {};
+		std::vector<Zap::PhysicsMaterial> physicsMaterials = {};
+
+		std::vector<Zap::Actor> selectedActors   = {};
+		Zap::Scene*             pActiveScene = nullptr;
 
 		ProjectData project = {};
 	};
