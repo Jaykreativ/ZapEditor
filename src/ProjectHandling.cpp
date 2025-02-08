@@ -10,8 +10,12 @@ namespace editor {
 		// reads all project information from file into the editorData
 		bool readFiles(EditorData& editorData, std::string name, std::string directory) {
 			ProjectData& project = editorData.project;
+
+			Zap::Settings* engineSettings = editorData.engineBase->getSettings();
+
 			Zap::Serializer serializer;
 
+			project.rootPath = directory;
 			project.fileDir = directory + "/" + name + "." + projectFileExtension;
 			project.editorFileDir = directory + "/" + name + "." + projectEditorFileExtension;
 
@@ -21,6 +25,19 @@ namespace editor {
 
 				project.name = serializer.readAttribute("name", &success);
 
+				// Load AssetLibrary
+				{
+					bool s = true; // doesn't count towards load failing has its own error handling
+					project.assetLibraryPath = serializer.readAttribute("assetLibraryPath", &s);
+					if (s)
+						editorData.engineBase->getAssetHandler()->loadFromFile(project.rootPath + "/" + project.assetLibraryPath);
+					else {
+						ZP_WARN(false, "loaded Project has no AssetLibrary");
+						success = false;
+					}
+				}
+
+				// Load all actors
 				serializer.beginElement("ActorPaths");
 				size_t actorPathCount = serializer.readAttributeull("actorPathCount", &success);
 				for (uint32_t i = 0; i < actorPathCount; i++) {
@@ -62,6 +79,15 @@ namespace editor {
 
 			serializer.writeAttribute("name", project.name);
 
+			// save AssetLibrary
+			serializer.writeAttribute("assetLibraryPath", project.assetLibraryPath);
+			editorData.engineBase->getAssetHandler()->saveToFile(project.rootPath + "/" + project.assetLibraryPath);
+
+			// save actors
+			for (auto actor : editorData.actors) {
+				saveActorFile("Actors", actor, editorData);
+			}
+
 			serializer.beginElement("ActorPaths");
 			serializer.writeAttribute("actorPathCount", editorData.actorPathMap.size());
 			size_t i = 0;
@@ -80,18 +106,25 @@ namespace editor {
 		}
 
 		void create(EditorData& editorData, std::string name, std::string directory) {
+			close(editorData);
+
+			// create project data
 			ProjectData& project = editorData.project;
 			project.name = name;
+			project.rootPath = directory;
 			project.fileDir = directory + "/" + project.name + "." + projectFileExtension;
 			project.editorFileDir = directory + "/" + project.name + "." + projectEditorFileExtension;
+			project.assetLibraryPath = project.name + "." + assetLibraryFileExtension;
 
-			writeFiles(editorData);
+
+			save(editorData);
 
 			project.isOpen = true;
 
 		}
 
 		void open(EditorData& editorData, std::string name, std::string directory) {
+			close(editorData);
 			if (!readFiles(editorData, name, directory)) {
 				close(editorData);
 				return;
@@ -100,6 +133,7 @@ namespace editor {
 			editorData.project.isOpen = true;
 		}
 		void open(EditorData& editorData, std::string filepath) {
+			close(editorData);
 			if (!readFiles(editorData, filepath)) {
 				close(editorData);
 				return;
@@ -108,17 +142,15 @@ namespace editor {
 		}
 
 		void close(EditorData& editorData) {
-			for (auto& actor : editorData.actors) {
+			for (auto& actor : editorData.actors) {// TODO make a flag that automatically saves the project on close
 				scene::destroyActor(editorData, 0);
 			}
+			editorData.engineBase->getAssetHandler()->destroyAssets();
 			ProjectData& project = editorData.project;
 			project = {};
 		}
 
 		void save(EditorData& editorData) {
-			for (auto actor : editorData.actors) {
-				saveActorFile("Actors", actor, editorData);
-			}
 			writeFiles(editorData);
 		}
 	}

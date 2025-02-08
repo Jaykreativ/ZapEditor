@@ -2,6 +2,7 @@
 #include "Viewport.h";
 #include "SceneHierarchy.h";
 #include "ComponentView.h";
+#include "Settings.h";
 #include "FileHandling.h"
 #include "SceneHandling.h"
 
@@ -34,19 +35,11 @@
 float dTime = 0;// TODO WIP add system to organise global variables in editor
 
 namespace editor {
-	static Zap::Base* engineBase;
-
 	static EditorData editorData = {};
-
-	static Zap::Window* window;
-	static Zap::Renderer* renderer;
-
-	static Zap::Gui* gui;
 	
 	static uint32_t cam = 0;
 
 	static MainMenuBar* mainMenuBar;
-	static std::vector<ViewLayer*> layers;
 
 	static Zap::Model cubeModel;
 }
@@ -409,24 +402,24 @@ void dragDropCallback(Zap::DragDropEvent& params, void* customData) {
 }
 
 int main() {
-	editor::engineBase = Zap::Base::createBase("Zap Application");
-	auto settings = editor::engineBase->getSettings();
+	editor::editorData.engineBase = Zap::Base::createBase("Zap Application", ""); // Don't automatically load/save AssetLibrary
+	auto settings = editor::editorData.engineBase->getSettings();
 	
 	//std::cout << "Enable raytracing 1(true) | 0(false)\n>>> ";
 	//std::cin >> settings->enableRaytracing;
 	settings->enableRaytracing = true;
 
-	editor::engineBase->init();
+	editor::editorData.engineBase->init();
 
-	editor::window = new Zap::Window(1000, 600, "Zap Window");
-	editor::window->init();
-	editor::window->getResizeEventHandler()->addCallback(windowResizeCallback);
-	editor::window->getDragDropEventHandler()->addCallback(dragDropCallback);
+	editor::editorData.window = new Zap::Window(1000, 600, "Zap Window");
+	editor::editorData.window->init();
+	editor::editorData.window->getResizeEventHandler()->addCallback(windowResizeCallback);
+	editor::editorData.window->getDragDropEventHandler()->addCallback(dragDropCallback);
 
-	editor::renderer = new Zap::Renderer();
+	editor::editorData.renderer = new Zap::Renderer();
 
-	Zap::Gui::initImGui(editor::window);
-	editor::gui = new Zap::Gui();
+	Zap::Gui::initImGui(editor::editorData.window);
+	editor::editorData.gui = new Zap::Gui();
 
 	//deserialize
 
@@ -439,31 +432,32 @@ int main() {
 	for(auto& scene : editor::editorData.scenes)
 		scene.update();
 
-	editor::renderer->setTarget(editor::window);
+	editor::editorData.renderer->setTarget(editor::editorData.window);
 
-	editor::renderer->addRenderTask(editor::gui);
+	editor::editorData.renderer->addRenderTask(editor::editorData.gui);
 
-	editor::renderer->init();
-	editor::renderer->beginRecord();
-	editor::renderer->recRenderTemplate(editor::gui);
-	editor::renderer->endRecord();
+	editor::editorData.renderer->init();
+	editor::editorData.renderer->beginRecord();
+	editor::editorData.renderer->recRenderTemplate(editor::editorData.gui);
+	editor::editorData.renderer->endRecord();
 
-	editor::mainMenuBar = new editor::MainMenuBar(&editor::editorData, editor::layers, editor::window, editor::renderer, editor::gui, &editor::editorData.scenes.back(), editor::editorData.actors, editor::editorData.selectedActors);
-	editor::layers.push_back(new editor::Viewport(editor::editorData, &editor::editorData.scenes.back(), editor::window));
-	editor::layers.push_back(new editor::SceneHierarchyView(&editor::editorData, &editor::editorData.scenes.back()));
-	editor::layers.push_back(new editor::ComponentView(&editor::editorData, editor::layers, editor::editorData.selectedActors));
+	editor::mainMenuBar = new editor::MainMenuBar(&editor::editorData, editor::editorData.layers, editor::editorData.window, editor::editorData.renderer, editor::editorData.gui, &editor::editorData.scenes.back(), editor::editorData.actors, editor::editorData.selectedActors);
+	editor::editorData.layers.push_back(new editor::Viewport(editor::editorData, &editor::editorData.scenes.back(), editor::editorData.window));
+	editor::editorData.layers.push_back(new editor::SceneHierarchyView(&editor::editorData, &editor::editorData.scenes.back()));
+	editor::editorData.layers.push_back(new editor::ComponentView(&editor::editorData, editor::editorData.layers, editor::editorData.selectedActors));
+	editor::editorData.layers.push_back(new editor::Settings(&editor::editorData));
 
 	setupGuiStyle();
 
-	editor::window->show();
+	editor::editorData.window->show();
 
 	Zap::PhysicsMaterial pxMaterial = Zap::PhysicsMaterial(0.5, 1, 0.1);
 	//mainloop
 	uint64_t frameIndex = 0;
-	while (!editor::window->shouldClose()) {
+	while (!editor::editorData.window->shouldClose()) {
 		auto timeStartFrame = std::chrono::high_resolution_clock::now();
 
-		if (!editor::window->isIconified()) {
+		if (!editor::editorData.window->isIconified()) {
 			ImGui::DockSpaceOverViewport(0U, ImGui::GetMainViewport());
 
 			ImGui::ShowDemoWindow();
@@ -481,7 +475,7 @@ int main() {
 			editor::mainMenuBar->draw();
 
 			uint32_t i = 0;
-			for (auto layer : editor::layers) {
+			for (auto layer : editor::editorData.layers) {
 				ImGui::Begin((layer->name() + std::string("###") + std::to_string(i + 1)).c_str(), nullptr, layer->getWindowFlags() | ImGuiWindowFlags_MenuBar);
 
 				ImGui::BeginMenuBar();
@@ -489,7 +483,7 @@ int main() {
 				if (ImGui::BeginMenu("View")) {
 					if (ImGui::MenuItem("Close")) {
 						delete layer;
-						editor::layers.erase(editor::layers.begin()+i);
+						editor::editorData.layers.erase(editor::editorData.layers.begin()+i);
 						isClosed = true;
 					}
 					ImGui::EndMenu();
@@ -510,9 +504,9 @@ int main() {
 		}
 
 		// render GUI only
-		editor::renderer->render();
+		editor::editorData.renderer->render();
 
-		editor::window->present();
+		editor::editorData.window->present();
 		Zap::Window::pollEvents();
 		auto timeEndFrame = std::chrono::high_resolution_clock::now();
 		dTime = std::chrono::duration_cast<std::chrono::duration<float>>(timeEndFrame - timeStartFrame).count();
@@ -525,27 +519,27 @@ int main() {
 	//actorLoader.store("Actors/lightOrange.zac", editor::actors[3]);
 	
 	//terminate
-	editor::renderer->destroy();
+	editor::editorData.renderer->destroy();
 
-	for (auto layer : editor::layers) {
+	for (auto layer : editor::editorData.layers) {
 		delete layer;
 	}
-	editor::layers.clear();
+	editor::editorData.layers.clear();
 
-	delete editor::renderer;
+	delete editor::editorData.renderer;
 
 	Zap::Gui::destroyImGui();
 
-	delete editor::window;
+	delete editor::editorData.window;
 
 	for(auto scene : editor::editorData.scenes)
 		scene.destroy();
 	editor::editorData.scenes.clear();
 	editor::editorData.actors.clear();
 
-	delete editor::gui;
+	delete editor::editorData.gui;
 
-	editor::engineBase->terminate();
+	editor::editorData.engineBase->terminate();
 	Zap::Base::releaseBase();
 
 #ifdef _DEBUG
