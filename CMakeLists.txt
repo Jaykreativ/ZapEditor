@@ -15,7 +15,10 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+
 add_executable(ZapEditor ${ZapEditor_SRC} ${ZapEditor_Shader})
+
+set_property(TARGET ZapEditor PROPERTY CXX_STANDARD 17)
 
 source_group("Source" FILES ${ZapEditor_SRC})
 source_group("Shader" FILES ${ZapEditor_Shader})
