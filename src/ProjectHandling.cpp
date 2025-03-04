@@ -16,11 +16,11 @@ namespace editor {
 			Zap::Serializer serializer;
 
 			project.rootPath = directory;
-			project.fileDir = directory + "/" + name + "." + projectFileExtension;
-			project.editorFileDir = directory + "/" + name + "." + projectEditorFileExtension;
+			project.projectFile = directory + "/" + name + "." + projectFileExtension;
+			project.editorFile = directory + "/" + name + "." + projectEditorFileExtension;
 
 			// read contents of *.zproj
-			bool success = serializer.beginDeserialization(project.fileDir.c_str());
+			bool success = serializer.beginDeserialization(project.projectFile.c_str());
 			if (success) {
 
 				project.name = serializer.readAttribute("name", &success);
@@ -30,7 +30,7 @@ namespace editor {
 					bool s = true; // doesn't count towards load failing has its own error handling
 					project.assetLibraryPath = serializer.readAttribute("assetLibraryPath", &s);
 					if (s)
-						editorData.engineBase->getAssetHandler()->loadFromFile(project.rootPath + "/" + project.assetLibraryPath);
+						editorData.engineBase->getAssetHandler()->loadFromFile(project.rootPath / project.assetLibraryPath);
 					else {
 						ZP_WARN(false, "loaded Project has no AssetLibrary");
 						success = false;
@@ -42,32 +42,30 @@ namespace editor {
 				size_t actorPathCount = serializer.readAttributeull("actorPathCount", &success);
 				for (uint32_t i = 0; i < actorPathCount; i++) {
 					std::string path = serializer.readAttribute("actorPath" + std::to_string(i), &success);
-					loadActorFile(path, editorData);
+					loadActorFile(project.rootPath / path, editorData);
+					printf("loading actor: %s\n", path.c_str());
 				}
 				serializer.endElement();
 
 			}
 			serializer.endDeserialization();
-			ZP_WARN(success, ("Failed to load project file: " + project.fileDir).c_str());
+			ZP_WARN(success, ("Failed to load project file: " + project.rootPath.string()).c_str());
 
 			// read contents of *.zproj.edit
-			success = success && serializer.beginDeserialization(project.editorFileDir.c_str());
+			success = success && serializer.beginDeserialization(project.editorFile);
 			if (success) {
 
 			}
 			serializer.endDeserialization();
-			ZP_WARN(success, ("Failed to load project file: " + project.editorFileDir).c_str());
+			ZP_WARN(success, ("Failed to load project file: " + project.editorFile.string()).c_str());
 
 			return success;
 		}
 		bool readFiles(EditorData& editorData, std::string filepath) {
-			std::string directory = "";
-			std::string name = "";
-			std::string extension = "";
-
-			seperatePath(filepath, directory, name, extension);
-
-			return readFiles(editorData, name, directory);
+			return readFiles(editorData, filepath);
+		}
+		bool readFiles(EditorData& editorData, std::filesystem::path filepath) {
+			return readFiles(editorData, filepath.filename().replace_extension().string(), filepath.parent_path().string());
 		}
 
 		// writes all project information to file
@@ -75,31 +73,33 @@ namespace editor {
 			ProjectData& project = editorData.project;
 			Zap::Serializer serializer;
 
-			serializer.beginSerialization(project.fileDir.c_str());
+			serializer.beginSerialization(project.projectFile.c_str());
 
 			serializer.writeAttribute("name", project.name);
 
 			// save AssetLibrary
-			serializer.writeAttribute("assetLibraryPath", project.assetLibraryPath);
-			editorData.engineBase->getAssetHandler()->saveToFile(project.rootPath + "/" + project.assetLibraryPath);
+			serializer.writeAttribute("assetLibraryPath", project.assetLibraryPath.string());
+			editorData.engineBase->getAssetHandler()->saveToFile(project.rootPath / project.assetLibraryPath);
 
 			// save actors
 			for (auto actor : editorData.actors) {
-				saveActorFile("Actors", actor, editorData);
+				saveActorFile(project.rootPath / "Actors", actor, editorData);// TODO set default location of actor files in editor
 			}
 
 			serializer.beginElement("ActorPaths");
 			serializer.writeAttribute("actorPathCount", editorData.actorPathMap.size());
 			size_t i = 0;
 			for (auto& actorPathPair : editorData.actorPathMap) {
-				serializer.writeAttribute("actorPath" + std::to_string(i), actorPathPair.second);
+				//save with path relative to the root
+				//actorPathPair.second
+				serializer.writeAttribute("actorPath" + std::to_string(i), actorPathPair.second.string());
 				i++;
 			}
 			serializer.endElement();
 
 			serializer.endSerialization();
 
-			serializer.beginSerialization(project.editorFileDir.c_str());
+			serializer.beginSerialization(project.editorFile);
 			serializer.endSerialization();
 
 			return true;
@@ -112,8 +112,8 @@ namespace editor {
 			ProjectData& project = editorData.project;
 			project.name = name;
 			project.rootPath = directory;
-			project.fileDir = directory + "/" + project.name + "." + projectFileExtension;
-			project.editorFileDir = directory + "/" + project.name + "." + projectEditorFileExtension;
+			project.projectFile = directory + "/" + project.name + "." + projectFileExtension;
+			project.editorFile = directory + "/" + project.name + "." + projectEditorFileExtension;
 			project.assetLibraryPath = project.name + "." + assetLibraryFileExtension;
 
 
@@ -132,7 +132,7 @@ namespace editor {
 
 			editorData.project.isOpen = true;
 		}
-		void open(EditorData& editorData, std::string filepath) {
+		void open(EditorData& editorData, std::filesystem::path filepath) {
 			close(editorData);
 			if (!readFiles(editorData, filepath)) {
 				close(editorData);

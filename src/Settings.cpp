@@ -32,7 +32,7 @@ namespace editor {
 		}
 		{
 			char buf[bufSize] = "";
-			memcpy(buf, project.assetLibraryPath.c_str(), std::min<size_t>(bufSize, project.assetLibraryPath.size()));
+			memcpy(buf, project.assetLibraryPath.c_str(), std::min<size_t>(bufSize, project.assetLibraryPath.string().size()));
 			ImGui::InputText("Asset Library", buf, bufSize);
 			project.assetLibraryPath = buf;
 		}

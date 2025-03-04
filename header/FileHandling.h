@@ -3,22 +3,16 @@
 #include "ZapEditor.h"
 
 #include <string>
+#include <filesystem>
 
 namespace editor {
-	std::string cleanFolderpath(std::string folderpath);
+	void loadModelFile(std::filesystem::path filepath, EditorData& editorData);
 
-	// seperates the different parts of a filepath
-	// output is written to the directory, name and extension references
-	// Example: dir/image.png -> dir, image, png
-	void seperatePath(std::string filepath, std::string& directory, std::string& name, std::string& extension);
+	void loadSceneFile(std::filesystem::path filepath, EditorData& editorData);
 
-	void loadModelFile(std::string filepath, EditorData& editorData);
+	void loadActorFile(std::filesystem::path filepath, EditorData& editorData);
 
-	void loadSceneFile(std::string filepath, EditorData& editorData);
+	void saveActorFile(std::filesystem::path folderpath, Zap::Actor actor, EditorData& editorData);
 
-	void loadActorFile(std::string filepath, EditorData& editorData);
-
-	void saveActorFile(std::string folderpath, Zap::Actor actor, EditorData& editorData);
-
-	void loadFile(std::string filepath, EditorData& editorData);
+	void loadFile(std::filesystem::path filepath, EditorData& editorData);
 }

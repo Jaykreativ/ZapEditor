@@ -85,7 +85,7 @@ void setupActors() {
 	Zap::ModelLoader modelLoader = Zap::ModelLoader();
 	Zap::ActorLoader actorLoader = Zap::ActorLoader();
 
-	editor::cubeModel = modelLoader.load("Models/OBJ/Cube.obj");
+	editor::cubeModel = modelLoader.load((std::string)"Models/OBJ/Cube.obj");
 
 	//auto cboxModel = modelLoader.load("Models/gltf/cornellBox.glb");
 	
@@ -96,7 +96,7 @@ void setupActors() {
 
 	//auto sphereModel = modelLoader.load("Models/gltf/metalSphere.glb");
 
-	auto pistolKimber = modelLoader.load("Models/gltf/PistolKimber/PistolKimber.glb");
+	auto pistolKimber = modelLoader.load((std::string)"Models/gltf/PistolKimber/PistolKimber.glb");
 
 	//glm::u8vec4 texCol = { 255, 180, 50, 255 };
 	//modelLoader.loadTexture(&texCol, 1, 1);

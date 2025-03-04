@@ -11,6 +11,7 @@
 #include "Zap/Rendering/Window.h"
 
 #include <string>
+#include <filesystem>
 
 namespace editor {
 	static const std::string actorFileExtension = "zac";
@@ -21,13 +22,14 @@ namespace editor {
 
 	struct ProjectData {
 		bool isOpen = false;
-		std::string rootPath = ""; // the directory where the project file is located
-		std::string fileDir = "";
-		std::string editorFileDir = "";
+		std::filesystem::path rootPath = ""; // the directory where the project file is located
+
+		std::filesystem::path projectFile = ""; // path to the .zproj file
+		std::filesystem::path editorFile = ""; // path to the .zproj.edit file
 
 		// saved data
 		std::string name = "";
-		std::string assetLibraryPath = "";
+		std::filesystem::path assetLibraryPath = "";
 	};
 
 	struct EditorData {
@@ -36,8 +38,8 @@ namespace editor {
 
 		// custom ECS components
 		std::unordered_map<Zap::UUID, std::string> actorNameMap = {};
-		std::unordered_map<Zap::UUID, std::string> actorPathMap = {};
-		std::unordered_map<Zap::UUID, std::string> scenePathMap = {};
+		std::unordered_map<Zap::UUID, std::filesystem::path> actorPathMap = {};
+		std::unordered_map<Zap::UUID, std::filesystem::path> scenePathMap = {};
 
 		std::vector<Zap::Shape>           physicsShapes    = {};
 		std::vector<Zap::PhysicsMaterial> physicsMaterials = {};

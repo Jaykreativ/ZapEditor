@@ -13,6 +13,7 @@
 
 #include "imgui.h"
 
+#include <filesystem>
 #include <chrono>
 
 namespace editor {
@@ -80,10 +81,10 @@ namespace editor {
 		if (ImGui::BeginMenu("Project")) {
 			if(m_pEditorData->project.name != "")
 				ImGui::Text(m_pEditorData->project.name.c_str());
-			if (m_pEditorData->project.fileDir != "")
-				ImGui::Text(m_pEditorData->project.fileDir.c_str());
-			if (m_pEditorData->project.editorFileDir != "")
-				ImGui::Text(m_pEditorData->project.editorFileDir.c_str());
+			if (!m_pEditorData->project.rootPath.empty())
+				ImGui::Text(m_pEditorData->project.projectFile.string().c_str());
+			if (!m_pEditorData->project.editorFile.empty())
+				ImGui::Text(m_pEditorData->project.editorFile.string().c_str());
 
 			// Create Project
 			if (ImGui::Button("Create")) {
@@ -117,12 +118,10 @@ namespace editor {
 				static char fileBuffer[fileBufferSize] = {};
 				ImGui::InputText("Filepath", fileBuffer, fileBufferSize);
 
-				std::string filepath = fileBuffer;
-				std::string directory = "";
-				std::string name = "";
-				std::string extension = "";
-
-				seperatePath(filepath, directory, name, extension);
+				std::filesystem::path filepath = fileBuffer;
+				std::string directory = filepath.parent_path().string();
+				std::string name = filepath.filename().string();
+				std::string extension = filepath.extension().string();
 
 				bool isValidPath =
 					extension == projectFileExtension ||
