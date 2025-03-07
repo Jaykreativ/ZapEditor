@@ -27,6 +27,13 @@
 #include "gtc/matrix_transform.hpp"
 #include "gtc/type_ptr.hpp"
 
+#define AL_LIBTYPE_STATIC
+#include "AL/al.h"
+#include "AL/alc.h"
+#include "AL/alext.h"
+
+#include "audiodecoder.h"
+
 namespace editor {
 	static Zap::Base* engineBase;
 
@@ -261,6 +268,7 @@ void setupActors() {
 	pActor->addTransform(glm::mat4(1));
 	pActor->cmpTransform_setPos(0, -1, 1.5);
 	pActor->cmpTransform_setScale(0.1, 0.1, 0.1);
+	pActor->addAudioListener();
 	pActor->addModel(gearModel);
 
 	//cboxMat.albedoColor = { .99, .99, .99 };
@@ -363,6 +371,89 @@ void setupActors() {
 void windowResizeCallback(Zap::ResizeEvent& params, void* data) {}
 
 int main() {
+	auto* pDevice = alcOpenDevice(nullptr);
+
+	ALCcontext* pContext = nullptr;
+	if (pDevice) {
+		pContext = alcCreateContext(pDevice, nullptr);
+		alcMakeContextCurrent(pContext);
+	}
+
+	bool isEAX2_0Present = alIsExtensionPresent("EAX2.0");
+
+	// Generate Buffers
+	alGetError(); // clear error code
+	uint32_t buffer;
+	alGenBuffers(1, &buffer);
+	ZP_ASSERT(alGetError() == AL_NO_ERROR, "Failed to generate buffer");
+
+	// AudioDecoder
+	// decode the audiofile into usable data
+	AudioDecoder audioDecoder("dash.mp3");
+	audioDecoder.open();
+	int size = audioDecoder.numSamples();
+	int readSteps = 8192; // step size in floats
+	SAMPLE* pSamples = new SAMPLE[size];
+	size_t offset = 0;
+	for (int i = 0; i < (size / (float)readSteps)-1; i++) { // Step the Decoder through the files while loading chunks of data
+		audioDecoder.read(readSteps, &pSamples[offset]);
+		offset += readSteps;
+	}
+	audioDecoder.read(size - offset, &pSamples[offset]);
+
+	// convert stereo to mono audio
+	if (audioDecoder.channels() == 2) {
+		SAMPLE* pMonoSamples = new SAMPLE[size/2];
+		for (int i = 0; i < size; i+=2) {
+			pMonoSamples[i/2] = (pSamples[i] + pSamples[i + 1]) / 2.f;
+		}
+		delete[] pSamples;
+		pSamples = pMonoSamples;
+	}
+
+	// insert audio data into a alBuffer object
+	alBufferData(buffer, AL_FORMAT_MONO_FLOAT32, pSamples, size/2*sizeof(float), audioDecoder.sampleRate());
+
+	// Generate Sources
+	uint32_t source;
+	alGenSources(1, &source);
+	ZP_ASSERT(alGetError() == AL_NO_ERROR, "Failed to generate sources");
+
+	ALfloat sourcePos[] = { 0.0,0.0, 0.0 };
+	ALfloat sourceVel[] = { 0.0,0.0, 0.0 };
+	ALfloat sourceOri[] = { 0.0,0.0, -1.0, 0.0,1.0,0.0 };
+
+	alSourcefv(source, AL_POSITION, sourcePos);
+	ZP_ASSERT(alGetError() == AL_NO_ERROR, "Failed at alSourcefv(POSITION)");
+	alSourcefv(source, AL_VELOCITY, sourceVel);
+	ZP_ASSERT(alGetError() == AL_NO_ERROR, "Failed at alSourcefv(VELOCITY)");
+	alSourcefv(source, AL_ORIENTATION, sourceOri);
+	ZP_ASSERT(alGetError() == AL_NO_ERROR, "Failed at alSourcefv(ORIENTATION)");
+
+	// Attach buffer to source
+	alSourcei(source, AL_BUFFER, buffer);
+	ZP_ASSERT(alGetError() == AL_NO_ERROR, "Failed to attach buffer");
+	alSourcei(source, AL_LOOPING, AL_TRUE);
+
+	ALfloat listenerPos[] = { 0.0,0.0,0.0 };
+	ALfloat listenerVel[] = { 0.0,0.0,0.0 };
+	ALfloat listenerOri[] = { 0.0,0.0,1.0, 0.0,1.0,0.0 };
+	// Position ...
+	alListenerfv(AL_POSITION, listenerPos);
+	ZP_ASSERT(alGetError() == AL_NO_ERROR, "Failed at alListenerfv(POSITION)");
+
+	// Velocity ...
+	alListenerfv(AL_VELOCITY, listenerVel);
+	ZP_ASSERT(alGetError() == AL_NO_ERROR, "Failed at alListenerfv(VELOCITY)");
+
+	// Orientation ...
+	alListenerfv(AL_ORIENTATION, listenerOri);
+	ZP_ASSERT(alGetError() == AL_NO_ERROR, "Failed at alListenerfv(ORIENTATION)");
+
+	alSourcePlay(source);
+
+
+
 	editor::engineBase = Zap::Base::createBase("Zap Application");
 	auto settings = editor::engineBase->getSettings();
 	
@@ -461,6 +552,8 @@ int main() {
 			}
 		}
 
+		for (auto& scene : editor::scenes)
+			scene.simulateAudio(dTime);
 		if (editor::mainMenuBar->shouldSimulate() && dTime > 0) {
 			for(auto& scene : editor::scenes)
 				scene.simulate(dTime);
@@ -506,6 +599,23 @@ int main() {
 
 	editor::engineBase->terminate();
 	Zap::Base::releaseBase();
+
+
+
+	alSourceStop(source);
+
+	alSourcei(source, AL_BUFFER, AL_NONE);
+
+	alDeleteSources(1, &source);
+	alDeleteBuffers(1, &buffer);
+
+	// Exit
+	pContext = alcGetCurrentContext();
+	pDevice = alcGetContextsDevice(pContext);
+	alcMakeContextCurrent(NULL);
+	alcDestroyContext(pContext);
+	alcCloseDevice(pDevice);
+
 
 #ifdef _DEBUG
 	system("pause");
