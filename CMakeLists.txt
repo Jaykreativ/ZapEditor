@@ -19,6 +19,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 add_executable(ZapEditor ${ZapEditor_SRC} ${ZapEditor_Shader})
 
 set_property(TARGET ZapEditor PROPERTY CXX_STANDARD 17)
+set_property(TARGET ZapEditor PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
 source_group("Source" FILES ${ZapEditor_SRC})
 source_group("Shader" FILES ${ZapEditor_Shader})
@@ -31,16 +32,9 @@ set(Zap_DIR "${PROJECT_SOURCE_DIR}/../Zap")
 target_link_libraries(ZapEditor PUBLIC Zap)
 target_include_directories(
     ZapEditor PUBLIC
+    Zap
     "${PROJECT_BINARY_DIR}"
     "${PROJECT_SOURCE_DIR}/header"
-    "${Zap_DIR}/include"
-    "${Zap_DIR}/Dependencies/VulkanFramework/include"
-    "${Zap_DIR}/Dependencies/glfw/include"
-    "${Zap_DIR}/Dependencies/imgui"
-    "${Zap_DIR}/Dependencies/glm/glm"
-    "${Zap_DIR}/Dependencies/PhysX/physx/include"
-    "${Zap_DIR}/Dependencies/assimp/include"
-    "$ENV{VULKAN_SDK}/Include"
 )
 
 string(TOLOWER "${CMAKE_BUILD_TYPE}" PHYSX_BUILD_TYPE)
