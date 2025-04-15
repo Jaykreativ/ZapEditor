@@ -1,6 +1,6 @@
 #include "HitboxEditor.h"
 
-#include "Zap/Scene/Shape.h"
+#include "Zap/Physics/Shape.h"
 #include "backends/imgui_impl_vulkan.h"
 
 #include "glm/gtc/quaternion.hpp"

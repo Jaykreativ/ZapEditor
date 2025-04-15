@@ -3,7 +3,7 @@
 #include "ViewLayer.h"
 
 #include "Zap/UUID.h"
-#include "Zap/Scene/Shape.h"
+#include "Zap/Physics/Shape.h"
 #include "Zap/Scene/Actor.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Rendering/Gui.h"
