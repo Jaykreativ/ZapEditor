@@ -1,7 +1,6 @@
 #include "HitboxEditor.h"
 
-#include "Zap/ModelLoader.h"
-#include "Zap/Scene/Shape.h"
+#include "Zap/Physics/Shape.h"
 #include "backends/imgui_impl_vulkan.h"
 
 #include "glm/gtc/quaternion.hpp"
@@ -151,7 +150,7 @@ namespace editor {
 
 			m_camera.cmpCamera_setOffset(res);
 		}
-		ImGui::EndChild();
+		ImGui::EndChild(); 
 
 		ImGui::SameLine();
 
@@ -246,7 +245,7 @@ namespace editor {
 				m_actor.destroyModel();
 			m_actor.addModel(model);
 
-			m_camDist = glm::max(glm::length(transform * glm::vec4(model.m_boundMin, 1)), glm::length(transform * glm::vec4(model.m_boundMax, 1))) * 1.5f;
+			m_camDist = glm::max(glm::length(transform * glm::vec4(model.boundMin, 1)), glm::length(transform * glm::vec4(model.boundMax, 1))) * 1.5f;
 		}
 
 		if (areShapesChanged) {

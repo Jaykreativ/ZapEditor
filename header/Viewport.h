@@ -1,6 +1,9 @@
 #pragma once
 
+#include "ZapEditor.h"
+
 #include "VulkanFramework.h"
+
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
 #include "Zap/Rendering/Window.h"
@@ -32,7 +35,7 @@ namespace editor {
 	public:
 		bool canMove = true;
 
-		Viewport(Zap::Scene* pScene, Zap::Window* pWindow, std::vector<Zap::Actor>& selectedActors);
+		Viewport(EditorData& editorData, Zap::Scene* pScene, Zap::Window* pWindow);
 		~Viewport();
 
 		std::string name();
@@ -55,6 +58,8 @@ namespace editor {
 
 	private:
 		ViewportSettings m_settings = {};
+
+		EditorData& m_editorData;
 
 		std::vector<Zap::Actor>& m_selectedActors;
 

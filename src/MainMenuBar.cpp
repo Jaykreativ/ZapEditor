@@ -4,9 +4,17 @@
 #include "SceneHierarchy.h"
 #include "ComponentView.h"
 #include "AssetBrowser.h"
+#include "Settings.h"
 #include "HitboxEditor.h"
+#include "ProjectHandling.h"
+#include "FileHandling.h"
+
+#include "Zap/Serializer.h"
 
 #include "imgui.h"
+
+#include <filesystem>
+#include <chrono>
 
 namespace editor {
 	MainMenuBar::MainMenuBar(
@@ -50,13 +58,13 @@ namespace editor {
 		ImGui::PopStyleColor(3);
 		if (ImGui::BeginMenu("View")) {
 			if (ImGui::MenuItem("SceneHierarchy")) {
-				m_layers.push_back(new SceneHierarchyView(m_pEditorData, m_pScene, m_actors, m_selectedActors));
+				m_layers.push_back(new SceneHierarchyView(m_pEditorData, m_pScene));
 			}
 			if (ImGui::MenuItem("ComponentView")) {
 				m_layers.push_back(new ComponentView(m_pEditorData, m_layers, m_selectedActors));
 			}
 			if (ImGui::MenuItem("Viewport")) {
-				m_layers.push_back(new Viewport(m_pScene, m_pWindow, m_selectedActors));
+				m_layers.push_back(new Viewport(*m_pEditorData, m_pScene, m_pWindow));
 			}
 			if (ImGui::MenuItem("AssetBrowser")) {
 				m_layers.push_back(new AssetBrowser(m_pWindow, m_pGui));
@@ -64,8 +72,99 @@ namespace editor {
 			if (ImGui::MenuItem("HitboxEditor")) {
 				m_layers.push_back(new HitboxEditor(m_pEditorData));
 			}
+			if (ImGui::MenuItem("Settings")) {
+				m_layers.push_back(new Settings(m_pEditorData));
+			}
 			ImGui::EndMenu();
 		}
+
+		if (ImGui::BeginMenu("Project")) {
+			if(m_pEditorData->project.name != "")
+				ImGui::Text(m_pEditorData->project.name.c_str());
+			if (!m_pEditorData->project.rootPath.empty())
+				ImGui::Text(m_pEditorData->project.projectFile.string().c_str());
+			if (!m_pEditorData->project.editorFile.empty())
+				ImGui::Text(m_pEditorData->project.editorFile.string().c_str());
+
+			// Create Project
+			if (ImGui::Button("Create")) {
+				ImGui::OpenPopup("ProjectCreationPopup");
+			}
+
+			if (ImGui::BeginPopup("ProjectCreationPopup")) {
+				const size_t nameBufferSize = 50;
+				static char nameBuffer[nameBufferSize] = {};
+				ImGui::InputText("Name", nameBuffer, nameBufferSize);
+
+				const size_t dirBufferSize = 150;
+				static char dirBuffer[dirBufferSize] = {};
+				ImGui::InputText("Directory", dirBuffer, dirBufferSize);
+
+				if (ImGui::Button("Done")) {
+					project::create(*m_pEditorData, nameBuffer, dirBuffer);
+					ImGui::CloseCurrentPopup();
+				}
+
+				ImGui::EndPopup();
+			}
+
+			//Open Project
+			if (ImGui::Button("Open")) {
+				ImGui::OpenPopup("ProjectOpenPopup");
+			}
+
+			if (ImGui::BeginPopup("ProjectOpenPopup")) {
+				const size_t fileBufferSize = 150;
+				static char fileBuffer[fileBufferSize] = {};
+				ImGui::InputText("Filepath", fileBuffer, fileBufferSize);
+
+				std::filesystem::path filepath = fileBuffer;
+				std::string directory = filepath.parent_path().string();
+				std::string name = filepath.filename().string();
+				std::string extension = filepath.extension().string();
+
+				bool isValidPath =
+					extension == projectFileExtension ||
+					extension == projectEditorFileExtension;
+
+				if (FILE* file = fopen((directory + "/" + name + "." + extension).c_str(), "r")) {
+					fclose(file);
+				}
+				else
+					isValidPath = false;
+
+				if (!isValidPath)
+					ImGui::BeginDisabled();
+
+				if (ImGui::Button("Done")) {
+					project::open(*m_pEditorData, name, directory);
+					ImGui::CloseCurrentPopup();
+				}
+
+				if (!isValidPath)
+					ImGui::EndDisabled();
+
+				ImGui::EndPopup();
+			}
+
+			bool disabled = !m_pEditorData->project.isOpen;
+			if (disabled)
+				ImGui::BeginDisabled();
+			//Close Project
+			if (ImGui::Button("Close")) {
+				project::close(*m_pEditorData);
+			}
+
+			// Save Project
+			if (ImGui::Button("Save")) {
+				project::save(*m_pEditorData);
+			}
+			if (disabled)
+				ImGui::EndDisabled();
+			
+			ImGui::EndMenu();
+		}
+
 		ImGui::EndMainMenuBar();
 	}
 
