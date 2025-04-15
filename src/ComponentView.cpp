@@ -238,30 +238,25 @@ namespace editor {
 	void RigidDynamicEditor::drawAddExclusivePopup() {
 		Zap::Actor selectedActor = m_selectedActors[0];
 		if (ImGui::BeginPopupModal("AddExclusive##Popup")) {
-			static std::string typeStrings[3] = {
+			static const int typeCount = 5;
+			static std::string typeStrings[typeCount] = {
 				"None",
+				"Sphere",
+				"Capsule",
 				"Box",
 				"Plane"
+				//"Convex Mesh",
+				//"Triangle Mesh",
+				//"Height Field"
 			};
 			ImGui::SeparatorText("Geometry");
 			if (ImGui::BeginCombo("Type", typeStrings[m_shapeCreationInfo.geometryType].c_str()))
 			{
-				for (int i = 1; i < 3; i++)
+				for (int i = 1; i < typeCount; i++)
 				{
 					const bool is_selected = (m_shapeCreationInfo.geometryType == i);
 					if (ImGui::Selectable(typeStrings[i].c_str(), is_selected)) {
-						switch (i)
-						{
-						case Zap::eGEOMETRY_TYPE_NONE:
-							m_shapeCreationInfo.geometryType = Zap::eGEOMETRY_TYPE_NONE;
-							break;
-						case Zap::eGEOMETRY_TYPE_BOX:
-							m_shapeCreationInfo.geometryType = Zap::eGEOMETRY_TYPE_BOX;
-							break;
-						case Zap::eGEOMETRY_TYPE_PLANE:
-							m_shapeCreationInfo.geometryType = Zap::eGEOMETRY_TYPE_PLANE;
-							break;
-						}
+						m_shapeCreationInfo.geometryType = i;
 					}
 
 					// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -271,17 +266,23 @@ namespace editor {
 				ImGui::EndCombo();
 			}
 
-			switch (m_shapeCreationInfo.geometryType)
+			switch (m_shapeCreationInfo.geometryType) // draw settings for geometry
 			{
-			case Zap::eGEOMETRY_TYPE_NONE: {
+			case Zap::eGEOMETRY_TYPE_SPHERE: {
+				ImGui::DragFloat("radius", &m_shapeCreationInfo.sphereRadius, 0.01);
+				break;
+			}
+			case Zap::eGEOMETRY_TYPE_CAPSULE: {
+				ImGui::DragFloat("radius", (float*)&m_shapeCreationInfo.capsuleRadius, 0.01);
+				ImGui::DragFloat("half height", (float*)&m_shapeCreationInfo.capsuleHalfHeight, 0.01);
 				break;
 			}
 			case Zap::eGEOMETRY_TYPE_BOX: {
-				ImGui::DragFloat3("Box extent", (float*)&m_shapeCreationInfo.boxExtent, 0.01);
+				ImGui::DragFloat3("half extents", (float*)&m_shapeCreationInfo.boxExtent, 0.01);
 				break;
 			}
-			case Zap::eGEOMETRY_TYPE_PLANE: {
-				break;
+			default: {
+				ImGui::Text("No settings available");
 			}
 			}
 
@@ -310,12 +311,24 @@ namespace editor {
 					ZP_ASSERT(false, "Shape can't be created with eGEOMETRY_TYPE_NONE");
 					break;
 				}
+				case Zap::eGEOMETRY_TYPE_SPHERE: {
+					pGeometry = new Zap::SphereGeometry(m_shapeCreationInfo.sphereRadius);
+					break;
+				}
+				case Zap::eGEOMETRY_TYPE_CAPSULE: {
+					pGeometry = new Zap::CapsuleGeometry(m_shapeCreationInfo.capsuleRadius, m_shapeCreationInfo.capsuleHalfHeight);
+					break;
+				}
 				case Zap::eGEOMETRY_TYPE_BOX: {
 					pGeometry = new Zap::BoxGeometry(m_shapeCreationInfo.boxExtent);
 					break;
 				}
 				case Zap::eGEOMETRY_TYPE_PLANE: {
 					pGeometry = new Zap::PlaneGeometry();
+					break;
+				}
+				default: {
+					ZP_ASSERT(false, "Shape must be created with known geometry type");
 					break;
 				}
 				}
