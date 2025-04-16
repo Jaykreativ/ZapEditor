@@ -32,8 +32,6 @@
 #include "gtc/matrix_transform.hpp"
 #include "gtc/type_ptr.hpp"
 
-float dTime = 0;// TODO WIP add system to organise global variables in editor
-
 namespace editor {
 	static EditorData editorData = {};
 	
@@ -479,9 +477,9 @@ int main() {
 			}
 		}
 
-		if (editor::mainMenuBar->shouldSimulate() && dTime > 0) {
+		if (editor::mainMenuBar->shouldSimulate() && editor::editorData.dTime > 0) {
 			for(auto& scene : editor::editorData.scenes)
-				scene.simulate(dTime);
+				scene.simulate(editor::editorData.dTime);
 		}
 
 		// render GUI only
@@ -490,7 +488,7 @@ int main() {
 		editor::editorData.window->present();
 		Zap::Window::pollEvents();
 		auto timeEndFrame = std::chrono::high_resolution_clock::now();
-		dTime = std::chrono::duration_cast<std::chrono::duration<float>>(timeEndFrame - timeStartFrame).count();
+		editor::editorData.dTime = std::chrono::duration_cast<std::chrono::duration<float>>(timeEndFrame - timeStartFrame).count();
 		frameIndex++;
 	}
 	//serialize

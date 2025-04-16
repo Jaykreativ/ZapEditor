@@ -14,22 +14,17 @@ namespace editor {
 		m_scene.init();
 		m_scene.attachActor(m_actor);
 		m_scene.attachActor(m_light);
-		m_scene.attachActor(m_camera);
 
 		if(m_pEditorData->selectedActors.size() > 0)
 			updateActor();
 
-		m_camera.addTransform(glm::mat4(1));
-		m_camera.cmpTransform_setPos({0, 0, 0});
-		m_camera.addCamera();
-		m_camera.cmpCamera_lookAtCenter();
-		glm::mat4 offset = glm::mat4(1);
-		offset[3] = {0, 0, -m_camDist, 1};
-		m_camera.cmpCamera_setOffset(offset);
+		m_upCamera = std::make_unique<editor::Camera>(m_scene); // create the camera
+		m_upCamera->setMode(eORBIT);
+		m_upCamera->setOrbitDistance(5);
 
 		m_light.addTransform(glm::mat4(1));
 		m_light.cmpTransform_setPos({0, 0, -5});
-		m_light.addLight({1, 1, 1}, m_camDist * m_camDist, 1);
+		m_light.addLight({1, 1, 1}, 25, 1);
 
 		m_outImage.setFormat(Zap::GlobalSettings::getColorFormat());
 		m_outImage.setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
@@ -74,14 +69,24 @@ namespace editor {
 	}
 
 	void HitboxEditor::draw() {
+		if(ImGui::BeginMenuBar()){
+			if (ImGui::BeginMenu("View")) {
+				if (ImGui::BeginMenu("Camera")) {
+					m_upCamera->drawSettings();
+					ImGui::EndMenu();
+				}
+				ImGui::EndMenu();
+			}
+
+			ImGui::EndMenuBar();
+		}
+
 		ImGui::BeginChild("Viewport", { ImGui::GetContentRegionAvail().x / 1.5f, ImGui::GetContentRegionAvail().y }, ImGuiChildFlags_ResizeX);
 		{
 			// update scene
 			{
-				glm::vec3 camOffset = m_camera.cmpCamera_getOffset()[3];
-				glm::vec3 camPos = m_camera.cmpTransform_getPos();
-				m_light.cmpTransform_setPos(camPos + camOffset);
-				m_light.cmpLight_setStrength(m_camDist * m_camDist);
+				m_light.cmpTransform_setPos(m_upCamera->getPosition());
+				m_light.cmpLight_setStrength(m_upCamera->getOrbitDistance() * m_upCamera->getOrbitDistance());
 
 				if (m_pEditorData->selectedActors.size() > 0) {
 					updateActor();
@@ -114,41 +119,17 @@ namespace editor {
 			// render scene
 			m_scene.simulate(1 / 60.f);
 			m_scene.update();
-			m_pbrTask.updateCamera(m_camera);
-			m_debugTask.updateCamera(m_camera);
+			m_pbrTask.updateCamera(*m_upCamera);
+			m_debugTask.updateCamera(*m_upCamera);
 			m_renderer.render();
 
 			// render Gui
 			ImGui::Image((Zap::GuiTexture)m_outImage, { static_cast<float>(m_outImage.getExtent().width), static_cast<float>(m_outImage.getExtent().height) });
 			m_isImageHovered = ImGui::IsItemHovered();
+			m_isFocused = ImGui::IsWindowFocused();
 
 			// turn camera
-			m_doesCamTurn = m_isImageHovered && ImGui::IsMouseDown(ImGuiMouseButton_Left);
-
-			float mouseX = ImGui::GetMousePos().x;
-			float mouseY = ImGui::GetMousePos().y;
-
-			float dx = (mouseX - m_lastX) * m_sensVert;
-			float dy = -(mouseY - m_lastY) * m_sensHorz;
-
-			m_lastX = mouseX;
-			m_lastY = mouseY;
-
-			glm::mat4 res = m_camera.cmpCamera_getOffset();
-
-			if (m_doesCamTurn) {
-				glm::mat4 rot = glm::rotate(glm::mat4(1), dx, glm::vec3(0, 1, 0));
-
-				res[0] = rot * res[0];
-				res[1] = rot * res[1];
-				res[2] = rot * res[2];
-
-				res = glm::rotate(res, dy, glm::vec3(1, 0, 0));
-			}
-
-			res[3] = glm::vec4(glm::vec3(res[2]) * glm::vec3(m_camDist), 1);
-
-			m_camera.cmpCamera_setOffset(res);
+			m_upCamera->updateMovement(m_pEditorData->dTime, m_isImageHovered, m_isFocused);
 		}
 		ImGui::EndChild(); 
 
@@ -245,7 +226,7 @@ namespace editor {
 				m_actor.destroyModel();
 			m_actor.addModel(model);
 
-			m_camDist = glm::max(glm::length(transform * glm::vec4(model.boundMin, 1)), glm::length(transform * glm::vec4(model.boundMax, 1))) * 1.5f;
+			m_upCamera->resetTo({0, 0, 0}, glm::max(glm::length(transform * glm::vec4(model.boundMin, 1)), glm::length(transform * glm::vec4(model.boundMax, 1))) * 1.5f);
 		}
 
 		if (areShapesChanged) {

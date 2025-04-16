@@ -7,7 +7,10 @@
 #include "Zap/Rendering/Gui.h"
 
 #include "ZapEditor.h"
+#include "EditorCamera.h"
 #include "ViewLayer.h"
+
+#include <memory>
 
 namespace editor {
 	class HitboxEditor : public ViewLayer
@@ -41,9 +44,10 @@ namespace editor {
 		Zap::Actor m_actor;
 		Zap::Actor m_oldActor;
 		Zap::Actor m_light;
-		Zap::Actor m_camera;
+		std::unique_ptr<editor::Camera> m_upCamera;
 
 		bool m_isImageHovered = false;
+		bool m_isFocused = false;
 
 		bool m_doesCamTurn;
 		float m_sensVert = 0.08;

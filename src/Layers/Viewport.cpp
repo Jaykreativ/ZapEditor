@@ -903,11 +903,10 @@ namespace editor {
 	};
 
 	Viewport::Viewport(EditorData& editorData, Zap::Scene* pScene, Zap::Window* pWindow)
-		: m_editorData(editorData), m_pScene(pScene), m_pWindow(pWindow), m_selectedActors(editorData.selectedActors)
+		: m_editorData(editorData), m_pScene(pScene), m_pWindow(pWindow), m_selectedActors(editorData.selectedActors), m_camera(*pScene)
 	{
 		m_pWindow->getKeyEventHandler()->addCallback(keyCallback);
 		m_pWindow->getMouseButtonEventHandler()->addCallback(mouseButtonCallback);
-		m_pWindow->getCursorPosEventHandler()->addCallback(Viewport::cursorPositionCallback, this);
 
 		m_outImage.setFormat(Zap::GlobalSettings::getColorFormat());
 		m_outImage.setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
@@ -958,10 +957,7 @@ namespace editor {
 
 		m_imageDescriptorSet = ImGui_ImplVulkan_AddTexture(m_sampler, m_outImage.getVkImageView(), VK_IMAGE_LAYOUT_GENERAL);
 
-		m_camera = Zap::Actor();
-		pScene->attachActor(m_camera);
-		m_camera.addTransform(glm::mat4(1));
-		m_camera.addCamera();
+		m_camera.setMode(eFLY);
 
 		m_transformEditScene = Zap::Scene();
 		m_transformEditScene.init();
@@ -999,69 +995,10 @@ namespace editor {
 
 		m_pWindow->getKeyEventHandler()->removeCallback(keyCallback);
 		m_pWindow->getMouseButtonEventHandler()->removeCallback(mouseButtonCallback);
-		m_pWindow->getCursorPosEventHandler()->removeCallback(Viewport::cursorPositionCallback, this);
 	}
 
 	std::string Viewport::name() {
 		return "Viewport";
-	}
-
-	void Viewport::move(float dTime) {
-		if (!m_isFocused) return;
-		if (forwardPressed) {
-			auto res = m_camera.cmpTransform_getTransform();
-			glm::vec3 vec = res[2];
-			res[3] = glm::vec4(glm::vec3(res[3]) + glm::normalize(glm::vec3{ vec.x, 0, vec.z }) * dTime * 2.0f, 1);
-			m_camera.cmpTransform_setTransform(res);
-		}
-		if (backwardPressed) {
-			auto res = m_camera.cmpTransform_getTransform();
-			glm::vec3 vec = -res[2];
-			res[3] = glm::vec4(glm::vec3(res[3]) + glm::normalize(glm::vec3{ vec.x, 0, vec.z }) * dTime * 2.0f, 1);
-			m_camera.cmpTransform_setTransform(res);
-		}
-		if (rightPressed) {
-			auto res = m_camera.cmpTransform_getTransform();
-			glm::vec3 vec = res[0];
-			res[3] = glm::vec4(glm::vec3(res[3]) + glm::normalize(glm::vec3{ vec.x, 0, vec.z }) * dTime * 2.0f, 1);
-			m_camera.cmpTransform_setTransform(res);
-		}
-		if (leftPressed) {
-			auto res = m_camera.cmpTransform_getTransform();
-			glm::vec3 vec = -res[0];
-			res[3] = glm::vec4(glm::vec3(res[3]) + glm::normalize(glm::vec3{ vec.x, 0, vec.z }) * dTime * 2.0f, 1);
-			m_camera.cmpTransform_setTransform(res);
-		}
-		if (downPressed) {
-			auto res = m_camera.cmpTransform_getTransform();
-			res[3] = glm::vec4(glm::vec3(res[3]) + glm::vec3{ 0, -2, 0 }*dTime, 1);
-			m_camera.cmpTransform_setTransform(res);
-		}
-		if (upPressed) {
-			auto res = m_camera.cmpTransform_getTransform();
-			res[3] = glm::vec4(glm::vec3(res[3]) + glm::vec3{ 0, 2, 0 }*dTime, 1);
-			m_camera.cmpTransform_setTransform(res);
-		}
-	}
-
-	float sensitivityX = 0.2;
-	float sensitivityY = 0.15;
-	void Viewport::cursorPositionCallback(Zap::CursorPosEvent& params, void* viewportData) {
-		Viewport* pViewport = (Viewport*)viewportData;
-		if (turnCameraPressed && pViewport->isHovered()) {
-			glm::mat4 res = pViewport->m_camera.cmpTransform_getTransform();
-			glm::mat4 rot = glm::rotate(glm::mat4(1), glm::radians<float>((params.xPos - pViewport->m_xlast) * sensitivityX), glm::vec3{ 0, 1, 0 });
-			
-			res[0] = rot * res[0];
-			res[1] = rot * res[1];
-			res[2] = rot * res[2];
-			
-			pViewport->m_camera.cmpTransform_setTransform(res);
-			pViewport->m_camera.cmpTransform_rotateX((params.yPos - pViewport->m_ylast) * sensitivityY);
-		}
-		
-		pViewport->m_xlast = params.xPos;
-		pViewport->m_ylast = params.yPos;
 	}
 
 	uint32_t countTransformLines() {
@@ -1079,7 +1016,7 @@ namespace editor {
 
 		uint8_t highlight;
 
-		if (select == 0) highlight = 200;
+		if (select == 0) highlight = 200; // add a highlight if selected
 		else highlight = 0;
 		data[0] = { pos,         {255,       highlight, highlight} };
 		data[1] = { pos + xAxis, {255,       highlight, highlight} };
@@ -1151,6 +1088,10 @@ namespace editor {
 			}
 
 			if (ImGui::BeginMenu("View")) {
+				if (ImGui::BeginMenu("Camera")) {
+					m_camera.drawSettings();
+					ImGui::EndMenu();
+				}
 				if (ImGui::BeginMenu("Settings")) {
 					bool shouldUpdate = false;
 					if (ImGui::Checkbox("Outlines", &m_settings.enableOutlines)) {
@@ -1189,8 +1130,7 @@ namespace editor {
 		m_isFocused = ImGui::IsWindowFocused();
 
 		auto timeEndFrame = std::chrono::high_resolution_clock::now();
-		extern float dTime;
-		move(dTime);
+		m_camera.updateMovement(m_editorData.dTime, m_isHovered, m_isFocused);
 
 		m_pPBRender->updateCamera(m_camera);
 		m_pOutlineRenderTask->updateCamera(m_camera);
@@ -1208,7 +1148,7 @@ namespace editor {
 		if (m_settings.enableTransformVisual && m_selectedActors.size() > 0) {
 			auto actor = m_selectedActors.back();
 			if (actor.isValid() && actor.hasTransform()) {
-				float scale = glm::length(actor.cmpTransform_getPos() - m_camera.cmpTransform_getPos()) / 5.f;
+				float scale = glm::length(actor.cmpTransform_getPos() - m_camera.getPosition()) / 5.f;
 				Zap::BoxGeometry box = Zap::BoxGeometry(glm::vec3(0.5, 0.05, 0.05)*scale);
 
 				m_transformX.cmpTransform_setPos(actor.cmpTransform_getPos()+glm::vec3(0.5 * scale, 0, 0));
@@ -1231,9 +1171,9 @@ namespace editor {
 				float mouseY = ((ImGui::GetMousePos().y - miny) / sizey) * 2.0 - 1.0;
 
 				if (mouseX > -1 && mouseX < 1 && mouseY > -1 && mouseY < 1) {
-					glm::vec3 origin = m_camera.cmpTransform_getPos();
-					glm::vec4 localDir = glm::inverse(m_camera.cmpCamera_getPerspective(imageExtent.width / (float)imageExtent.height)) * glm::vec4(mouseX, -mouseY, 1, 1);
-					glm::vec4 direction = glm::inverse(m_camera.cmpCamera_getView()) * glm::vec4(glm::normalize(glm::vec3(localDir)), 0);
+					glm::vec3 origin = m_camera.getPosition();
+					glm::vec4 localDir = glm::inverse(m_camera.getPerspective(imageExtent.width / (float)imageExtent.height)) * glm::vec4(mouseX, -mouseY, 1, 1);
+					glm::vec4 direction = glm::inverse(m_camera.getView()) * glm::vec4(glm::normalize(glm::vec3(localDir)), 0);
 					glm::vec3 axis;
 
 					if (!m_isTransformDragged) {
@@ -1275,12 +1215,12 @@ namespace editor {
 					else {
 						m_isTransformDragged = ImGui::IsMouseDown(ImGuiMouseButton_Right) && m_axisIndex < 0xFFFFFFFF;
 						if (m_isTransformDragged)
-							intersectPlane(glm::normalize(glm::cross(axis, glm::vec3(m_camera.cmpTransform_getTransform()[0]))), actor.cmpTransform_getPos(), origin, direction, m_mousePlanePos);
+							intersectPlane(glm::normalize(glm::cross(axis, glm::vec3(m_camera.getTransform()[0]))), actor.cmpTransform_getPos(), origin, direction, m_mousePlanePos);
 					}
 
 					auto oldMousePlanePos = m_mousePlanePos;
 					glm::vec3 deltaMousePlane = {0, 0, 0};
-					if (m_isTransformDragged && intersectPlane(glm::normalize(glm::cross(axis, glm::vec3(m_camera.cmpTransform_getTransform()[0]))), actor.cmpTransform_getPos(), origin, direction, m_mousePlanePos)) {
+					if (m_isTransformDragged && intersectPlane(glm::normalize(glm::cross(axis, glm::vec3(m_camera.getTransform()[0]))), actor.cmpTransform_getPos(), origin, direction, m_mousePlanePos)) {
 						deltaMousePlane = m_mousePlanePos - oldMousePlanePos;
 						actor.cmpTransform_setPos(actor.cmpTransform_getPos()+deltaMousePlane*axis);
 						if(m_pPathTracer)
@@ -1323,7 +1263,7 @@ namespace editor {
 				if (m_settings.enableTransformVisual) {
 					for (auto actor : m_selectedActors) {
 						if (actor.isValid() && actor.hasTransform()) {
-							drawTransformLines(offset, data, actor, m_axisIndex, glm::length(actor.cmpTransform_getPos() - m_camera.cmpTransform_getPos())/5.f);
+							drawTransformLines(offset, data, actor, m_axisIndex, glm::length(actor.cmpTransform_getPos() - m_camera.getPosition())/5.f);
 						}
 					}
 				}

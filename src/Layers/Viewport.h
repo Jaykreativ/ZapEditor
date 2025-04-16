@@ -8,7 +8,9 @@
 #include "Zap/Scene/Actor.h"
 #include "Zap/Rendering/Window.h"
 #include "Zap/Rendering/Renderer.h"
+
 #include "ViewLayer.h"
+#include "EditorCamera.h"
 #include "imgui.h"
 
 namespace Zap{
@@ -40,7 +42,7 @@ namespace editor {
 
 		std::string name();
 
-		void move(float dTime);
+		//void move(float dTime);
 
 		void draw();
 
@@ -73,7 +75,7 @@ namespace editor {
 		OutlineRenderTask* m_pOutlineRenderTask = nullptr;
 		Zap::DebugRenderTask* m_pDebugRenderTask = nullptr;
 
-		Zap::Actor m_camera;
+		editor::Camera m_camera;
 
 		RenderType m_renderType = ePBR;
 		vk::Image m_outImage;
@@ -101,7 +103,7 @@ namespace editor {
 
 		void update();
 
-		static void cursorPositionCallback(Zap::CursorPosEvent& params, void* viewportData);
+		//static void cursorPositionCallback(Zap::CursorPosEvent& params, void* viewportData);
 	};
 }
 

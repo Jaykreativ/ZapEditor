@@ -57,5 +57,7 @@ namespace editor {
 		std::vector<ViewLayer*> layers;
 
 		ProjectData project = {};
+
+		float dTime = 0;
 	};
 }

@@ -48,7 +48,10 @@ target_include_directories(
     ZapEditor PUBLIC
     Zap
     "${PROJECT_BINARY_DIR}"
-    "${PROJECT_SOURCE_DIR}/header"
+    "${PROJECT_SOURCE_DIR}/src"
+    "${PROJECT_SOURCE_DIR}/src/Layers"
+    "${PROJECT_SOURCE_DIR}/src/Handlers"
+    "${PROJECT_SOURCE_DIR}/src/Objects"
 )
 
 string(TOLOWER "${CMAKE_BUILD_TYPE}" PHYSX_BUILD_TYPE)
