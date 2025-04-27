@@ -29,8 +29,10 @@ namespace editor {
 				{
 					bool s = true; // doesn't count towards load failing has its own error handling
 					project.assetLibraryPath = serializer.readAttribute("assetLibraryPath", &s);
-					if (s)
-						editorData.engineBase->getAssetHandler()->loadFromFile(project.rootPath / project.assetLibraryPath);
+					if (s) {
+						editorData.engineBase->getAssetHandler()->setAssetLibrary(project.rootPath / project.assetLibraryPath);
+						editorData.engineBase->getAssetHandler()->loadFromFile();
+					}
 					else {
 						ZP_WARN(false, "loaded Project has no AssetLibrary");
 						success = false;
@@ -79,7 +81,8 @@ namespace editor {
 
 			// save AssetLibrary
 			serializer.writeAttribute("assetLibraryPath", project.assetLibraryPath.string());
-			editorData.engineBase->getAssetHandler()->saveToFile(project.rootPath / project.assetLibraryPath);
+			editorData.engineBase->getAssetHandler()->setAssetLibrary(project.rootPath / project.assetLibraryPath);
+			editorData.engineBase->getAssetHandler()->saveToFile();
 
 			// save actors
 			for (auto actor : editorData.actors) {

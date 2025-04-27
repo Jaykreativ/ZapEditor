@@ -15,12 +15,12 @@ namespace editor {
 		m_scene.attachActor(m_actor);
 		m_scene.attachActor(m_light);
 
-		if(m_pEditorData->selectedActors.size() > 0)
-			updateActor();
-
 		m_upCamera = std::make_unique<editor::Camera>(m_scene); // create the camera
 		m_upCamera->setMode(eORBIT);
 		m_upCamera->setOrbitDistance(5);
+
+		if(m_pEditorData->selectedActors.size() > 0)
+			updateActor();
 
 		m_light.addTransform(glm::mat4(1));
 		m_light.cmpTransform_setPos({0, 0, -5});

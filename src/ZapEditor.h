@@ -43,6 +43,7 @@ namespace editor {
 
 		std::vector<Zap::Shape>           physicsShapes    = {};
 		std::vector<Zap::PhysicsMaterial> physicsMaterials = {};
+		std::vector<Zap::ConvexMesh>      convexMeshes     = {};
 
 		std::vector<Zap::Actor> selectedActors   = {};
 		Zap::Scene*             pActiveScene = nullptr;
