@@ -199,11 +199,6 @@ namespace editor {
 		m_oldActor = selectedActor;
 
 		if (isActorChanged) {
-			if (!selectedActor.hasModel()) {
-				m_actor.destroy();
-				return;
-			}
-			auto model = selectedActor.cmpModel_getModel();
 			glm::mat4 transform;
 			if (selectedActor.hasTransform()) {
 				transform = selectedActor.cmpTransform_getTransform();
@@ -224,9 +219,13 @@ namespace editor {
 			m_actor.addTransform(transform);
 			if (m_actor.hasModel())
 				m_actor.destroyModel();
-			m_actor.addModel(model);
-
-			m_upCamera->resetTo({0, 0, 0}, glm::max(glm::length(transform * glm::vec4(model.boundMin, 1)), glm::length(transform * glm::vec4(model.boundMax, 1))) * 1.5f);
+			if (selectedActor.hasModel()) {
+				auto model = selectedActor.cmpModel_getModel();
+				m_actor.addModel(model);
+				m_upCamera->resetTo({0, 0, 0}, glm::max(glm::length(transform * glm::vec4(model.boundMin, 1)), glm::length(transform * glm::vec4(model.boundMax, 1))) * 1.5f);
+			}
+			else
+				m_upCamera->resetTo({ 0, 0, 0 }, 5);
 		}
 
 		if (areShapesChanged) {

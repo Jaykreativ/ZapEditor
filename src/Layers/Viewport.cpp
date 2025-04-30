@@ -970,19 +970,19 @@ namespace editor {
 		{
 			Zap::Shape shape = Zap::Shape(box, *m_transformMaterial, true, glm::mat4(1), physx::PxShapeFlag::eVISUALIZATION | physx::PxShapeFlag::eSCENE_QUERY_SHAPE);
 			m_transformX.addTransform(glm::mat4(1));
-			m_transformX.addRigidDynamic(shape);
+			m_transformX.addRigidStatic(shape);
 		}
 		{
 			Zap::Shape shape = Zap::Shape(box, *m_transformMaterial, true, glm::mat4(1), physx::PxShapeFlag::eVISUALIZATION | physx::PxShapeFlag::eSCENE_QUERY_SHAPE);
 			m_transformY.addTransform(glm::mat4(1));
 			m_transformY.cmpTransform_rotateZ(90);
-			m_transformY.addRigidDynamic(shape);
+			m_transformY.addRigidStatic(shape);
 		}
 		{
 			Zap::Shape shape = Zap::Shape(box, *m_transformMaterial, true, glm::mat4(1), physx::PxShapeFlag::eVISUALIZATION | physx::PxShapeFlag::eSCENE_QUERY_SHAPE);
 			m_transformZ.addTransform(glm::mat4(1));
 			m_transformZ.cmpTransform_rotateY(-90);
-			m_transformZ.addRigidDynamic(shape);
+			m_transformZ.addRigidStatic(shape);
 		}
 	}
 
@@ -1152,16 +1152,16 @@ namespace editor {
 				Zap::BoxGeometry box = Zap::BoxGeometry(glm::vec3(0.5, 0.05, 0.05)*scale);
 
 				m_transformX.cmpTransform_setPos(actor.cmpTransform_getPos()+glm::vec3(0.5 * scale, 0, 0));
-				m_transformX.cmpRigidDynamic_updatePose();
-				m_transformX.cmpRigidDynamic_getShapes()[0].setGeometry(box);
+				m_transformX.cmpRigidStatic_updatePose();
+				m_transformX.cmpRigidStatic_getShapes()[0].setGeometry(box);
 
 				m_transformY.cmpTransform_setPos(actor.cmpTransform_getPos()+glm::vec3(0, 0.5 * scale, 0));
-				m_transformY.cmpRigidDynamic_updatePose();
-				m_transformY.cmpRigidDynamic_getShapes()[0].setGeometry(box);
+				m_transformY.cmpRigidStatic_updatePose();
+				m_transformY.cmpRigidStatic_getShapes()[0].setGeometry(box);
 
 				m_transformZ.cmpTransform_setPos(actor.cmpTransform_getPos()+glm::vec3(0, 0, 0.5 * scale));
-				m_transformZ.cmpRigidDynamic_updatePose();
-				m_transformZ.cmpRigidDynamic_getShapes()[0].setGeometry(box);
+				m_transformZ.cmpRigidStatic_updatePose();
+				m_transformZ.cmpRigidStatic_getShapes()[0].setGeometry(box);
 
 				float minx = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMin().x;
 				float miny = ImGui::GetWindowPos().y + ImGui::GetWindowContentRegionMin().y;
@@ -1210,6 +1210,9 @@ namespace editor {
 						m_isTransformDragged = ImGui::IsMouseDown(ImGuiMouseButton_Right);
 						if (!m_isTransformDragged && actor.hasRigidDynamic()) {
 							actor.cmpRigidDynamic_updatePose();
+						}
+						if (!m_isTransformDragged && actor.hasRigidStatic()) {
+							actor.cmpRigidStatic_updatePose();
 						}
 					}
 					else {

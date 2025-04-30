@@ -90,6 +90,9 @@ namespace editor {
 		if (selectedActor.hasRigidDynamic()) {
 			selectedActor.cmpRigidDynamic_updatePose();
 		}
+		if (selectedActor.hasRigidStatic()) {
+			selectedActor.cmpRigidStatic_updatePose();
+		}
 	}
 
 	bool TransformEditor::isValid() {
@@ -98,23 +101,13 @@ namespace editor {
 		return false;
 	}
 
-	RigidDynamicEditor::RigidDynamicEditor(EditorData* pEditorData, std::vector<Zap::Actor>& selectedActors)
-		: m_pEditorData(pEditorData), m_selectedActors(selectedActors)
-	{}
-
-	RigidDynamicEditor::~RigidDynamicEditor() {}
-
-	std::string RigidDynamicEditor::name() {
-		return "RigidDynamicEditor";
-	}
-
-	void RigidDynamicEditor::drawCreateMaterialPopup() {
+	void ShapeCreateSection::drawCreateMaterialPopup(EditorData& editorData) {
 		if (ImGui::BeginPopupModal("MaterialCreation##Popup")) {
 			ImGui::DragFloat("static friction", &m_materialCreationInfo.staticFriction, 0.01, 0, 1);
 			ImGui::DragFloat("dynamic friction", &m_materialCreationInfo.dynamicFriction, 0.01, 0, 1);
 			ImGui::DragFloat("restitution", &m_materialCreationInfo.restitution, 0.01, 0, 1);
 			if (ImGui::Button("Done")) {
-				m_pEditorData->physicsMaterials.push_back(Zap::PhysicsMaterial(m_materialCreationInfo.staticFriction, m_materialCreationInfo.dynamicFriction, m_materialCreationInfo.restitution));
+				editorData.physicsMaterials.push_back(Zap::PhysicsMaterial(m_materialCreationInfo.staticFriction, m_materialCreationInfo.dynamicFriction, m_materialCreationInfo.restitution));
 				ImGui::CloseCurrentPopup();
 			}
 			ImGui::EndPopup();
@@ -122,122 +115,13 @@ namespace editor {
 
 	}
 
-	void RigidDynamicEditor::drawCreateShapePopup() {
-		if (ImGui::BeginPopupModal("CreateShape##Popup")) {
-			static std::string typeStrings[3] = {
-				"None",
-				"Box",
-				"Plane"
-			};
-			ImGui::SeparatorText("Geometry");
-			if (ImGui::BeginCombo("Type", typeStrings[m_shapeCreationInfo.geometryType].c_str()))
-			{
-				for (int i = 1; i < 3; i++)
-				{
-					const bool is_selected = (m_shapeCreationInfo.geometryType == i);
-					if (ImGui::Selectable(typeStrings[i].c_str(), is_selected)) {
-						switch (i)
-						{
-						case Zap::eGEOMETRY_TYPE_NONE:
-							m_shapeCreationInfo.geometryType = Zap::eGEOMETRY_TYPE_NONE;
-							break;
-						case Zap::eGEOMETRY_TYPE_BOX:
-							m_shapeCreationInfo.geometryType = Zap::eGEOMETRY_TYPE_BOX;
-							break;
-						case Zap::eGEOMETRY_TYPE_PLANE:
-							m_shapeCreationInfo.geometryType = Zap::eGEOMETRY_TYPE_PLANE;
-							break;
-						}
-					}
-
-					// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-					if (is_selected)
-						ImGui::SetItemDefaultFocus();
-				}
-				ImGui::EndCombo();
-			}
-
-			switch (m_shapeCreationInfo.geometryType)
-			{
-			case Zap::eGEOMETRY_TYPE_NONE: {
-				break;
-			}
-			case Zap::eGEOMETRY_TYPE_BOX: {
-				ImGui::DragFloat3("Box extent", (float*)&m_shapeCreationInfo.boxExtent, 0.01);
-				break;
-			}
-			case Zap::eGEOMETRY_TYPE_PLANE: {
-				break;
-			}
-			}
-
-			ImGui::SeparatorText("Physics material");
-			if (ImGui::BeginCombo("Material selection", ("Material" + std::to_string(m_shapeCreationInfo.materialIndex)).c_str())) {
-				uint32_t i = 0;
-				for (auto& material : m_pEditorData->physicsMaterials) {
-					if (ImGui::Selectable(("Material" + std::to_string(i)).c_str(), i == m_shapeCreationInfo.materialIndex)) {
-						m_shapeCreationInfo.materialIndex = i;
-					}
-					i++;
-				}
-				ImGui::EndCombo();
-			}
-			if (ImGui::Button("+")) {
-				ImGui::OpenPopup("MaterialCreation##Popup");
-			}
-
-			drawCreateMaterialPopup();
-
-			if (ImGui::Button("Done")) {
-				Zap::PhysicsGeometry* pGeometry = nullptr;
-				switch (m_shapeCreationInfo.geometryType)
-				{
-				case Zap::eGEOMETRY_TYPE_NONE: {
-					ZP_ASSERT(false, "Shape can't be created with eGEOMETRY_TYPE_NONE");
-					break;
-				}
-				case Zap::eGEOMETRY_TYPE_BOX: {
-					pGeometry = new Zap::BoxGeometry(m_shapeCreationInfo.boxExtent);
-					break;
-				}
-				case Zap::eGEOMETRY_TYPE_PLANE: {
-					pGeometry = new Zap::PlaneGeometry();
-					break;
-				}
-				}
-				Zap::Shape shape(*pGeometry, m_pEditorData->physicsMaterials[m_shapeCreationInfo.materialIndex]);
-				m_pEditorData->physicsShapes.push_back(shape);
-				delete pGeometry;
-				ImGui::CloseCurrentPopup();
-			}
-			ImGui::EndPopup();
-		}
-
-	}
-
-	void RigidDynamicEditor::drawAddShapePopup() {
-		Zap::Actor selectedActor = m_selectedActors[0];
-		if (ImGui::BeginPopup("AddShape##Popup")) {
-			uint32_t i = 0;
-			for (auto& shape : m_pEditorData->physicsShapes) {
-				if (ImGui::Button(("shape" + std::to_string(i)).c_str())) {
-					selectedActor.cmpRigidDynamic_attachShape(shape);
-				}
-				i++;
-			}
-			if (ImGui::Button("+")) {
-				ImGui::OpenPopup("CreateShape##Popup");
-			}
-
-			drawCreateShapePopup();
-
-			ImGui::EndPopup();
-		}
-	}
-
-	void RigidDynamicEditor::drawAddExclusivePopup() {
-		Zap::Actor selectedActor = m_selectedActors[0];
-		if (ImGui::BeginPopupModal("AddExclusive##Popup")) {
+	void ShapeCreateSection::drawCreateShapePopup(EditorData& editorData, Zap::Actor selectedActor, bool isDynamic, bool isExclusive) {
+		const char* popupID;
+		if (isExclusive)
+			popupID = "CreateExclusive##Popup";
+		else
+			popupID = "CreateShape##Popup";
+		if (ImGui::BeginPopupModal(popupID)) {
 			static const int typeCount = 5;
 			static std::string typeStrings[typeCount] = {
 				"None",
@@ -289,7 +173,7 @@ namespace editor {
 			ImGui::SeparatorText("Physics material");
 			if (ImGui::BeginCombo("Material selection", ("Material" + std::to_string(m_shapeCreationInfo.materialIndex)).c_str())) {
 				uint32_t i = 0;
-				for (auto& material : m_pEditorData->physicsMaterials) {
+				for (auto& material : editorData.physicsMaterials) {
 					if (ImGui::Selectable(("Material" + std::to_string(i)).c_str(), i == m_shapeCreationInfo.materialIndex)) {
 						m_shapeCreationInfo.materialIndex = i;
 					}
@@ -301,7 +185,7 @@ namespace editor {
 				ImGui::OpenPopup("MaterialCreation##Popup");
 			}
 
-			drawCreateMaterialPopup();
+			drawCreateMaterialPopup(editorData);
 
 			if (ImGui::Button("Done")) {
 				Zap::PhysicsGeometry* pGeometry = nullptr;
@@ -332,15 +216,82 @@ namespace editor {
 					break;
 				}
 				}
-				Zap::Shape shape(*pGeometry, m_pEditorData->physicsMaterials[m_shapeCreationInfo.materialIndex], true);
-				selectedActor.cmpRigidDynamic_attachShape(shape);
-				shape.release();
+				Zap::Shape shape(*pGeometry, editorData.physicsMaterials[m_shapeCreationInfo.materialIndex], isExclusive);
+				if (isDynamic)
+					selectedActor.cmpRigidDynamic_attachShape(shape);
+				else
+					selectedActor.cmpRigidStatic_attachShape(shape);
+				if (isExclusive)
+					shape.release();
+				else
+					editorData.physicsShapes.push_back(shape);
 				delete pGeometry;
 				ImGui::CloseCurrentPopup();
 			}
+			ImGui::EndPopup();
+		}
+	}
+
+	void ShapeCreateSection::drawAddShapePopup(EditorData& editorData, Zap::Actor selectedActor, bool isDynamic) {
+		if (ImGui::BeginPopup("AddShape##Popup")) {
+			uint32_t i = 0;
+			for (auto& shape : editorData.physicsShapes) {
+				if (ImGui::Button(("shape" + std::to_string(i)).c_str())) {
+					if (isDynamic)
+						selectedActor.cmpRigidDynamic_attachShape(shape);
+					else
+						selectedActor.cmpRigidStatic_attachShape(shape);
+				}
+				i++;
+			}
+			if (ImGui::Button("+")) {
+				ImGui::OpenPopup("CreateShape##Popup");
+			}
+
+			drawCreateShapePopup(editorData, selectedActor, false);
 
 			ImGui::EndPopup();
 		}
+	}
+
+	void ShapeCreateSection::drawAddExclusivePopup(EditorData& editorData, Zap::Actor selectedActor, bool isDynamic) {
+		drawCreateShapePopup(editorData, selectedActor, isDynamic, true);
+	}
+
+	void ShapeCreateSection::draw(EditorData& editorData, Zap::Actor selectedActor, bool isDynamic) {
+		std::vector<Zap::Shape> shapes;
+		if (isDynamic)
+			shapes = selectedActor.cmpRigidDynamic_getShapes();
+		else
+			shapes = selectedActor.cmpRigidStatic_getShapes();
+		uint32_t i = 0;
+		for (auto& shape : shapes) {
+			if (ImGui::Button(("Shape" + std::to_string(i)).c_str())) {
+
+			}
+			i++;
+		}
+		if (ImGui::Button("Add")) {
+			ImGui::OpenPopup("AddShape##Popup");
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Add exclusive")) {
+			ImGui::OpenPopup("CreateExclusive##Popup");
+		}
+
+		drawAddShapePopup(editorData, selectedActor, isDynamic);
+
+		drawAddExclusivePopup(editorData, selectedActor, isDynamic);
+	}
+
+	RigidDynamicEditor::RigidDynamicEditor(EditorData* pEditorData, std::vector<Zap::Actor>& selectedActors)
+		: m_pEditorData(pEditorData), m_selectedActors(selectedActors)
+	{}
+
+	RigidDynamicEditor::~RigidDynamicEditor() {}
+
+	std::string RigidDynamicEditor::name() {
+		return "RigidDynamicEditor";
 	}
 
 	void RigidDynamicEditor::draw() {
@@ -356,34 +307,44 @@ namespace editor {
 		}
 		Zap::Actor selectedActor = m_selectedActors[0];
 
-		auto shapes = selectedActor.cmpRigidDynamic_getShapes();
-		uint32_t i = 0;
-		for (auto& shape : shapes) {
-			if (ImGui::Button(("Shape" + std::to_string(i)).c_str())) {
-				
-			}
-			i++;
-		}
-		if (ImGui::Button("Add")) {
-			ImGui::OpenPopup("AddShape##Popup");
-		}
-		ImGui::SameLine();
-		if (ImGui::Button("Add exclusive")) {
-			ImGui::OpenPopup("AddExclusive##Popup");
-		}
-
-		drawAddShapePopup();
-
-		drawAddExclusivePopup();
-
-		if (ImGui::Button("update")) {
-			selectedActor.cmpRigidDynamic_updatePose();
-		}
+		m_shapeCreateSection.draw(*m_pEditorData, selectedActor, true);
 	}
 
 	bool RigidDynamicEditor::isValid() {
 		if (!m_selectedActors.empty())
 			return m_selectedActors[0].hasRigidDynamic();
+		return false;
+	}
+
+	RigidStaticEditor::RigidStaticEditor(EditorData* pEditorData, std::vector<Zap::Actor>& selectedActors)
+		: m_pEditorData(pEditorData), m_selectedActors(selectedActors)
+	{}
+
+	RigidStaticEditor::~RigidStaticEditor() {}
+
+	std::string RigidStaticEditor::name() {
+		return "RigidStaticEditor";
+	}
+
+	void RigidStaticEditor::draw() {
+		if (!isValid()) {
+			delete this;
+			return;
+		}
+		if (m_selectedActors.empty()) {
+			ImGui::BeginDisabled();
+			ImGui::Text("No Actor selected");
+			ImGui::EndDisabled();
+			return;
+		}
+		Zap::Actor selectedActor = m_selectedActors[0];
+
+		m_shapeCreateSection.draw(*m_pEditorData, selectedActor, false);
+	}
+
+	bool RigidStaticEditor::isValid() {
+		if (!m_selectedActors.empty())
+			return m_selectedActors[0].hasRigidStatic();
 		return false;
 	}
 
@@ -491,7 +452,7 @@ namespace editor {
 		if (selectedActor.hasRigidStatic())
 			if (ImGui::Button("RigidStatic")) {
 				deleteSave(m_selectedEditor);
-				m_selectedEditor = nullptr;
+				m_selectedEditor = new RigidStaticEditor(m_pEditorData, m_selectedActors);
 			}
 		if (selectedActor.hasCamera())
 			if (ImGui::Button("Camera")) {

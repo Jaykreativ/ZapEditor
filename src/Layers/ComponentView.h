@@ -33,6 +33,36 @@ namespace editor {
 		std::vector<Zap::Actor> m_selectedActors;
 	};
 
+	class ShapeCreateSection {
+	public:
+		struct MaterialCreationInfo {
+			float staticFriction = 0.5;
+			float dynamicFriction = 1;
+			float restitution = 0.1;
+		};
+		MaterialCreationInfo m_materialCreationInfo = {};
+
+		struct ShapeCreationInfo {
+			uint32_t geometryType = 1;
+			uint32_t materialIndex = 0;
+			glm::vec3 boxExtent = { 1, 1, 1 };
+			float sphereRadius = 1;
+			float capsuleRadius = 1;
+			float capsuleHalfHeight = 1;
+		};
+		ShapeCreationInfo m_shapeCreationInfo = {};
+
+		void drawAddExclusivePopup(EditorData& editorData, Zap::Actor selectedActor, bool isDynamic);
+
+		void drawAddShapePopup(EditorData& editorData, Zap::Actor selectedActor, bool isDynamic);
+
+		void drawCreateShapePopup(EditorData& editorData, Zap::Actor selectedActor, bool isDynamic, bool isExclusive = false);
+
+		void drawCreateMaterialPopup(EditorData& editorData);
+
+		void draw(EditorData& editorData, Zap::Actor selectedActor, bool isDynamic);
+	};
+
 	class RigidDynamicEditor : public ComponentEditor
 	{
 	public:
@@ -51,30 +81,28 @@ namespace editor {
 
 		std::vector<Zap::Actor>& m_selectedActors;
 
-		struct MaterialCreationInfo {
-			float staticFriction = 0.5;
-			float dynamicFriction = 1;
-			float restitution = 0.1;
-		};
-		MaterialCreationInfo m_materialCreationInfo = {};
+		ShapeCreateSection m_shapeCreateSection = {};
+	};
 
-		struct ShapeCreationInfo {
-			uint32_t geometryType = 1;
-			uint32_t materialIndex = 0;
-			glm::vec3 boxExtent = { 1, 1, 1 };
-			float sphereRadius = 1;
-			float capsuleRadius = 1;
-			float capsuleHalfHeight = 1;
-		};
-		ShapeCreationInfo m_shapeCreationInfo = {};
+	class RigidStaticEditor : public ComponentEditor
+	{
+	public:
+		RigidStaticEditor(EditorData* pEditorData, std::vector<Zap::Actor>& selectedActors);
 
-		void drawAddExclusivePopup();
+		~RigidStaticEditor();
 
-		void drawAddShapePopup();
+		std::string name();
 
-		void drawCreateShapePopup();
+		void draw();
 
-		void drawCreateMaterialPopup();
+		bool isValid();
+
+	private:
+		EditorData* m_pEditorData;
+
+		std::vector<Zap::Actor>& m_selectedActors;
+
+		ShapeCreateSection m_shapeCreateSection = {};
 	};
 
 	class LightEditor : public ComponentEditor
