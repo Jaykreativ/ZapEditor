@@ -49,6 +49,7 @@ namespace editor {
 			float sphereRadius = 1;
 			float capsuleRadius = 1;
 			float capsuleHalfHeight = 1;
+			std::filesystem::path hitMeshPath = "";
 		};
 		ShapeCreationInfo m_shapeCreationInfo = {};
 

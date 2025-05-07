@@ -142,14 +142,14 @@ namespace editor {
 					auto geometry = m_shapes[i].getGeometry();
 					switch (geometry->getType())
 					{
-					case physx::PxGeometryType::eBOX: {
+					case Zap::eGEOMETRY_TYPE_BOX: {
 							auto boxGeometry = (Zap::BoxGeometry*)geometry.get();
 							auto extent = boxGeometry->getHalfExtents();
 							ImGui::DragFloat3("HalfExtents", (float*)(&extent), glm::length(extent)*0.01, 0.001, FLT_MAX, "%.3f", ImGuiSliderFlags_NoRoundToFormat | ImGuiSliderFlags_AlwaysClamp);
 							boxGeometry->setHalfExtents(extent);
 							break;
 					}
-					case physx::PxGeometryType::ePLANE:
+					case Zap::eGEOMETRY_TYPE_PLANE:
 						break;
 					default: {
 						ImGui::Text("Unknown geometry type");

@@ -1,6 +1,7 @@
 #define ZP_ENTITY_COMPONENT_SYSTEM_ACCESS
 #include "ComponentView.h"
 
+#include "Zap/FileLoader.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
 
@@ -122,14 +123,14 @@ namespace editor {
 		else
 			popupID = "CreateShape##Popup";
 		if (ImGui::BeginPopupModal(popupID)) {
-			static const int typeCount = 5;
+			static const int typeCount = 6;
 			static std::string typeStrings[typeCount] = {
 				"None",
 				"Sphere",
 				"Capsule",
 				"Box",
-				"Plane"
-				//"Convex Mesh",
+				"Plane",
+				"Convex Mesh"
 				//"Triangle Mesh",
 				//"Height Field"
 			};
@@ -163,6 +164,13 @@ namespace editor {
 			}
 			case Zap::eGEOMETRY_TYPE_BOX: {
 				ImGui::DragFloat3("half extents", (float*)&m_shapeCreationInfo.boxExtent, 0.01);
+				break;
+			}
+			case Zap::eGEOMETRY_TYPE_CONVEX_MESH: {
+				const size_t bufSize = 150;
+				static char buf[bufSize];
+				ImGui::InputText("hitmesh path", buf, bufSize);
+				m_shapeCreationInfo.hitMeshPath = buf;
 				break;
 			}
 			default: {
@@ -209,6 +217,14 @@ namespace editor {
 				}
 				case Zap::eGEOMETRY_TYPE_PLANE: {
 					pGeometry = new Zap::PlaneGeometry();
+					break;
+				}
+				case Zap::eGEOMETRY_TYPE_CONVEX_MESH: {
+					Zap::HitMeshLoader loader;
+					Zap::HitMesh hitMesh = loader.load(m_shapeCreationInfo.hitMeshPath);
+					Zap::ConvexMesh convexMesh(hitMesh);
+					editorData.convexMeshes.push_back(convexMesh);
+					pGeometry = new Zap::ConvexMeshGeometry(convexMesh);
 					break;
 				}
 				default: {
