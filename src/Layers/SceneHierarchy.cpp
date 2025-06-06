@@ -55,6 +55,7 @@ namespace editor {
 			if (m_renameActorIndex == i) {
 				const size_t renameBufSize = 50;
 				static char buf[renameBufSize] = "";
+				memset(buf, 0, renameBufSize);
 				memcpy(buf, actorName.c_str(), std::min<size_t>(actorName.size(), renameBufSize));
 				if (ImGui::InputText("##ActorRenameInput", buf, renameBufSize, ImGuiInputTextFlags_EnterReturnsTrue)) {
 					m_pEditorData->actorNameMap[actor] =  buf;
