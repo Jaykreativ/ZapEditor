@@ -62,8 +62,11 @@ namespace editor {
 				}
 				ImGui::SetItemDefaultFocus();
 				ImGui::SetKeyboardFocusHere(-1);
-				//if (!ImGui::IsItemFocused())
-				//	m_renameActorIndex = 0xFFFFFFFF;
+				if(
+					(ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsItemClicked(ImGuiMouseButton_Left)) ||
+					(ImGui::IsMouseClicked(ImGuiMouseButton_Right) && !ImGui::IsItemClicked(ImGuiMouseButton_Right))
+					)
+					m_renameActorIndex = 0xFFFFFFFF;
 			}
 			else {
 				if (ImGui::Button(actorName.c_str())) { // Actor selection button
