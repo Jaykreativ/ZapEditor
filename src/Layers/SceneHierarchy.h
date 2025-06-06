@@ -24,7 +24,9 @@ namespace editor {
 	private:
 		EditorData* m_pEditorData = nullptr;
 		Zap::Scene* m_pScene;
+
 		uint32_t m_hoveredActorIndex = 0xFFFFFFFF;
+		uint32_t m_renameActorIndex = 0xFFFFFFFF;
 
 		struct ActorCreationData {
 			Zap::Actor newActor;

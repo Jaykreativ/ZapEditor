@@ -52,9 +52,24 @@ namespace editor {
 				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 230 / 255.0, 100 / 255.0, 60 / 255.0, 1 });
 			}
 
-			if (ImGui::Button(actorName.c_str())) {
-				m_pEditorData->selectedActors.clear();
-				m_pEditorData->selectedActors.push_back(actor);
+			if (m_renameActorIndex == i) {
+				const size_t renameBufSize = 50;
+				static char buf[renameBufSize] = "";
+				memcpy(buf, actorName.c_str(), std::min<size_t>(actorName.size(), renameBufSize));
+				if (ImGui::InputText("##ActorRenameInput", buf, renameBufSize, ImGuiInputTextFlags_EnterReturnsTrue)) {
+					m_pEditorData->actorNameMap[actor] =  buf;
+					m_renameActorIndex = 0xFFFFFFFF;
+				}
+				ImGui::SetItemDefaultFocus();
+				ImGui::SetKeyboardFocusHere(-1);
+				//if (!ImGui::IsItemFocused())
+				//	m_renameActorIndex = 0xFFFFFFFF;
+			}
+			else {
+				if (ImGui::Button(actorName.c_str())) { // Actor selection button
+					m_pEditorData->selectedActors.clear();
+					m_pEditorData->selectedActors.push_back(actor);
+				}
 			}
 
 			// DragDrop MeshToActor
@@ -162,6 +177,13 @@ namespace editor {
 					ImGui::CloseCurrentPopup();
 				}
 				ImGui::EndPopup();
+			}
+
+			if (m_hoveredActorIndex < 0xFFFFFFFF) {
+				if (ImGui::Button("Rename")) {
+					m_renameActorIndex = m_hoveredActorIndex;
+					shouldSceneEditPopupClose = true;
+				}
 			}
 
 			if (shouldSceneEditPopupClose)
