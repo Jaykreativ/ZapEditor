@@ -242,6 +242,19 @@ int main() {
 	editor::editorData.window->getResizeEventHandler()->addCallback(windowResizeCallback);
 	editor::editorData.window->getDragDropEventHandler()->addCallback(dragDropCallback);
 
+#ifdef _DEBUG
+	// compile shaders
+	vk::Shader::compile("../Zap/Shader/src/",{
+		"PBRShader.vert", "PBRShader.frag",
+		"pathTrace.rchit", "pathTrace.rgen", "pathTrace.rint", "pathTrace.rmiss",
+		"raytrace.rchit", "raytrace.rgen", "raytrace.rmiss", "raytraceShadow.rmiss",
+		}, { "./" });
+	vk::Shader::compile("./Shader/src/", {
+		"debug.vert", "debug.frag",
+		"outline.frag", "outlineBlur.vert", "outlineBlurA.frag", "outlineBlurB.frag", "outlinePlain.frag", "outlinePlain.vert"
+		}, {"./"});
+#endif
+
 	editor::editorData.renderer = new Zap::Renderer();
 
 	Zap::Gui::initImGui(editor::editorData.window);
