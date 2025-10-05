@@ -246,6 +246,7 @@ int main() {
 	// compile shaders
 	vk::Shader::compile("../Zap/Shader/src/",{
 		"PBRShader.vert", "PBRShader.frag",
+		"GeomPass.vert", "GeomPass.frag",
 		"pathTrace.rchit", "pathTrace.rgen", "pathTrace.rint", "pathTrace.rmiss",
 		"raytrace.rchit", "raytrace.rgen", "raytrace.rmiss", "raytraceShadow.rmiss",
 		}, { "./" });
@@ -266,7 +267,7 @@ int main() {
 	scene.init();
 	editor::scene::selectScene(editor::editorData, scene);
 	
-	//setupActors();
+	setupActors();
 
 	for(auto& scene : editor::editorData.scenes)
 		scene.update();

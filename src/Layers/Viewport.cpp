@@ -919,6 +919,9 @@ namespace editor {
 		m_outImage.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 		m_outImage.initView();
 
+		m_pGeomPass = new Zap::GeometryPass(pScene);
+		m_pGeomPass->setViewport(1, 1, 0, 0);
+
 		m_pPBRender = new Zap::PBRenderer(pScene);
 		m_pPBRender->setViewport(1, 1, 0, 0);
 
@@ -932,6 +935,7 @@ namespace editor {
 		m_pDebugRenderTask->addLineVertexBuffer(&m_debugVertexBuffer);
 
 		m_renderer.setTarget(&m_outImage);
+		m_renderer.addRenderTask(m_pGeomPass);
 		m_renderer.addRenderTask(m_pPBRender);
 		m_renderer.addRenderTask(m_pOutlineRenderTask);
 		m_renderer.addRenderTask(m_pDebugRenderTask);
@@ -1051,21 +1055,17 @@ namespace editor {
 	void Viewport::draw() {
 		if (ImGui::BeginMenuBar()) {
 			std::string mode;
-			switch (m_renderType)
-			{
-			case ePBR:
-				mode = "PBR";
-				break;
-			case eRAYTRACING:
-				mode = "Raytracing";
-				break;
-			case ePATHTRACING:
-				mode = "Path Tracing";
-				break;
-			default:
-				break;
-			}
+			std::string names[] = {
+				"PBR",
+				"Raytracing",
+				"Path Tracing",
+				"Deferred"
+			};
+			mode = names[m_renderType];
 			if (ImGui::BeginMenu(("Mode: " + mode).c_str())) {
+				if (ImGui::MenuItem("Deferred")) {
+					changeRenderType(eDEFERRED);
+				}
 				if (ImGui::MenuItem("PBR")) {
 					changeRenderType(ePBR);
 				}
@@ -1119,6 +1119,7 @@ namespace editor {
 				extent.y = std::max<float>(extent.y, 1);
 				m_outImage.setWidth(extent.x);
 				m_outImage.setHeight(extent.y);
+				m_pGeomPass->setViewport(extent.x, extent.y, 0, 0);
 				m_pPBRender->setViewport(extent.x, extent.y, 0, 0);
 				update();
 			}
@@ -1132,6 +1133,7 @@ namespace editor {
 		auto timeEndFrame = std::chrono::high_resolution_clock::now();
 		m_camera.updateMovement(m_editorData.dTime, m_isHovered, m_isFocused);
 
+		m_pGeomPass->updateCamera(m_camera);
 		m_pPBRender->updateCamera(m_camera);
 		m_pOutlineRenderTask->updateCamera(m_camera);
 		m_pDebugRenderTask->updateCamera(m_camera);
@@ -1307,6 +1309,7 @@ namespace editor {
 		ImGui_ImplVulkan_RemoveTexture(m_imageDescriptorSet);
 		m_outImage.update();
 		m_renderer.beginRecord();
+		m_pGeomPass->disable();
 		m_pPBRender->disable();
 		if (Zap::Base::getBase()->getSettings()->enableRaytracing) {
 			m_pRTRender->disable();
@@ -1314,6 +1317,11 @@ namespace editor {
 		}
 		switch (m_renderType)
 		{
+		case eDEFERRED:
+			m_renderer.recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+			m_renderer.recRenderTemplate(m_pGeomPass);
+			m_pGeomPass->enable();
+			break;
 		case ePBR:
 			m_renderer.recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
 			m_renderer.recRenderTemplate(m_pPBRender);
@@ -1340,6 +1348,5 @@ namespace editor {
 		m_renderer.endRecord();
 		m_renderer.resize();
 		m_imageDescriptorSet = ImGui_ImplVulkan_AddTexture(m_sampler, m_outImage.getVkImageView(), VK_IMAGE_LAYOUT_GENERAL);
-
 	}
 }

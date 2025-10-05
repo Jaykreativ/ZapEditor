@@ -8,6 +8,7 @@
 #include "Zap/Scene/Actor.h"
 #include "Zap/Rendering/Window.h"
 #include "Zap/Rendering/Renderer.h"
+#include "Zap/Rendering/DeferredShading.h"
 
 #include "ViewLayer.h"
 #include "EditorCamera.h"
@@ -49,7 +50,8 @@ namespace editor {
 		enum RenderType {
 			ePBR = 0,
 			eRAYTRACING = 1,
-			ePATHTRACING = 2
+			ePATHTRACING = 2,
+			eDEFERRED = 3
 		};
 
 		ImGuiWindowFlags getWindowFlags();
@@ -69,6 +71,7 @@ namespace editor {
 		Zap::Scene* m_pScene;
 
 		Zap::Renderer m_renderer;
+		Zap::GeometryPass* m_pGeomPass = nullptr;
 		Zap::PBRenderer* m_pPBRender = nullptr;
 		Zap::RaytracingRenderer* m_pRTRender = nullptr;
 		Zap::PathTracer* m_pPathTracer = nullptr;
