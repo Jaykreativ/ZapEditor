@@ -840,7 +840,7 @@ namespace editor {
 		auto imageExtent = m_finalTarget->getExtent();
 		auto extent = ImGui::GetContentRegionAvail();
 
-		//Resize outImage and dependencies
+		// resize
 		if (extent.x != imageExtent.width || extent.y != imageExtent.height) {
 			extent.x = std::max<float>(extent.x, 1);
 			extent.y = std::max<float>(extent.y, 1);

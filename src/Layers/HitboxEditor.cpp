@@ -11,57 +11,13 @@ namespace editor {
 	HitboxEditor::HitboxEditor(EditorData* pEditorData)
 		: m_pEditorData(pEditorData)//, m_pbrTask(&m_scene)
 	{
-		m_scene.init();
-		m_scene.attachActor(m_actor);
-		m_scene.attachActor(m_light);
-
-		m_upCamera = std::make_unique<editor::Camera>(m_scene); // create the camera
-		m_upCamera->setMode(eORBIT);
-		m_upCamera->setOrbitDistance(5);
-
-		if(m_pEditorData->selectedActors.size() > 0)
-			updateActor();
-
-		m_light.addTransform(glm::mat4(1));
-		m_light.cmpTransform_setPos({0, 0, -5});
-		m_light.addLight({1, 1, 1}, 25, 1);
-
-		m_outImage.setFormat(Zap::GlobalSettings::getColorFormat());
-		m_outImage.setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
-		m_outImage.setUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-		m_outImage.setLayout(VK_IMAGE_LAYOUT_PREINITIALIZED);
-		m_outImage.setWidth(1);
-		m_outImage.setHeight(1);
-
-		m_outImage.init();
-		m_outImage.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		m_outImage.initView();
-
-		m_debugVertexBuffer = vk::Buffer(0, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-		m_debugVertexBuffer.init();
-		m_debugVertexBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-		//m_debugTask.addLineVertexBuffer(&m_debugVertexBuffer);
-
-		//m_renderer.setResultTarget(&m_outImage);
-		//m_renderer.addRenderTask(&m_pbrTask);
-		//m_renderer.addRenderTask(&m_debugTask);
-		m_renderer.init();
-		m_renderer.beginRecord();
-		m_renderer.recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
-		//m_renderer.recRenderTask(&m_pbrTask);
-		//m_renderer.recRenderTask(&m_debugTask);
-		m_renderer.recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT);
-		m_renderer.endRecord();
-
-		//m_pbrTask.setViewport(1, 1, 0, 0);
+		setupScene();
+		m_spLineBuffer = std::make_shared<Zap::LineBuffer>();
+		activateRenderer();
 	}
 
 	HitboxEditor::~HitboxEditor() {
-		m_renderer.destroy();
-		m_debugVertexBuffer.destroy();
-		m_outImage.destroy();
-		m_scene.destroy();
+		disableRenderer();
 	}
 
 	std::string HitboxEditor::name() {
@@ -93,38 +49,41 @@ namespace editor {
 				}
 			}
 
+			auto imageExtent = m_finalTarget->getExtent();
+			auto extent = ImGui::GetContentRegionAvail();
+
 			// resize
-			glm::vec2 imageSize = { m_outImage.getExtent().width, m_outImage.getExtent().height };
-			glm::vec2 availSize = { ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y };
-			if (imageSize != availSize) {
-				//m_outImage.resize(availSize.x, availSize.y);
-				//m_pbrTask.setViewport(availSize.x, availSize.y, 0, 0);
-				//m_renderer.resize();
+			if (extent.x != imageExtent.width || extent.y != imageExtent.height) {
+				extent.x = std::max<float>(extent.x, 1);
+				extent.y = std::max<float>(extent.y, 1);
+				m_renderer->resize({ extent.x, extent.y });
+				if (m_pbrTask)
+					m_pbrTask->setViewport(extent.x, extent.y, 0, 0);
 			}
 
 			// render Lines
 			std::vector<Zap::LineVertex> lines;
 			m_scene.getPxDebugVertices(lines);
 
-			//m_debugTask.delLineVertexBuffers();
 			if (lines.size() > 0) {
-				//m_debugTask.addLineVertexBuffer(&m_debugVertexBuffer);
-				m_debugVertexBuffer.resize(sizeof(Zap::LineVertex) * lines.size());
+				m_spLineBuffer->resize(sizeof(Zap::LineVertex) * lines.size()+2);
 				void* rawData;
-				m_debugVertexBuffer.map(&rawData);
-				memcpy(rawData, lines.data(), m_debugVertexBuffer.getSize());
-				m_debugVertexBuffer.unmap();
+				m_spLineBuffer->map(0, rawData);
+				memcpy(rawData, lines.data(), sizeof(Zap::LineVertex) * lines.size());
+				m_spLineBuffer->unmap();
 			}
 
 			// render scene
 			m_scene.simulate(1 / 60.f);
 			m_scene.update();
-			//m_pbrTask.updateCamera(*m_upCamera);
-			//m_debugTask.updateCamera(*m_upCamera);
-			m_renderer.render();
+			if(m_pbrTask)
+				m_pbrTask->updateCamera(*m_upCamera);
+			if(m_lineTask)
+				m_lineTask->updateCamera(*m_upCamera);
+			m_renderer->render();
 
 			// render Gui
-			ImGui::Image((Zap::GuiTexture)m_outImage, { static_cast<float>(m_outImage.getExtent().width), static_cast<float>(m_outImage.getExtent().height) });
+			ImGui::Image(*m_finalTarget.get(), extent);
 			m_isImageHovered = ImGui::IsItemHovered();
 			m_isFocused = ImGui::IsWindowFocused();
 
@@ -258,5 +217,55 @@ namespace editor {
 				}
 			}
 		}
+	}
+
+	void HitboxEditor::setupScene() {
+		m_scene.init();
+		m_scene.attachActor(m_actor);
+		m_scene.attachActor(m_light);
+
+		m_upCamera = std::make_unique<editor::Camera>(m_scene); // create the camera
+		m_upCamera->setMode(eORBIT);
+		m_upCamera->setOrbitDistance(5);
+
+		if (m_pEditorData->selectedActors.size() > 0)
+			updateActor();
+
+		m_light.addTransform(glm::mat4(1));
+		m_light.cmpTransform_setPos({ 0, 0, -5 });
+		m_light.addLight({ 1, 1, 1 }, 25, 1);
+
+		m_scene.update();
+	}
+
+	void HitboxEditor::activateRenderer() {
+		m_renderer = std::make_unique<Zap::Renderer>();
+
+		// create the final viewport image
+		m_finalTarget = m_renderer->createRenderTarget<Zap::RenderTargetGuiImage>();
+		m_finalTarget->setFormat(Zap::GlobalSettings::getColorFormat());
+		m_finalTarget->setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
+		m_finalTarget->setUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+		m_finalTarget->setInitialLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		m_finalTarget->setFinalLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		m_finalTarget->init(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+		//create pbr task
+		m_pbrTask = m_renderer->createRenderTask<Zap::PBRenderer>(m_finalTarget, &m_scene);
+		// create line task
+		m_lineTask = m_renderer->createRenderTask<Zap::LineRenderTask>(m_finalTarget, std::initializer_list({ (std::weak_ptr<Zap::LineBuffer>)m_spLineBuffer }));
+
+		m_renderer->beginRecord();
+		m_renderer->recRenderTask(m_pbrTask);
+		m_renderer->recRenderTask(m_lineTask);
+		m_renderer->endRecord();
+	}
+
+	void HitboxEditor::disableRenderer() {
+		m_finalTarget.reset();
+		m_lineTask.reset();
+		m_pbrTask.reset();
+		m_renderer->destroy();
+		m_renderer.reset();
 	}
 }

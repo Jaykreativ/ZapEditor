@@ -27,16 +27,22 @@ namespace editor {
 
 		void updateActor();
 
+		void setupScene();
+
+		void activateRenderer();
+
+		void disableRenderer();
+
 	private:
 		EditorData* m_pEditorData;
 
-		Zap::GuiImage m_outImage;
-		Zap::Renderer m_renderer;
-		//Zap::PBRenderer m_pbrTask;
-		vk::Buffer m_debugVertexBuffer;
-		//Zap::DebugRenderTask m_debugTask;
+		std::unique_ptr<Zap::Renderer> m_renderer;
+		Zap::RenderTaskHandle<Zap::LineRenderTask> m_lineTask;
+		Zap::RenderTaskHandle<Zap::PBRenderer> m_pbrTask;
 
-		Zap::PhysicsMaterial m_physicsMaterial = Zap::PhysicsMaterial(1, 0.5, 0.5);
+		Zap::RenderTargetHandle<Zap::RenderTargetGuiImage> m_finalTarget;
+
+		std::shared_ptr<Zap::LineBuffer> m_spLineBuffer;
 
 		std::vector<Zap::Shape> m_shapes;
 		std::vector<Zap::Shape> m_editingShapes;
@@ -45,6 +51,8 @@ namespace editor {
 		Zap::Actor m_oldActor;
 		Zap::Actor m_light;
 		std::unique_ptr<editor::Camera> m_upCamera;
+
+		Zap::PhysicsMaterial m_physicsMaterial = Zap::PhysicsMaterial(1, 0.5, 0.5);
 
 		bool m_isImageHovered = false;
 		bool m_isFocused = false;
