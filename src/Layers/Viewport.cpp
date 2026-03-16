@@ -2,13 +2,13 @@
 
 #include "FileHandling.h"
 
-#include "Zap/EventHandler.h"
+#include "Zap/Events.h"
 #include "Zap/FileLoader.h"
-#include "Zap/Rendering/RenderTaskTemplate.h"
-#include "Zap/Rendering/PBRenderer.h"
-#include "Zap/Rendering/RaytracingRenderer.h"
-#include "Zap/Rendering/PathTacer.h"
-#include "Zap/Rendering/DebugRenderTask.h"
+#include "Zap/Rendering/RenderObjects/RenderTask.h"
+#include "Zap/Rendering/RenderObjects/RenderTasks/PBRenderer.h"
+#include "Zap/Rendering/RenderObjects/RenderTasks/RaytracingRenderer.h"
+#include "Zap/Rendering/RenderObjects/RenderTasks/PathTacer.h"
+#include "Zap/Rendering/RenderObjects/RenderTasks/DebugRenderTask.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Mesh.h"
 #include "glm/gtc/matrix_transform.hpp"
@@ -17,83 +17,16 @@
 #include <chrono>
 
 namespace editor {
-	int forward    = GLFW_KEY_W;// move keybinds to editor::settings
-	int backward   = GLFW_KEY_S;
-	int right      = GLFW_KEY_D;
-	int left       = GLFW_KEY_A;
-	int down       = GLFW_KEY_C;
-	int up         = GLFW_KEY_SPACE;
-	int turnCamera = GLFW_MOUSE_BUTTON_1;
-
-	bool forwardPressed    = false;
-	bool backwardPressed   = false;
-	bool rightPressed      = false;
-	bool leftPressed       = false;
-	bool downPressed       = false;
-	bool upPressed         = false;
-	bool turnCameraPressed = false;
-
-	void mouseButtonCallback(Zap::MouseButtonEvent& params, void* data) {
-		if (params.action == GLFW_PRESS) {
-			if (params.button == turnCamera)
-				turnCameraPressed = true;
-		}
-		else if (params.action == GLFW_RELEASE) {
-			if (params.button == turnCamera)
-				turnCameraPressed = false;
-		}
-	}
-
-	void keyCallback(Zap::KeyEvent& params, void* data) {
-		if (params.action == GLFW_PRESS) {
-			if (params.key == forward) {
-				forwardPressed = true;
-			}
-			else if (params.key == backward) {
-				backwardPressed = true;
-			}
-			else if (params.key == right) {
-				rightPressed = true;
-			}
-			else if (params.key == left) {
-				leftPressed = true;
-			}
-			else if (params.key == down) {
-				downPressed = true;
-			}
-			else if (params.key == up) {
-				upPressed = true;
-			}
-		}
-		else if (params.action == GLFW_RELEASE) {
-			if (params.key == forward) {
-				forwardPressed = false;
-			}
-			else if (params.key == backward) {
-				backwardPressed = false;
-			}
-			else if (params.key == right) {
-				rightPressed = false;
-			}
-			else if (params.key == left) {
-				leftPressed = false;
-			}
-			else if (params.key == down) {
-				downPressed = false;
-			}
-			else if (params.key == up) {
-				upPressed = false;
-			}
-		}
-	}
-
-	class OutlineRenderTask : public Zap::RenderTaskTemplate {
+	class OutlineRenderTask : public Zap::RenderTask,
+		public Zap::EventListener<Zap::SceneEvent::UpdateMeshInstanceBuffer>
+	{
 		// 1. Plain Pass -> PlainColor, DepthStencil
 		// 2. Blur Pass -> BlurColor
 		// 3. Outline Pass -> Target, DepthStencil
 	public:
-		OutlineRenderTask(Zap::Scene* pScene, std::vector<Zap::Actor>& actors)
-			: RenderTaskTemplate(pScene), m_actors(actors)
+		OutlineRenderTask(Zap::Renderer* pRenderer, Zap::Scene* pScene, std::vector<Zap::Actor>& actors, Zap::RenderTargetHandle<> target)
+			: RenderTask(pRenderer, pScene), m_actors(actors), m_target(target),
+			Zap::EventListener<Zap::SceneEvent::UpdateMeshInstanceBuffer>(pScene->getEventHandler())
 		{}
 
 		~OutlineRenderTask() {}
@@ -102,7 +35,7 @@ namespace editor {
 			void* rawData;
 			m_uniformBuffer.map(&rawData);
 			UBO* data = (UBO*)rawData;
-			data->perspective = cam.cmpCamera_getPerspective(m_viewport.width / m_viewport.height);
+			data->perspective = cam.cmpCamera_getPerspective(getViewport().width / getViewport().height);
 			data->view = cam.cmpCamera_getView();
 			m_uniformBuffer.unmap();
 		}
@@ -110,11 +43,12 @@ namespace editor {
 	private:
 		std::vector<Zap::Actor>& m_actors;
 
-		vk::Image m_plainColorImage_blurB;
-		vk::Image m_plainDepthStencilImage;
-		vk::Image m_blurA;
+		Zap::RenderTargetHandle<> m_target;
+		Zap::RenderTargetHandle<Zap::RenderTargetImage> m_plainColorTarget_blurBTarget;
+		Zap::RenderTargetHandle<Zap::RenderTargetImage> m_plainDepthStencilTarget;
+		Zap::RenderTargetHandle<Zap::RenderTargetImage> m_blurATarget;
 
-		std::vector<vk::Framebuffer> m_framebuffers;
+		Zap::FramebufferHandle m_framebuffer;
 
 		struct UBO {
 			glm::mat4 perspective;
@@ -122,11 +56,10 @@ namespace editor {
 		};
 		vk::Buffer m_uniformBuffer;
 
-		vk::DescriptorPool m_descriptorPool;
-		vk::DescriptorSet m_plainDescriptorSet;
-		vk::DescriptorSet m_blurADescriptorSet;
-		vk::DescriptorSet m_blurBDescriptorSet;
-		vk::DescriptorSet m_outlineDescriptorSet;
+		Zap::DescriptorSetHandle<Zap::GenericDescriptorSet> m_plainDescriptorSet;
+		Zap::DescriptorSetHandle<Zap::RenderTargetDescriptorSet> m_plainColorTargetDescriptorSet;
+		Zap::DescriptorSetHandle<Zap::RenderTargetDescriptorSet> m_blurATargetDescriptorSet;
+		Zap::DescriptorSetHandle<Zap::RenderTargetDescriptorSet> m_outlineDescriptorSet;
 
 		vk::RenderPass m_renderPass;
 
@@ -143,26 +76,27 @@ namespace editor {
 		vk::Pipeline m_blurBPipeline;
 		vk::Pipeline m_outlinePipeline;
 
-		VkViewport m_viewport;
-		VkRect2D m_scissor;
+		VkViewport getViewport() {
+			VkViewport viewport;
+			viewport.x = 0;
+			viewport.y = 0;
+			viewport.width = m_target->getExtent().width;
+			viewport.height = m_target->getExtent().height;
+			viewport.minDepth = 0;
+			viewport.maxDepth = 1;
+			return viewport;
+		}
+		VkRect2D getScissor() {
+			VkRect2D scissor;
+			scissor.extent.width = m_target->getExtent().width;
+			scissor.extent.height = m_target->getExtent().height;
+			scissor.offset.x = 0;
+			scissor.offset.y = 0;
+			return scissor;
+		}
 
-		void init(uint32_t width, uint32_t height, uint32_t imageCount) {
+		void init(const Zap::LayoutTransitionHelper& layoutTransitionHelper) override {
 			Zap::Base* base = Zap::Base::getBase();
-
-			/*Viewport & Scissor*/
-			{
-				m_viewport.x = 0;
-				m_viewport.y = 0;
-				m_viewport.width = width;
-				m_viewport.height = height;
-				m_viewport.minDepth = 0;
-				m_viewport.maxDepth = 1;
-
-				m_scissor.extent.width = width;
-				m_scissor.extent.height = height;
-				m_scissor.offset.x = 0;
-				m_scissor.offset.y = 0;
-			}
 
 			/*UniformBuffer*/
 			{
@@ -172,153 +106,71 @@ namespace editor {
 			}
 
 			/*Images*/
-			m_plainColorImage_blurB = vk::Image();
-			m_plainDepthStencilImage = vk::Image();
-			{
-				m_plainColorImage_blurB.setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
-				m_plainColorImage_blurB.setExtent({ width, height, 1 });
-				m_plainColorImage_blurB.setFormat(Zap::GlobalSettings::getColorFormat());
-				m_plainColorImage_blurB.setLayout(VK_IMAGE_LAYOUT_UNDEFINED);
-				m_plainColorImage_blurB.setType(VK_IMAGE_TYPE_2D);
-				m_plainColorImage_blurB.setUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
-				m_plainColorImage_blurB.init();
-				m_plainColorImage_blurB.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-				m_plainColorImage_blurB.initView();
+			m_plainColorTarget_blurBTarget = m_pRenderer->createRenderTarget<Zap::RenderTargetImage>();
+			m_plainColorTarget_blurBTarget->setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
+			m_plainColorTarget_blurBTarget->setFormat(Zap::GlobalSettings::getColorFormat());
+			m_plainColorTarget_blurBTarget->setUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
+			m_plainColorTarget_blurBTarget->setInitialLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+			m_plainColorTarget_blurBTarget->init(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-				// Set layout to the the layout expected by the renderpass
-				m_plainColorImage_blurB.changeLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
+			m_plainDepthStencilTarget = m_pRenderer->createRenderTarget<Zap::RenderTargetImage>();
+			m_plainDepthStencilTarget->setAspect(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
+			m_plainDepthStencilTarget->setFormat(Zap::GlobalSettings::getDepthStencilFormat());
+			m_plainDepthStencilTarget->setUsage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+			m_plainDepthStencilTarget->setInitialLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+			m_plainDepthStencilTarget->init(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
-				m_plainDepthStencilImage.setAspect(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
-				m_plainDepthStencilImage.setExtent({ width, height, 1 });
-				m_plainDepthStencilImage.setFormat(Zap::GlobalSettings::getDepthStencilFormat());
-				m_plainDepthStencilImage.setLayout(VK_IMAGE_LAYOUT_UNDEFINED);
-				m_plainDepthStencilImage.setType(VK_IMAGE_TYPE_2D);
-				m_plainDepthStencilImage.setUsage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
-				m_plainDepthStencilImage.init();
-				m_plainDepthStencilImage.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-				m_plainDepthStencilImage.initView();
-
-				m_plainDepthStencilImage.changeLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
-			}
-			m_blurA = vk::Image();
-			{
-				m_blurA.setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
-				m_blurA.setExtent({ width, height, 1 });
-				m_blurA.setFormat(Zap::GlobalSettings::getColorFormat());
-				m_blurA.setLayout(VK_IMAGE_LAYOUT_UNDEFINED);
-				m_blurA.setType(VK_IMAGE_TYPE_2D);
-				m_blurA.setUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
-				m_blurA.init();
-				m_blurA.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-				m_blurA.initView();
-
-				// Set layout to the the layout expected by the renderpass
-				m_blurA.changeLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
-			}
+			m_blurATarget = m_pRenderer->createRenderTarget<Zap::RenderTargetImage>();
+			m_blurATarget->setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
+			m_blurATarget->setFormat(Zap::GlobalSettings::getColorFormat());
+			m_blurATarget->setUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
+			m_blurATarget->setInitialLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+			m_blurATarget->init(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
 			/*Descriptors*/
-			m_descriptorPool = vk::DescriptorPool();
-			m_plainDescriptorSet = vk::DescriptorSet();
+			m_plainDescriptorSet = m_pRenderer->createDescriptorSet<Zap::GenericDescriptorSet>();
+
+			Zap::DescriptorSetBinding uniformBufferBinding(
+				VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				VK_SHADER_STAGE_VERTEX_BIT
+			);
+			VkDescriptorBufferInfo uniformBufferInfo { m_uniformBuffer, 0, m_uniformBuffer.getSize() };
+
+			Zap::DescriptorSetBinding perMeshBufferBinding(
+				VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+				VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT
+			);
+			VkDescriptorBufferInfo perMeshBufferInfo{ *getScenePerMeshInstanceBuffer(), 0, getScenePerMeshInstanceBuffer()->getSize() };
+
+			m_plainDescriptorSet->addBinding(uniformBufferBinding);
+			m_plainDescriptorSet->addBinding(perMeshBufferBinding);
+			m_plainDescriptorSet->createLayout();
+			m_plainDescriptorSet->allocate();
 			{
-				vk::DescriptorBufferInfo uniformBufferInfo{};
-				uniformBufferInfo.pBuffer = &m_uniformBuffer;
-				uniformBufferInfo.offset = 0;
-				uniformBufferInfo.range = m_uniformBuffer.getSize();
-
-				vk::Descriptor uniformBufferDescriptor{};
-				uniformBufferDescriptor.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				uniformBufferDescriptor.stages = VK_SHADER_STAGE_VERTEX_BIT;
-				uniformBufferDescriptor.binding = 0;
-				uniformBufferDescriptor.bufferInfos = { uniformBufferInfo };
-
-				m_plainDescriptorSet.addDescriptor(uniformBufferDescriptor);
-
-				vk::DescriptorBufferInfo perMeshBufferInfo;
-				perMeshBufferInfo.pBuffer = getScenePerMeshInstanceBuffer();
-				perMeshBufferInfo.offset = 0;
-				perMeshBufferInfo.range = getScenePerMeshInstanceBuffer()->getSize();
-
-				vk::Descriptor perMeshBufferDescriptor{};
-				perMeshBufferDescriptor.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-				perMeshBufferDescriptor.stages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-				perMeshBufferDescriptor.binding = 1;
-				perMeshBufferDescriptor.bufferInfos = { perMeshBufferInfo };
-
-				m_plainDescriptorSet.addDescriptor(perMeshBufferDescriptor);
-
-				m_descriptorPool.addDescriptorSet(m_plainDescriptorSet);
-
-				getRegistery()->connect(getScenePerMeshInstanceBuffer(), &m_plainDescriptorSet, updatePerMeshBufferDescriptorSet);
-			}
-			m_blurADescriptorSet = vk::DescriptorSet();
-			{
-				vk::DescriptorImageInfo srcImageInfo{};
-				srcImageInfo.pSampler = nullptr;
-				srcImageInfo.pImage = &m_plainColorImage_blurB;
-				srcImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-
-				vk::Descriptor srcImageDescriptor{};
-				srcImageDescriptor.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-				srcImageDescriptor.stages = VK_SHADER_STAGE_FRAGMENT_BIT;
-				srcImageDescriptor.binding = 0;
-				srcImageDescriptor.imageInfos = { srcImageInfo };
-
-				m_blurADescriptorSet.addDescriptor(srcImageDescriptor);
-
-				m_descriptorPool.addDescriptorSet(m_blurADescriptorSet);
-			}
-			m_blurBDescriptorSet = vk::DescriptorSet();
-			{
-				vk::DescriptorImageInfo srcImageInfo{};
-				srcImageInfo.pSampler = nullptr;
-				srcImageInfo.pImage = &m_blurA;
-				srcImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-
-				vk::Descriptor srcImageDescriptor{};
-				srcImageDescriptor.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-				srcImageDescriptor.stages = VK_SHADER_STAGE_FRAGMENT_BIT;
-				srcImageDescriptor.binding = 0;
-				srcImageDescriptor.imageInfos = { srcImageInfo };
-
-				m_blurBDescriptorSet.addDescriptor(srcImageDescriptor);
-
-				m_descriptorPool.addDescriptorSet(m_blurBDescriptorSet);
-			}
-			m_outlineDescriptorSet = vk::DescriptorSet();
-			{
-				vk::DescriptorImageInfo srcImageInfo{};
-				srcImageInfo.pSampler = nullptr;
-				srcImageInfo.pImage = &m_plainColorImage_blurB;
-				srcImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-				vk::Descriptor srcImageDescriptor{};
-				srcImageDescriptor.type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-				srcImageDescriptor.stages = VK_SHADER_STAGE_FRAGMENT_BIT;
-				srcImageDescriptor.binding = 0;
-				srcImageDescriptor.imageInfos = { srcImageInfo };
-
-				m_outlineDescriptorSet.addDescriptor(srcImageDescriptor);
-
-				m_descriptorPool.addDescriptorSet(m_outlineDescriptorSet);
+				std::array<VkWriteDescriptorSet, 2> writes = {
+					m_plainDescriptorSet->writeBuffer(uniformBufferInfo, 0),
+					m_plainDescriptorSet->writeBuffer(perMeshBufferInfo, 1)
+				};
+				m_plainDescriptorSet->write(writes.size(), writes.data());
 			}
 
-			m_descriptorPool.init();
+			m_plainColorTargetDescriptorSet = m_pRenderer->createDescriptorSet<Zap::RenderTargetDescriptorSet>(
+				m_plainColorTarget_blurBTarget,
+				VK_SHADER_STAGE_FRAGMENT_BIT
+			);
+			m_plainColorTargetDescriptorSet->write();
 
-			m_plainDescriptorSet.init();
-			m_plainDescriptorSet.allocate();
-			m_plainDescriptorSet.update();
+			m_blurATargetDescriptorSet = m_pRenderer->createDescriptorSet<Zap::RenderTargetDescriptorSet>(
+				m_blurATarget,
+				VK_SHADER_STAGE_FRAGMENT_BIT
+			);
+			m_blurATargetDescriptorSet->write();
 
-			m_blurADescriptorSet.init();
-			m_blurADescriptorSet.allocate();
-			m_blurADescriptorSet.update();
-
-			m_blurBDescriptorSet.init();
-			m_blurBDescriptorSet.allocate();
-			m_blurBDescriptorSet.update();
-
-			m_outlineDescriptorSet.init();
-			m_outlineDescriptorSet.allocate();
-			m_outlineDescriptorSet.update();
+			m_outlineDescriptorSet = m_pRenderer->createDescriptorSet<Zap::RenderTargetDescriptorSet>(
+				m_plainColorTarget_blurBTarget,
+				VK_SHADER_STAGE_FRAGMENT_BIT, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT
+			);
+			m_outlineDescriptorSet->write();
 
 			/*RenderPass*/
 			m_renderPass = vk::RenderPass();
@@ -326,7 +178,7 @@ namespace editor {
 				VkAttachmentDescription plainColorAttachment;
 				{
 					plainColorAttachment.flags = 0;
-					plainColorAttachment.format = m_plainColorImage_blurB.getFormat();
+					plainColorAttachment.format = Zap::GlobalSettings::getColorFormat();
 					plainColorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 					plainColorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 					plainColorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -340,7 +192,7 @@ namespace editor {
 				VkAttachmentDescription plainDepthStencilAttachment;
 				{
 					plainDepthStencilAttachment.flags = 0;
-					plainDepthStencilAttachment.format = m_plainDepthStencilImage.getFormat();
+					plainDepthStencilAttachment.format = Zap::GlobalSettings::getDepthStencilFormat();
 					plainDepthStencilAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 					plainDepthStencilAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 					plainDepthStencilAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -354,7 +206,7 @@ namespace editor {
 				VkAttachmentDescription blurAColorAttachment;
 				{
 					blurAColorAttachment.flags = 0;
-					blurAColorAttachment.format = m_blurA.getFormat();
+					blurAColorAttachment.format = Zap::GlobalSettings::getColorFormat();
 					blurAColorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
 					blurAColorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 					blurAColorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -374,8 +226,8 @@ namespace editor {
 					targetColorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 					targetColorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 					targetColorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-					targetColorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-					targetColorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+					targetColorAttachment.initialLayout = layoutTransitionHelper.getTransition(m_target).oldLayout;
+					targetColorAttachment.finalLayout = layoutTransitionHelper.getTransition(m_target).newLayout;
 				}
 				m_renderPass.addAttachmentDescription(targetColorAttachment);
 
@@ -403,7 +255,7 @@ namespace editor {
 				{
 					VkAttachmentReference tmp;
 					tmp.attachment = 0;
-					tmp.layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+					tmp.layout = VK_IMAGE_LAYOUT_GENERAL;
 					pPlainColorAttachmentInputReference = &tmp;
 
 					m_renderPass.addAttachmentReference(&pPlainColorAttachmentInputReference);
@@ -581,8 +433,7 @@ namespace editor {
 			}
 
 			/*Framebuffers*/
-			m_framebuffers.resize(imageCount);
-			RenderTaskTemplate::initTargetDependencies();
+			m_framebuffer = m_pRenderer->createFramebuffer(m_renderPass, {m_plainColorTarget_blurBTarget, m_plainDepthStencilTarget, m_blurATarget, m_target});
 
 			/*Shader*/
 #ifdef _DEBUG
@@ -592,42 +443,27 @@ namespace editor {
 				areShadersCompiled = true;
 			}
 #endif
-			m_plainVertexShader = vk::Shader();
-			m_plainFragmentShader = vk::Shader();
-			{
-				m_plainVertexShader.setStage(VK_SHADER_STAGE_VERTEX_BIT);
-				m_plainVertexShader.setPath("outlinePlain.vert.spv");
-
-				m_plainFragmentShader.setStage(VK_SHADER_STAGE_FRAGMENT_BIT);
-				m_plainFragmentShader.setPath("outlinePlain.frag.spv");
-
-				m_plainVertexShader.init();
-				m_plainFragmentShader.init();
-			}
-			m_blurVertexShader = vk::Shader();
-			m_blurAFragmentShader = vk::Shader();
-			m_blurBFragmentShader = vk::Shader();
-			{
-				m_blurVertexShader.setStage(VK_SHADER_STAGE_VERTEX_BIT);
-				m_blurVertexShader.setPath("outlineBlur.vert.spv");
-
-				m_blurAFragmentShader.setStage(VK_SHADER_STAGE_FRAGMENT_BIT);
-				m_blurAFragmentShader.setPath("outlineBlurA.frag.spv");
-
-				m_blurBFragmentShader.setStage(VK_SHADER_STAGE_FRAGMENT_BIT);
-				m_blurBFragmentShader.setPath("outlineBlurB.frag.spv");
-
-				m_blurVertexShader.init();
-				m_blurAFragmentShader.init();
-				m_blurBFragmentShader.init();
-			}
-			m_outlineFragmentShader = vk::Shader();
-			{
-				m_outlineFragmentShader.setStage(VK_SHADER_STAGE_FRAGMENT_BIT);
-				m_outlineFragmentShader.setPath("outline.frag.spv");
-
-				m_outlineFragmentShader.init();
-			}
+			m_plainVertexShader.setStage(VK_SHADER_STAGE_VERTEX_BIT);
+			m_plainVertexShader.setPath("outlinePlain.vert.spv");
+			m_plainFragmentShader.setStage(VK_SHADER_STAGE_FRAGMENT_BIT);
+			m_plainFragmentShader.setPath("outlinePlain.frag.spv");
+			m_plainVertexShader.init();
+			m_plainFragmentShader.init();
+			
+			m_blurVertexShader.setStage(VK_SHADER_STAGE_VERTEX_BIT);
+			m_blurVertexShader.setPath("outlineBlur.vert.spv");
+			m_blurAFragmentShader.setStage(VK_SHADER_STAGE_FRAGMENT_BIT);
+			m_blurAFragmentShader.setPath("outlineBlurA.frag.spv");
+			m_blurBFragmentShader.setStage(VK_SHADER_STAGE_FRAGMENT_BIT);
+			m_blurBFragmentShader.setPath("outlineBlurB.frag.spv");
+			m_blurVertexShader.init();
+			m_blurAFragmentShader.init();
+			m_blurBFragmentShader.init();
+			
+			m_outlineFragmentShader.setStage(VK_SHADER_STAGE_FRAGMENT_BIT);
+			m_outlineFragmentShader.setPath("outline.frag.spv");
+			m_outlineFragmentShader.init();
+			
 
 			/*Pipelines*/
 			m_plainPipeline = vk::Pipeline();
@@ -635,13 +471,13 @@ namespace editor {
 				m_plainPipeline.addShader(m_plainVertexShader.getShaderStage());
 				m_plainPipeline.addShader(m_plainFragmentShader.getShaderStage());
 
-				m_plainPipeline.addDescriptorSetLayout(m_plainDescriptorSet.getVkDescriptorSetLayout());
+				m_plainPipeline.addDescriptorSetLayout(m_plainDescriptorSet->getLayout());
 				m_plainPipeline.addVertexInputAttrubuteDescription(Vertex::getVertexInputAttributeDescriptions()[0]);
 				m_plainPipeline.addVertexInputBindingDescription(Vertex::getVertexInputBindingDescription());
 				m_plainPipeline.addDynamicState(VK_DYNAMIC_STATE_VIEWPORT);
 				m_plainPipeline.addDynamicState(VK_DYNAMIC_STATE_SCISSOR);
-				m_plainPipeline.addViewport(m_viewport);
-				m_plainPipeline.addScissor(m_scissor);
+				m_plainPipeline.addViewport(getViewport());
+				m_plainPipeline.addScissor(getScissor());
 				m_plainPipeline.setRenderPass(m_renderPass);
 				m_plainPipeline.setSubpassIndex(0);
 				m_plainPipeline.enableDepthTest();
@@ -673,11 +509,11 @@ namespace editor {
 				m_blurAPipeline.addShader(m_blurVertexShader.getShaderStage());
 				m_blurAPipeline.addShader(m_blurAFragmentShader.getShaderStage());
 
-				m_blurAPipeline.addDescriptorSetLayout(m_blurADescriptorSet.getVkDescriptorSetLayout());
+				m_blurAPipeline.addDescriptorSetLayout(m_blurATargetDescriptorSet->getLayout());
 				m_blurAPipeline.addDynamicState(VK_DYNAMIC_STATE_VIEWPORT);
 				m_blurAPipeline.addDynamicState(VK_DYNAMIC_STATE_SCISSOR);
-				m_blurAPipeline.addViewport(m_viewport);
-				m_blurAPipeline.addScissor(m_scissor);
+				m_blurAPipeline.addViewport(getViewport());
+				m_blurAPipeline.addScissor(getScissor());
 				m_blurAPipeline.setRenderPass(m_renderPass);
 				m_blurAPipeline.setSubpassIndex(1);
 				m_blurAPipeline.disableBlending();
@@ -689,11 +525,11 @@ namespace editor {
 				m_blurBPipeline.addShader(m_blurVertexShader.getShaderStage());
 				m_blurBPipeline.addShader(m_blurBFragmentShader.getShaderStage());
 
-				m_blurBPipeline.addDescriptorSetLayout(m_blurBDescriptorSet.getVkDescriptorSetLayout());
+				m_blurBPipeline.addDescriptorSetLayout(m_blurATargetDescriptorSet->getLayout());
 				m_blurBPipeline.addDynamicState(VK_DYNAMIC_STATE_VIEWPORT);
 				m_blurBPipeline.addDynamicState(VK_DYNAMIC_STATE_SCISSOR);
-				m_blurBPipeline.addViewport(m_viewport);
-				m_blurBPipeline.addScissor(m_scissor);
+				m_blurBPipeline.addViewport(getViewport());
+				m_blurBPipeline.addScissor(getScissor());
 				m_blurBPipeline.setRenderPass(m_renderPass);
 				m_blurBPipeline.setSubpassIndex(2);
 				m_blurBPipeline.disableBlending();
@@ -705,11 +541,11 @@ namespace editor {
 				m_outlinePipeline.addShader(m_blurVertexShader.getShaderStage());
 				m_outlinePipeline.addShader(m_outlineFragmentShader.getShaderStage());
 
-				m_outlinePipeline.addDescriptorSetLayout(m_outlineDescriptorSet.getVkDescriptorSetLayout());
+				m_outlinePipeline.addDescriptorSetLayout(m_outlineDescriptorSet->getLayout());
 				m_outlinePipeline.addDynamicState(VK_DYNAMIC_STATE_VIEWPORT);
 				m_outlinePipeline.addDynamicState(VK_DYNAMIC_STATE_SCISSOR);
-				m_outlinePipeline.addViewport(m_viewport);
-				m_outlinePipeline.addScissor(m_scissor);
+				m_outlinePipeline.addViewport(getViewport());
+				m_outlinePipeline.addScissor(getScissor());
 				m_outlinePipeline.setRenderPass(m_renderPass);
 				m_outlinePipeline.setSubpassIndex(3);
 
@@ -730,51 +566,7 @@ namespace editor {
 			}
 		}
 
-		void initTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex) {
-			m_framebuffers[imageIndex].setWidth(width);
-			m_framebuffers[imageIndex].setHeight(height);
-			m_framebuffers[imageIndex].addAttachment(m_plainColorImage_blurB.getVkImageView());
-			m_framebuffers[imageIndex].addAttachment(m_plainDepthStencilImage.getVkImageView());
-			m_framebuffers[imageIndex].addAttachment(m_blurA.getVkImageView());
-			m_framebuffers[imageIndex].addAttachment(pTarget->getVkImageView());
-			m_framebuffers[imageIndex].setRenderPass(m_renderPass);
-			m_framebuffers[imageIndex].init();
-		}
-
-		void resize(uint32_t width, uint32_t height, uint32_t imageCount) {
-			/*Viewport & Scissor*/
-			m_viewport.width = width;
-			m_viewport.height = height;
-
-			m_scissor.extent.width = width;
-			m_scissor.extent.height = height;
-
-			m_plainColorImage_blurB.resize(width, height);
-			m_plainDepthStencilImage.resize(width, height);
-			m_blurA.resize(width, height);
-
-			m_blurADescriptorSet.update(); // update descriptor #0 for resize
-			m_blurBDescriptorSet.update(); // update descriptor #0 for resize
-			m_outlineDescriptorSet.update();
-
-			RenderTaskTemplate::resizeTargetDependencies();
-		}
-
-		void resizeTargetDependencies(uint32_t width, uint32_t height, uint32_t imageCount, vk::Image* pTarget, uint32_t imageIndex) {
-			m_framebuffers[imageIndex].setWidth(width);
-			m_framebuffers[imageIndex].setHeight(height);
-			m_framebuffers[imageIndex].delAttachment(0);
-			m_framebuffers[imageIndex].delAttachment(0);
-			m_framebuffers[imageIndex].delAttachment(0);
-			m_framebuffers[imageIndex].delAttachment(0);
-			m_framebuffers[imageIndex].addAttachment(m_plainColorImage_blurB.getVkImageView());
-			m_framebuffers[imageIndex].addAttachment(m_plainDepthStencilImage.getVkImageView());
-			m_framebuffers[imageIndex].addAttachment(m_blurA.getVkImageView());
-			m_framebuffers[imageIndex].addAttachment(pTarget->getVkImageView());
-			m_framebuffers[imageIndex].update();
-		}
-
-		void destroy() {
+		void destroy() override {
 			m_plainPipeline.destroy();
 			m_blurAPipeline.destroy();
 			m_blurBPipeline.destroy();
@@ -785,30 +577,37 @@ namespace editor {
 			m_blurAFragmentShader.destroy();
 			m_blurBFragmentShader.destroy();
 			m_outlineFragmentShader.destroy();
-			for (auto& framebuffer : m_framebuffers)
-				framebuffer.destroy();
-			m_framebuffers.clear();
+			m_pRenderer->destroyFramebuffer(m_framebuffer);
 			m_renderPass.destroy();
-			m_plainColorImage_blurB.destroy();
-			m_plainDepthStencilImage.destroy();
-			m_blurA.destroy();
-			m_plainDescriptorSet.destroy();
-			m_blurADescriptorSet.destroy();
-			m_blurBDescriptorSet.destroy();
-			m_outlineDescriptorSet.destroy();
-			m_descriptorPool.destroy();
+			m_pRenderer->destroyDescriptorSet(m_plainDescriptorSet);
+			m_pRenderer->destroyDescriptorSet(m_plainColorTargetDescriptorSet);
+			m_pRenderer->destroyDescriptorSet(m_blurATargetDescriptorSet);
+			m_pRenderer->destroyDescriptorSet(m_outlineDescriptorSet);
+			m_pRenderer->destroyRenderTarget(m_plainColorTarget_blurBTarget);
+			m_pRenderer->destroyRenderTarget(m_plainDepthStencilTarget);
+			m_pRenderer->destroyRenderTarget(m_blurATarget);
 			m_uniformBuffer.destroy();
 		}
 
-		void beforeRender(vk::Image* pTarget, uint32_t imageIndex) {}
+		void addDescriptorPoolSizes(Zap::DescriptorPoolSizeList& poolSizes) override {
+			poolSizes.addSets(4);
+			poolSizes.addPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1);
+			poolSizes.addPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1);
+			poolSizes.addPoolSize(VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 2);
+			poolSizes.addPoolSize(VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1);
+		}
 
-		void afterRender(vk::Image* pTarget, uint32_t imageIndex) {}
+		Zap::TaskLayoutTransitions getLayoutTransitions() override {
+			Zap::TaskLayoutTransitions layouts;
+			layouts.addLayout(m_target, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL); // define target layout at time of rendering
+			return layouts;
+		}
 
-		void recordCommands(const vk::CommandBuffer* cmd, vk::Image* pTarget, uint32_t imageIndex) {
+		void recordCommands(const vk::CommandBuffer* cmd) override {
 			VkRenderPassBeginInfo plainPassBeginInfo{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, nullptr};
 			plainPassBeginInfo.renderPass = m_renderPass;
-			plainPassBeginInfo.framebuffer = m_framebuffers[imageIndex];
-			plainPassBeginInfo.renderArea = m_scissor;
+			plainPassBeginInfo.framebuffer = *m_framebuffer.get();
+			plainPassBeginInfo.renderArea = getScissor();
 			
 			VkClearValue plainColorClearValue = { 0, 0, 0, 0 };
 			VkClearValue plainDepthStencilClearValue = { 1, 0 };
@@ -826,8 +625,8 @@ namespace editor {
 			
 			vkCmdBindPipeline(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_plainPipeline);
 
-			vkCmdSetViewport(*cmd, 0, 1, &m_viewport);
-			vkCmdSetScissor(*cmd, 0, 1, &m_scissor);
+			vkCmdSetViewport(*cmd, 0, 1, &getViewport());
+			vkCmdSetScissor(*cmd, 0, 1, &getScissor());
 
 			VkDescriptorSet boundSets[] = { m_plainDescriptorSet };
 			vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_plainPipeline.getVkPipelineLayout(), 0, 1, boundSets, 0, nullptr);
@@ -853,10 +652,10 @@ namespace editor {
 
 			vkCmdBindPipeline(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_blurAPipeline);
 
-			vkCmdSetViewport(*cmd, 0, 1, &m_viewport);
-			vkCmdSetScissor(*cmd, 0, 1, &m_scissor);
+			vkCmdSetViewport(*cmd, 0, 1, &getViewport());
+			vkCmdSetScissor(*cmd, 0, 1, &getScissor());
 
-			VkDescriptorSet blurABoundSets[] = { m_blurADescriptorSet };
+			VkDescriptorSet blurABoundSets[] = { m_plainColorTargetDescriptorSet };
 			vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_blurAPipeline.getVkPipelineLayout(), 0, 1, blurABoundSets, 0, nullptr);
 			
 			vkCmdDraw(*cmd, 6, 1, 0, 0);
@@ -865,10 +664,10 @@ namespace editor {
 
 			vkCmdBindPipeline(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_blurBPipeline);
 
-			vkCmdSetViewport(*cmd, 0, 1, &m_viewport);
-			vkCmdSetScissor(*cmd, 0, 1, &m_scissor);
+			vkCmdSetViewport(*cmd, 0, 1, &getViewport());
+			vkCmdSetScissor(*cmd, 0, 1, &getScissor());
 
-			VkDescriptorSet blurBBoundSets[] = { m_blurBDescriptorSet };
+			VkDescriptorSet blurBBoundSets[] = { m_blurATargetDescriptorSet };
 			vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_blurBPipeline.getVkPipelineLayout(), 0, 1, blurBBoundSets, 0, nullptr);
 			
 			vkCmdDraw(*cmd, 6, 1, 0, 0);
@@ -877,8 +676,8 @@ namespace editor {
 
 			vkCmdBindPipeline(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_outlinePipeline);
 
-			vkCmdSetViewport(*cmd, 0, 1, &m_viewport);
-			vkCmdSetScissor(*cmd, 0, 1, &m_scissor);
+			vkCmdSetViewport(*cmd, 0, 1, &getViewport());
+			vkCmdSetScissor(*cmd, 0, 1, &getScissor());
 
 			VkDescriptorSet outlineBoundSets[] = { m_outlineDescriptorSet };
 			vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_outlinePipeline.getVkPipelineLayout(), 0, 1, outlineBoundSets, 0, nullptr);
@@ -888,78 +687,19 @@ namespace editor {
 			vkCmdEndRenderPass(*cmd);
 		}
 
-		static void updatePerMeshBufferDescriptorSet(vk::Registerable* obj, vk::Registerable* dependency, vk::RegisteryFunction func) {
-			if (func != vk::eUPDATE)
-				return;
-
-			vk::Buffer* pBuffer = (vk::Buffer*)obj;
-			vk::DescriptorSet* pDescriptorSet = (vk::DescriptorSet*)dependency;
-			auto descriptor = pDescriptorSet->getDescriptor(1);
-			descriptor.bufferInfos[0].range = pBuffer->getSize();
-			pDescriptorSet->setDescriptor(1, descriptor);
-
-			pDescriptorSet->update();
+		void callback(const Zap::SceneEvent::UpdateMeshInstanceBuffer& event) override {
+			VkDescriptorBufferInfo perMeshBufferInfo{ *getScenePerMeshInstanceBuffer(), 0, getScenePerMeshInstanceBuffer()->getSize() };
+			VkWriteDescriptorSet write = m_plainDescriptorSet->writeBuffer(perMeshBufferInfo, 1);
+			m_plainDescriptorSet->write(1, &write);
 		}
 	};
 
 	Viewport::Viewport(EditorData& editorData, Zap::Scene* pScene, Zap::Window* pWindow)
 		: m_editorData(editorData), m_pScene(pScene), m_pWindow(pWindow), m_selectedActors(editorData.selectedActors), m_camera(*pScene)
 	{
-		m_pWindow->getKeyEventHandler()->addCallback(keyCallback);
-		m_pWindow->getMouseButtonEventHandler()->addCallback(mouseButtonCallback);
+		m_spLineBuffer = std::make_shared<Zap::LineBuffer>();
 
-		m_outImage.setFormat(Zap::GlobalSettings::getColorFormat());
-		m_outImage.setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
-		m_outImage.setUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-		m_outImage.setLayout(VK_IMAGE_LAYOUT_PREINITIALIZED);
-		m_outImage.setWidth(1);
-		m_outImage.setHeight(1);
-		
-		m_outImage.init();
-		m_outImage.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		m_outImage.initView();
-
-		m_pGeomPass = new Zap::GeometryPass(pScene);
-		m_pGeomPass->setViewport(1, 1, 0, 0);
-
-		m_pPBRender = new Zap::PBRenderer(pScene);
-		m_pPBRender->setViewport(1, 1, 0, 0);
-
-		m_pOutlineRenderTask = new OutlineRenderTask(pScene, m_selectedActors);
-		m_pDebugRenderTask = new Zap::DebugRenderTask();
-
-		m_debugVertexBuffer = vk::Buffer(0, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-		m_debugVertexBuffer.init();
-		m_debugVertexBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-		m_pDebugRenderTask->addLineVertexBuffer(&m_debugVertexBuffer);
-
-		m_renderer.setTarget(&m_outImage);
-		m_renderer.addRenderTask(m_pGeomPass);
-		m_renderer.addRenderTask(m_pPBRender);
-		m_renderer.addRenderTask(m_pOutlineRenderTask);
-		m_renderer.addRenderTask(m_pDebugRenderTask);
-
-		if (Zap::Base::getBase()->getSettings()->enableRaytracing) {
-			m_pRTRender = new Zap::RaytracingRenderer(pScene);
-			m_renderer.addRenderTask(m_pRTRender);
-		
-			m_pPathTracer = new Zap::PathTracer(pScene);
-			m_renderer.addRenderTask(m_pPathTracer);
-		}
-
-		m_renderer.beginRecord();
-		m_renderer.recRenderTemplate(m_pPBRender);
-		if (m_settings.enableOutlines)
-			m_renderer.recRenderTemplate(m_pOutlineRenderTask);
-		m_renderer.recRenderTemplate(m_pDebugRenderTask);
-		m_renderer.endRecord();
-
-		m_renderer.init();
-
-		m_sampler.init();
-
-		m_imageDescriptorSet = ImGui_ImplVulkan_AddTexture(m_sampler, m_outImage.getVkImageView(), VK_IMAGE_LAYOUT_GENERAL);
+		activatePBR(); // activate the default rendering mode
 
 		m_camera.setMode(eFLY);
 
@@ -991,14 +731,8 @@ namespace editor {
 	}
 
 	Viewport::~Viewport() {
-		m_renderer.destroy();
-		m_sampler.destroy();
-		m_outImage.destroy();
-		m_debugVertexBuffer.destroy();
+		m_renderer->destroy();
 		m_transformEditScene.destroy();
-
-		m_pWindow->getKeyEventHandler()->removeCallback(keyCallback);
-		m_pWindow->getMouseButtonEventHandler()->removeCallback(mouseButtonCallback);
 	}
 
 	std::string Viewport::name() {
@@ -1009,7 +743,7 @@ namespace editor {
 		return 3;
 	}
 
-	void drawTransformLines(uint32_t& offset, Zap::DebugRenderVertex* data, Zap::Actor actor, uint32_t select, float scale) {
+	void drawTransformLines(uint32_t& offset, Zap::LineVertex* data, Zap::Actor actor, uint32_t select, float scale) {
 		data += offset*2;
 
 		glm::vec3 pos = actor.cmpTransform_getPos();
@@ -1063,22 +797,20 @@ namespace editor {
 			};
 			mode = names[m_renderType];
 			if (ImGui::BeginMenu(("Mode: " + mode).c_str())) {
-				if (ImGui::MenuItem("Deferred")) {
-					changeRenderType(eDEFERRED);
-				}
+				//if (ImGui::MenuItem("Deferred")) {
+				//	changeRenderType(eDEFERRED);
+				//}
 				if (ImGui::MenuItem("PBR")) {
-					changeRenderType(ePBR);
+					disableRenderType();
+					activatePBR();
 				}
-
 				// disable rendering modes that use raytracing if not enabled
 				if (!Zap::Base::getBase()->getSettings()->enableRaytracing)
 					ImGui::BeginDisabled();
-
-				if (ImGui::MenuItem("Raytracing")) {
-					changeRenderType(eRAYTRACING);
-				}
+				
 				if (ImGui::MenuItem("Path Tracing")) {
-					changeRenderType(ePATHTRACING);
+					disableRenderType();
+					activatePathTracer();
 				}
 
 				if (!Zap::Base::getBase()->getSettings()->enableRaytracing)
@@ -1094,13 +826,9 @@ namespace editor {
 				}
 				if (ImGui::BeginMenu("Settings")) {
 					bool shouldUpdate = false;
-					if (ImGui::Checkbox("Outlines", &m_settings.enableOutlines)) {
-						shouldUpdate = true;
-					}
+					ImGui::Checkbox("Outlines", &m_settings.enableOutlines);
 					ImGui::Checkbox("TransformVisualEditing", &m_settings.enableTransformVisual);
 					ImGui::Checkbox("PhysXDebug", &m_settings.enablePxDebug);
-					if (shouldUpdate)
-						update();
 					ImGui::EndMenu();
 				}
 				ImGui::EndMenu();
@@ -1109,23 +837,19 @@ namespace editor {
 			ImGui::EndMenuBar();
 		}
 
-		auto imageExtent = m_outImage.getExtent();
+		auto imageExtent = m_finalTarget->getExtent();
 		auto extent = ImGui::GetContentRegionAvail();
 
 		//Resize outImage and dependencies
-		{
-			if (extent.x != imageExtent.width || extent.y != imageExtent.height) {// resize
-				extent.x = std::max<float>(extent.x, 1);
-				extent.y = std::max<float>(extent.y, 1);
-				m_outImage.setWidth(extent.x);
-				m_outImage.setHeight(extent.y);
-				m_pGeomPass->setViewport(extent.x, extent.y, 0, 0);
-				m_pPBRender->setViewport(extent.x, extent.y, 0, 0);
-				update();
-			}
+		if (extent.x != imageExtent.width || extent.y != imageExtent.height) {
+			extent.x = std::max<float>(extent.x, 1);
+			extent.y = std::max<float>(extent.y, 1);
+			m_renderer->resize({extent.x, extent.y});
+			if (m_pbrTask)
+				m_pbrTask->setViewport(extent.x, extent.y, 0, 0);
 		}
 
-		ImGui::Image(m_imageDescriptorSet, extent);// Draw the viewport image
+		ImGui::Image(*m_finalTarget.get(), extent);// Draw the viewport image
 
 		m_isHovered = ImGui::IsItemHovered();
 		m_isFocused = ImGui::IsWindowFocused();
@@ -1133,14 +857,14 @@ namespace editor {
 		auto timeEndFrame = std::chrono::high_resolution_clock::now();
 		m_camera.updateMovement(m_editorData.dTime, m_isHovered, m_isFocused);
 
-		m_pGeomPass->updateCamera(m_camera);
-		m_pPBRender->updateCamera(m_camera);
-		m_pOutlineRenderTask->updateCamera(m_camera);
-		m_pDebugRenderTask->updateCamera(m_camera);
-		if (Zap::Base::getBase()->getSettings()->enableRaytracing) {
-			m_pRTRender->updateCamera(m_camera);
-			m_pPathTracer->updateCamera(m_camera);
-		}
+		if (m_lineTask)
+			m_lineTask->updateCamera(m_camera);
+		if (m_outlineTask)
+			m_outlineTask->updateCamera(m_camera);
+		if (m_pbrTask)
+			m_pbrTask->updateCamera(m_camera);
+		if (m_pathTraceTask)
+			m_pathTraceTask->updateCamera(m_camera);
 
 		m_pScene->update();
 
@@ -1152,32 +876,32 @@ namespace editor {
 			if (actor.isValid() && actor.hasTransform()) {
 				float scale = glm::length(actor.cmpTransform_getPos() - m_camera.getPosition()) / 5.f;
 				Zap::BoxGeometry box = Zap::BoxGeometry(glm::vec3(0.5, 0.05, 0.05)*scale);
-
+		
 				m_transformX.cmpTransform_setPos(actor.cmpTransform_getPos()+glm::vec3(0.5 * scale, 0, 0));
 				m_transformX.cmpRigidStatic_updatePose();
 				m_transformX.cmpRigidStatic_getShapes()[0].setGeometry(box);
-
+		
 				m_transformY.cmpTransform_setPos(actor.cmpTransform_getPos()+glm::vec3(0, 0.5 * scale, 0));
 				m_transformY.cmpRigidStatic_updatePose();
 				m_transformY.cmpRigidStatic_getShapes()[0].setGeometry(box);
-
+		
 				m_transformZ.cmpTransform_setPos(actor.cmpTransform_getPos()+glm::vec3(0, 0, 0.5 * scale));
 				m_transformZ.cmpRigidStatic_updatePose();
 				m_transformZ.cmpRigidStatic_getShapes()[0].setGeometry(box);
-
+		
 				float minx = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMin().x;
 				float miny = ImGui::GetWindowPos().y + ImGui::GetWindowContentRegionMin().y;
 				float sizex = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x - minx;
 				float sizey = ImGui::GetWindowPos().y + ImGui::GetWindowContentRegionMax().y - miny;
 				float mouseX = ((ImGui::GetMousePos().x - minx) / sizex) * 2.0 - 1.0;
 				float mouseY = ((ImGui::GetMousePos().y - miny) / sizey) * 2.0 - 1.0;
-
+		
 				if (mouseX > -1 && mouseX < 1 && mouseY > -1 && mouseY < 1) {
 					glm::vec3 origin = m_camera.getPosition();
 					glm::vec4 localDir = glm::inverse(m_camera.getPerspective(imageExtent.width / (float)imageExtent.height)) * glm::vec4(mouseX, -mouseY, 1, 1);
 					glm::vec4 direction = glm::inverse(m_camera.getView()) * glm::vec4(glm::normalize(glm::vec3(localDir)), 0);
 					glm::vec3 axis;
-
+		
 					if (!m_isTransformDragged) {
 						Zap::Scene::RaycastOutput out{};
 						m_transformEditScene.raycast(origin, direction, 0xFFFFFFFF, &out);
@@ -1191,7 +915,7 @@ namespace editor {
 							m_axisIndex = 2;
 						}
 					}
-
+		
 					switch (m_axisIndex)
 					{
 					case 0:
@@ -1207,7 +931,7 @@ namespace editor {
 						axis = { 0, 0, 0 };
 						break;
 					}
-
+		
 					if (m_isTransformDragged) {
 						m_isTransformDragged = ImGui::IsMouseDown(ImGuiMouseButton_Right);
 						if (!m_isTransformDragged && actor.hasRigidDynamic()) {
@@ -1222,14 +946,14 @@ namespace editor {
 						if (m_isTransformDragged)
 							intersectPlane(glm::normalize(glm::cross(axis, glm::vec3(m_camera.getTransform()[0]))), actor.cmpTransform_getPos(), origin, direction, m_mousePlanePos);
 					}
-
+		
 					auto oldMousePlanePos = m_mousePlanePos;
 					glm::vec3 deltaMousePlane = {0, 0, 0};
 					if (m_isTransformDragged && intersectPlane(glm::normalize(glm::cross(axis, glm::vec3(m_camera.getTransform()[0]))), actor.cmpTransform_getPos(), origin, direction, m_mousePlanePos)) {
 						deltaMousePlane = m_mousePlanePos - oldMousePlanePos;
 						actor.cmpTransform_setPos(actor.cmpTransform_getPos()+deltaMousePlane*axis);
-						if(m_pPathTracer)
-							m_pPathTracer->resetRender();
+						//if(m_pPathTracer)
+						//	m_pPathTracer->resetRender();
 					}
 				}
 			}
@@ -1239,7 +963,7 @@ namespace editor {
 		{
 			uint32_t size = 0;
 			uint32_t offset = 0;
-
+		
 			// find the line count
 			if (m_settings.enableTransformVisual) {
 				for (auto actor : m_selectedActors) {
@@ -1248,22 +972,21 @@ namespace editor {
 					}
 				}
 			}
-
-			std::vector<Zap::DebugRenderVertex> pxDebugVertices = {};
+		
+			std::vector<Zap::LineVertex> pxDebugVertices = {};
 			if (m_settings.enablePxDebug) {
 				m_pScene->getPxDebugVertices(pxDebugVertices);
 			}
-
+		
 			size += pxDebugVertices.size()/2;
-			size += m_debugLineVector.size() / 2;
-			size += 2;
+			size += 1; // always reserve space in buffer for non 0 size
 
 			//render all lines
 			if (size > 0) {
-				m_debugVertexBuffer.resize(sizeof(Zap::DebugRenderVertex)*size*2);
+				m_spLineBuffer->resize(sizeof(Zap::LineVertex)*size*2);
 				void* rawData;
-				m_debugVertexBuffer.map(&rawData);
-				Zap::DebugRenderVertex* data = (Zap::DebugRenderVertex*)rawData;
+				m_spLineBuffer->map(0, rawData);
+				Zap::LineVertex* data = (Zap::LineVertex*)rawData;
 
 				if (m_settings.enableTransformVisual) {
 					for (auto actor : m_selectedActors) {
@@ -1272,26 +995,17 @@ namespace editor {
 						}
 					}
 				}
-
+		
 				if (m_settings.enablePxDebug) {
-					memcpy(&data[offset*2], pxDebugVertices.data(), sizeof(Zap::DebugRenderVertex)*pxDebugVertices.size());
+					memcpy(&data[offset*2], pxDebugVertices.data(), sizeof(Zap::LineVertex)*pxDebugVertices.size());
 					offset += pxDebugVertices.size() / 2;
 				}
-
-				memcpy(&data[offset*2], m_debugLineVector.data(), m_debugLineVector.size()*sizeof(Zap::DebugRenderVertex));
-				offset += m_debugLineVector.size() / 2;
-				m_debugLineVector.clear();
-		
-				m_debugVertexBuffer.unmap();
+				
+				m_spLineBuffer->unmap();
 			}
-
-			//check if debug vertexBuffer is valid
-			m_pDebugRenderTask->delLineVertexBuffers();
-			if (size)
-				m_pDebugRenderTask->addLineVertexBuffer(&m_debugVertexBuffer);
 		}
 
-		m_renderer.render();
+		m_renderer->render();
 	}
 
 	ImGuiWindowFlags Viewport::getWindowFlags() {
@@ -1300,53 +1014,62 @@ namespace editor {
 		return windowFlags;
 	}
 
-	void Viewport::changeRenderType(RenderType renderType) {
-		m_renderType = renderType;
-		update();
+	void Viewport::activatePBR() {
+		m_renderType = ePBR;
+		
+		m_renderer = std::make_unique<Zap::Renderer>();
+
+		// create the final viewport image
+		m_finalTarget = m_renderer->createRenderTarget<Zap::RenderTargetGuiImage>();
+		m_finalTarget->setFormat(Zap::GlobalSettings::getColorFormat());
+		m_finalTarget->setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
+		m_finalTarget->setUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+		m_finalTarget->setInitialLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		m_finalTarget->setFinalLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		m_finalTarget->init(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+		// create pbr task
+		m_pbrTask = m_renderer->createRenderTask<Zap::PBRenderer>(m_finalTarget, m_pScene);
+		// create line task
+		m_lineTask = m_renderer->createRenderTask<Zap::LineRenderTask>(m_finalTarget, std::initializer_list({ (std::weak_ptr<Zap::LineBuffer>)m_spLineBuffer }));
+		// create outline task
+		m_outlineTask = m_renderer->createRenderTask<OutlineRenderTask>(m_pScene, m_selectedActors, m_finalTarget);
+
+		m_renderer->beginRecord();
+		m_renderer->recRenderTask(m_pbrTask);
+		m_renderer->recRenderTask(m_outlineTask);
+		m_renderer->recRenderTask(m_lineTask);
+		m_renderer->endRecord();
 	}
 
-	void Viewport::update() {
-		ImGui_ImplVulkan_RemoveTexture(m_imageDescriptorSet);
-		m_outImage.update();
-		m_renderer.beginRecord();
-		m_pGeomPass->disable();
-		m_pPBRender->disable();
-		if (Zap::Base::getBase()->getSettings()->enableRaytracing) {
-			m_pRTRender->disable();
-			m_pPathTracer->disable();
-		}
-		switch (m_renderType)
-		{
-		case eDEFERRED:
-			m_renderer.recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
-			m_renderer.recRenderTemplate(m_pGeomPass);
-			m_pGeomPass->enable();
-			break;
-		case ePBR:
-			m_renderer.recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
-			m_renderer.recRenderTemplate(m_pPBRender);
-			m_pPBRender->enable();
-			break;
-		case eRAYTRACING:
-			m_renderer.recRenderTemplate(m_pRTRender);
-			m_pRTRender->enable();
-			m_renderer.recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
-			break;
-		case ePATHTRACING:
-			m_renderer.recRenderTemplate(m_pPathTracer);
-			m_pPathTracer->enable();
-			m_renderer.recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
-			break;
-		default:
-			break;
-		}
-		if (m_settings.enableOutlines) {
-			m_renderer.recRenderTemplate(m_pOutlineRenderTask);
-		}
-		m_renderer.recRenderTemplate(m_pDebugRenderTask);
-		m_renderer.recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT);
-		m_renderer.endRecord();
-		m_renderer.resize();
-		m_imageDescriptorSet = ImGui_ImplVulkan_AddTexture(m_sampler, m_outImage.getVkImageView(), VK_IMAGE_LAYOUT_GENERAL);
+	void Viewport::activatePathTracer() {
+		m_renderType = ePATHTRACING;
+
+		m_renderer = std::make_unique<Zap::Renderer>();
+
+		// create the final viewport image
+		m_finalTarget = m_renderer->createRenderTarget<Zap::RenderTargetGuiImage>();
+		m_finalTarget->setFormat(VK_FORMAT_R32G32B32A32_SFLOAT);
+		m_finalTarget->setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
+		m_finalTarget->setUsage(VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
+		m_finalTarget->setInitialLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		m_finalTarget->setFinalLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		m_finalTarget->init(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+		// create pathtrace task
+		m_pathTraceTask = m_renderer->createRenderTask<Zap::PathTracer>(m_finalTarget, m_pScene);
+
+		m_renderer->beginRecord();
+		m_renderer->recRenderTask(m_pathTraceTask);
+		m_renderer->endRecord();
+	}
+
+	void Viewport::disableRenderType() {
+		m_finalTarget.reset();
+		m_outlineTask.reset();
+		m_lineTask.reset();
+		m_pbrTask.reset();
+		m_pathTraceTask.reset();
+		m_renderer->destroy();
 	}
 }

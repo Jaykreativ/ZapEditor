@@ -9,7 +9,7 @@
 
 namespace editor {
 	HitboxEditor::HitboxEditor(EditorData* pEditorData)
-		: m_pEditorData(pEditorData), m_pbrTask(&m_scene)
+		: m_pEditorData(pEditorData)//, m_pbrTask(&m_scene)
 	{
 		m_scene.init();
 		m_scene.attachActor(m_actor);
@@ -41,20 +41,20 @@ namespace editor {
 		m_debugVertexBuffer.init();
 		m_debugVertexBuffer.allocate(VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-		m_debugTask.addLineVertexBuffer(&m_debugVertexBuffer);
+		//m_debugTask.addLineVertexBuffer(&m_debugVertexBuffer);
 
-		m_renderer.setTarget(&m_outImage);
-		m_renderer.addRenderTask(&m_pbrTask);
-		m_renderer.addRenderTask(&m_debugTask);
+		//m_renderer.setResultTarget(&m_outImage);
+		//m_renderer.addRenderTask(&m_pbrTask);
+		//m_renderer.addRenderTask(&m_debugTask);
 		m_renderer.init();
 		m_renderer.beginRecord();
 		m_renderer.recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
-		m_renderer.recRenderTemplate(&m_pbrTask);
-		m_renderer.recRenderTemplate(&m_debugTask);
+		//m_renderer.recRenderTask(&m_pbrTask);
+		//m_renderer.recRenderTask(&m_debugTask);
 		m_renderer.recChangeImageLayout(&m_outImage, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT);
 		m_renderer.endRecord();
 
-		m_pbrTask.setViewport(1, 1, 0, 0);
+		//m_pbrTask.setViewport(1, 1, 0, 0);
 	}
 
 	HitboxEditor::~HitboxEditor() {
@@ -97,19 +97,19 @@ namespace editor {
 			glm::vec2 imageSize = { m_outImage.getExtent().width, m_outImage.getExtent().height };
 			glm::vec2 availSize = { ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y };
 			if (imageSize != availSize) {
-				m_outImage.resize(availSize.x, availSize.y);
-				m_pbrTask.setViewport(availSize.x, availSize.y, 0, 0);
-				m_renderer.resize();
+				//m_outImage.resize(availSize.x, availSize.y);
+				//m_pbrTask.setViewport(availSize.x, availSize.y, 0, 0);
+				//m_renderer.resize();
 			}
 
 			// render Lines
-			std::vector<Zap::DebugRenderVertex> lines;
+			std::vector<Zap::LineVertex> lines;
 			m_scene.getPxDebugVertices(lines);
 
-			m_debugTask.delLineVertexBuffers();
+			//m_debugTask.delLineVertexBuffers();
 			if (lines.size() > 0) {
-				m_debugTask.addLineVertexBuffer(&m_debugVertexBuffer);
-				m_debugVertexBuffer.resize(sizeof(Zap::DebugRenderVertex) * lines.size());
+				//m_debugTask.addLineVertexBuffer(&m_debugVertexBuffer);
+				m_debugVertexBuffer.resize(sizeof(Zap::LineVertex) * lines.size());
 				void* rawData;
 				m_debugVertexBuffer.map(&rawData);
 				memcpy(rawData, lines.data(), m_debugVertexBuffer.getSize());
@@ -119,8 +119,8 @@ namespace editor {
 			// render scene
 			m_scene.simulate(1 / 60.f);
 			m_scene.update();
-			m_pbrTask.updateCamera(*m_upCamera);
-			m_debugTask.updateCamera(*m_upCamera);
+			//m_pbrTask.updateCamera(*m_upCamera);
+			//m_debugTask.updateCamera(*m_upCamera);
 			m_renderer.render();
 
 			// render Gui

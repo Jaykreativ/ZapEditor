@@ -8,12 +8,11 @@
 
 #include "Zap/Zap.h"
 #include "Zap/FileLoader.h"
-#include "Zap/Event.h"
-#include "Zap/EventHandler.h"
+#include "Zap/Events.h"
 #include "Zap/Serializer.h"
 #include "Zap/Rendering/Window.h"
 #include "Zap/Rendering/Renderer.h"
-#include "Zap/Rendering/Gui.h"
+#include "Zap/Rendering/RenderObjects/RenderTasks/Gui.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Mesh.h"
 #include "Zap/Scene/Actor.h"
@@ -83,9 +82,9 @@ void setupGuiStyle() {
 }
 
 void setupActors() {
-	Zap::ModelLoader modelLoader = Zap::ModelLoader();
-	Zap::ActorLoader actorLoader = Zap::ActorLoader();
-	Zap::HitMeshLoader hitMeshLoader = Zap::HitMeshLoader();
+	Zap::ModelLoader modelLoader ;
+	Zap::ActorLoader actorLoader;
+	Zap::HitMeshLoader hitMeshLoader;
 
 	editor::cubeModel = modelLoader.load((std::string)"Models/OBJ/Cube.obj");
 
@@ -101,9 +100,6 @@ void setupActors() {
 	//auto sphereModel = modelLoader.load("Models/gltf/metalSphere.glb");
 
 	//auto pistolKimber = modelLoader.load((std::string)"Models/gltf/PistolKimber/PistolKimber.glb");
-
-	//glm::u8vec4 texCol = { 255, 180, 50, 255 };
-	//modelLoader.loadTexture(&texCol, 1, 1);
 
 	Zap::PhysicsMaterial pxMaterial = Zap::PhysicsMaterial(0.5, 1, 0.1);
 
@@ -219,13 +215,18 @@ void setupActors() {
 	}
 }
 
-void windowResizeCallback(Zap::ResizeEvent& params, void* data) {}
+class DragDropCallback : public Zap::EventListener<Zap::WindowEvent::DragDrop> {
+public:
+	DragDropCallback(Zap::EventHandler<Zap::WindowEvent::DragDrop>& handler)
+		: Zap::EventListener<Zap::WindowEvent::DragDrop>(handler)
+	{}
 
-void dragDropCallback(Zap::DragDropEvent& params, void* customData) {
-	for (int i = 0; i < params.pathCount; i++) {
-		loadFile(params.paths[i], editor::editorData);
+	virtual void callback(const Zap::WindowEvent::DragDrop& event) override {
+		for (int i = 0; i < event.pathCount; i++) {
+			loadFile(event.paths[i], editor::editorData);
+		}
 	}
-}
+};
 
 int main() {
 	editor::editorData.engineBase = Zap::Base::createBase("Zap Application"); // Don't automatically load/save AssetLibrary
@@ -239,12 +240,12 @@ int main() {
 
 	editor::editorData.window = new Zap::Window(1000, 600, "Zap Window");
 	editor::editorData.window->init();
-	editor::editorData.window->getResizeEventHandler()->addCallback(windowResizeCallback);
-	editor::editorData.window->getDragDropEventHandler()->addCallback(dragDropCallback);
+	DragDropCallback dragDropCallback(editor::editorData.window->getEventHandler());
 
 #ifdef _DEBUG
 	// compile shaders
 	vk::Shader::compile("../Zap/Shader/src/",{
+		"line.vert", "line.frag",
 		"PBRShader.vert", "PBRShader.frag",
 		"GeomPass.vert", "GeomPass.frag",
 		"pathTrace.rchit", "pathTrace.rgen", "pathTrace.rint", "pathTrace.rmiss",
@@ -259,7 +260,6 @@ int main() {
 	editor::editorData.renderer = new Zap::Renderer();
 
 	Zap::Gui::initImGui(editor::editorData.window);
-	editor::editorData.gui = new Zap::Gui();
 
 	//deserialize
 
@@ -272,16 +272,16 @@ int main() {
 	for(auto& scene : editor::editorData.scenes)
 		scene.update();
 
-	editor::editorData.renderer->setTarget(editor::editorData.window);
+	auto windowTargetHandle = editor::editorData.renderer->createRenderTarget<Zap::RenderTargetWindow>(*editor::editorData.window);
 
-	editor::editorData.renderer->addRenderTask(editor::editorData.gui);
+	editor::editorData.guiTask = editor::editorData.renderer->createRenderTask<Zap::Gui>(windowTargetHandle);
 
-	editor::editorData.renderer->init();
 	editor::editorData.renderer->beginRecord();
-	editor::editorData.renderer->recRenderTemplate(editor::editorData.gui);
+	if(editor::editorData.guiTask)
+		editor::editorData.renderer->recRenderTask(editor::editorData.guiTask);
 	editor::editorData.renderer->endRecord();
 
-	editor::mainMenuBar = new editor::MainMenuBar(&editor::editorData, editor::editorData.layers, editor::editorData.window, editor::editorData.renderer, editor::editorData.gui, &editor::editorData.scenes.back(), editor::editorData.actors, editor::editorData.selectedActors);
+	//editor::mainMenuBar = new editor::MainMenuBar(&editor::editorData, editor::editorData.layers, editor::editorData.window, editor::editorData.renderer, editor::editorData.guiTask, &editor::editorData.scenes.back(), editor::editorData.actors, editor::editorData.selectedActors);
 	editor::editorData.layers.push_back(new editor::Viewport(editor::editorData, &editor::editorData.scenes.back(), editor::editorData.window));
 	editor::editorData.layers.push_back(new editor::SceneHierarchyView(&editor::editorData, &editor::editorData.scenes.back()));
 	editor::editorData.layers.push_back(new editor::ComponentView(&editor::editorData, editor::editorData.layers, editor::editorData.selectedActors));
@@ -312,7 +312,7 @@ int main() {
 			//
 			//ImGui::Text(processPath(path, base).string().c_str());
 
-			editor::mainMenuBar->draw();
+			//editor::mainMenuBar->draw();
 
 			uint32_t i = 0;
 			for (auto layer : editor::editorData.layers) {
@@ -338,10 +338,10 @@ int main() {
 			}
 		}
 
-		if (editor::mainMenuBar->shouldSimulate() && editor::editorData.dTime > 0) {
-			for(auto& scene : editor::editorData.scenes)
-				scene.simulate(editor::editorData.dTime);
-		}
+		//if (editor::mainMenuBar->shouldSimulate() && editor::editorData.dTime > 0) {
+		//	for(auto& scene : editor::editorData.scenes)
+		//		scene.simulate(editor::editorData.dTime);
+		//}
 
 		// render GUI only
 		editor::editorData.renderer->render();
@@ -381,8 +381,6 @@ int main() {
 		scene.destroy();
 	editor::editorData.scenes.clear();
 	editor::editorData.actors.clear();
-
-	delete editor::editorData.gui;
 
 	editor::editorData.engineBase->terminate();
 	Zap::Base::releaseBase();

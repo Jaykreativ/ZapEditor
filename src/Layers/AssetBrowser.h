@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Zap/Rendering/Gui.h"
+#include "Zap/Rendering/RenderObjects/RenderTasks/Gui.h"
 
 #include "ViewLayer.h"
 

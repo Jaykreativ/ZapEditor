@@ -6,9 +6,9 @@
 #include "Zap/Physics/Shape.h"
 #include "Zap/Scene/Actor.h"
 #include "Zap/Scene/Scene.h"
-#include "Zap/Rendering/Gui.h"
 #include "Zap/Rendering/Renderer.h"
 #include "Zap/Rendering/Window.h"
+#include "Zap/Rendering/RenderObjects/RenderTasks/Gui.h"
 
 #include <string>
 #include <filesystem>
@@ -53,7 +53,7 @@ namespace editor {
 		Zap::Window* window;
 		Zap::Renderer* renderer;
 
-		Zap::Gui* gui;
+		Zap::RenderTaskHandle<Zap::Gui> guiTask;
 
 		std::vector<ViewLayer*> layers;
 

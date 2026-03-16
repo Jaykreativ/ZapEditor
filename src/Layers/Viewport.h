@@ -8,7 +8,8 @@
 #include "Zap/Scene/Actor.h"
 #include "Zap/Rendering/Window.h"
 #include "Zap/Rendering/Renderer.h"
-#include "Zap/Rendering/DeferredShading.h"
+#include "Zap/Rendering/RenderObjects/RenderTasks/LineRenderTask.h"
+#include "Zap/Rendering/RenderObjects/RenderTasks/DeferredShading.h"
 
 #include "ViewLayer.h"
 #include "EditorCamera.h"
@@ -43,8 +44,6 @@ namespace editor {
 
 		std::string name();
 
-		//void move(float dTime);
-
 		void draw();
 
 		enum RenderType {
@@ -56,7 +55,11 @@ namespace editor {
 
 		ImGuiWindowFlags getWindowFlags();
 
-		void changeRenderType(RenderType renderType);
+		void activatePBR();
+
+		void activatePathTracer();
+
+		void disableRenderType();
 
 		bool isHovered() { return m_isHovered; }
 
@@ -70,21 +73,16 @@ namespace editor {
 		Zap::Window* m_pWindow;
 		Zap::Scene* m_pScene;
 
-		Zap::Renderer m_renderer;
-		Zap::GeometryPass* m_pGeomPass = nullptr;
-		Zap::PBRenderer* m_pPBRender = nullptr;
-		Zap::RaytracingRenderer* m_pRTRender = nullptr;
-		Zap::PathTracer* m_pPathTracer = nullptr;
-		OutlineRenderTask* m_pOutlineRenderTask = nullptr;
-		Zap::DebugRenderTask* m_pDebugRenderTask = nullptr;
+		RenderType m_renderType = ePBR;
+		std::unique_ptr<Zap::Renderer> m_renderer;
+		Zap::RenderTaskHandle<OutlineRenderTask> m_outlineTask;
+		Zap::RenderTaskHandle<Zap::LineRenderTask> m_lineTask;
+		Zap::RenderTaskHandle<Zap::PBRenderer> m_pbrTask;
+		Zap::RenderTaskHandle<Zap::PathTracer> m_pathTraceTask;
+
+		Zap::RenderTargetHandle<Zap::RenderTargetGuiImage> m_finalTarget;
 
 		editor::Camera m_camera;
-
-		RenderType m_renderType = ePBR;
-		vk::Image m_outImage;
-
-		vk::Sampler m_sampler;
-		VkDescriptorSet m_imageDescriptorSet;
 
 		bool m_isFocused = false;
 		bool m_isHovered = false;
@@ -92,8 +90,7 @@ namespace editor {
 		double m_xlast = 0;
 		double m_ylast = 0;
 
-		vk::Buffer m_debugVertexBuffer;
-		std::vector<Zap::DebugRenderVertex> m_debugLineVector = {};
+		std::shared_ptr<Zap::LineBuffer> m_spLineBuffer;
 
 		Zap::Scene m_transformEditScene;
 		Zap::PhysicsMaterial* m_transformMaterial;
@@ -103,10 +100,6 @@ namespace editor {
 		uint32_t m_axisIndex = 0xFFFFFFFF;
 		glm::vec3 m_mousePlanePos = { 0, 0, 0 };
 		bool m_isTransformDragged = false;
-
-		void update();
-
-		//static void cursorPositionCallback(Zap::CursorPosEvent& params, void* viewportData);
 	};
 }
 

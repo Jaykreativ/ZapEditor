@@ -2,9 +2,9 @@
 
 #include "Zap/Scene/Scene.h"
 #include "Zap/Rendering/Renderer.h"
-#include "Zap/Rendering/PBRenderer.h"
-#include "Zap/Rendering/DebugRenderTask.h"
-#include "Zap/Rendering/Gui.h"
+#include "Zap/Rendering/RenderObjects/RenderTasks/PBRenderer.h"
+#include "Zap/Rendering/RenderObjects/RenderTasks/LineRenderTask.h"
+#include "Zap/Rendering/RenderObjects/RenderTasks/Gui.h"
 
 #include "ZapEditor.h"
 #include "EditorCamera.h"
@@ -32,9 +32,9 @@ namespace editor {
 
 		Zap::GuiImage m_outImage;
 		Zap::Renderer m_renderer;
-		Zap::PBRenderer m_pbrTask;
+		//Zap::PBRenderer m_pbrTask;
 		vk::Buffer m_debugVertexBuffer;
-		Zap::DebugRenderTask m_debugTask;
+		//Zap::DebugRenderTask m_debugTask;
 
 		Zap::PhysicsMaterial m_physicsMaterial = Zap::PhysicsMaterial(1, 0.5, 0.5);
 

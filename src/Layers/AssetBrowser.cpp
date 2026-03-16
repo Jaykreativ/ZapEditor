@@ -3,7 +3,7 @@
 #include "Zap/Zap.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Rendering/Renderer.h"
-#include "Zap/Rendering/PBRenderer.h"
+#include "Zap/Rendering/RenderObjects/RenderTasks/PBRenderer.h"
 
 namespace editor {
 	AssetBrowser::AssetBrowser(Zap::Window* pWindow, Zap::Gui* pGui)
@@ -85,14 +85,14 @@ namespace editor {
 				scene.init();
 
 				Zap::Renderer renderer;
-				auto* pbRender = new Zap::PBRenderer(&scene);
-				pbRender->setViewport(m_previewSize.x, m_previewSize.y, 0, 0);
-				pbRender->updateCamera(cam);
-				pbRender->clearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
-				renderer.setTarget(&image);
-				renderer.addRenderTask(pbRender);
+				//auto* pbRender = new Zap::PBRenderer(&scene);
+				//pbRender->setViewport(m_previewSize.x, m_previewSize.y, 0, 0);
+				//pbRender->updateCamera(cam);
+				//pbRender->clearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
+				//renderer.setResultTarget(&image);
+				//renderer.addRenderTask(pbRender);
 				renderer.beginRecord();
-				renderer.recRenderTemplate(pbRender);
+				//renderer.recRenderTask(pbRender);
 				renderer.endRecord();
 				renderer.init();
 				

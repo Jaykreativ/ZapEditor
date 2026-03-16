@@ -3,9 +3,9 @@
 #include "ZapEditor.h"
 
 #include "Zap/Rendering/Renderer.h"
-#include "Zap/Rendering/Gui.h"
+#include "Zap/Rendering/RenderObjects/RenderTasks/Gui.h"
 #include "Zap/Scene/Scene.h"
-#include "Zap/EventHandler.h"
+#include "Zap/Events.h"
 
 #include "ViewLayer.h"
 #include <vector>
