@@ -859,8 +859,13 @@ namespace editor {
 
 		if (m_lineTask)
 			m_lineTask->updateCamera(m_camera);
-		if (m_outlineTask)
+		if (m_outlineTask) {
 			m_outlineTask->updateCamera(m_camera);
+			if (m_settings.enableOutlines)
+				m_outlineTask->enable();
+			else
+				m_outlineTask->disable();
+		}
 		if (m_pbrTask)
 			m_pbrTask->updateCamera(m_camera);
 		if (m_pathTraceTask)
