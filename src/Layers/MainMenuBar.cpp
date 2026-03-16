@@ -22,7 +22,6 @@ namespace editor {
 		std::vector<ViewLayer*>& layers,
 		Zap::Window* pWindow,
 		Zap::Renderer* pRenderer,
-		Zap::Gui* pGui,
 		Zap::Scene* pScene,
 		std::vector<Zap::Actor>& actors,
 		std::vector<Zap::Actor>& selectedActors
@@ -32,7 +31,6 @@ namespace editor {
 		m_layers(layers),
 		m_pWindow(pWindow),
 		m_pRenderer(pRenderer), 
-		m_pGui(pGui), 
 		m_pScene(pScene), 
 		m_actors(actors),
 		m_selectedActors(selectedActors)
@@ -67,7 +65,7 @@ namespace editor {
 				m_layers.push_back(new Viewport(*m_pEditorData, m_pScene, m_pWindow));
 			}
 			if (ImGui::MenuItem("AssetBrowser")) {
-				m_layers.push_back(new AssetBrowser(m_pWindow, m_pGui));
+				//m_layers.push_back(new AssetBrowser(m_pWindow, m_pGui));
 			}
 			if (ImGui::MenuItem("HitboxEditor")) {
 				m_layers.push_back(new HitboxEditor(m_pEditorData));

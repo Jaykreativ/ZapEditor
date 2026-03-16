@@ -281,7 +281,7 @@ int main() {
 		editor::editorData.renderer->recRenderTask(editor::editorData.guiTask);
 	editor::editorData.renderer->endRecord();
 
-	//editor::mainMenuBar = new editor::MainMenuBar(&editor::editorData, editor::editorData.layers, editor::editorData.window, editor::editorData.renderer, editor::editorData.guiTask, &editor::editorData.scenes.back(), editor::editorData.actors, editor::editorData.selectedActors);
+	editor::mainMenuBar = new editor::MainMenuBar(&editor::editorData, editor::editorData.layers, editor::editorData.window, editor::editorData.renderer, &editor::editorData.scenes.back(), editor::editorData.actors, editor::editorData.selectedActors);
 	editor::editorData.layers.push_back(new editor::Viewport(editor::editorData, &editor::editorData.scenes.back(), editor::editorData.window));
 	editor::editorData.layers.push_back(new editor::SceneHierarchyView(&editor::editorData, &editor::editorData.scenes.back()));
 	editor::editorData.layers.push_back(new editor::ComponentView(&editor::editorData, editor::editorData.layers, editor::editorData.selectedActors));
@@ -312,7 +312,7 @@ int main() {
 			//
 			//ImGui::Text(processPath(path, base).string().c_str());
 
-			//editor::mainMenuBar->draw();
+			editor::mainMenuBar->draw();
 
 			uint32_t i = 0;
 			for (auto layer : editor::editorData.layers) {
@@ -338,10 +338,10 @@ int main() {
 			}
 		}
 
-		//if (editor::mainMenuBar->shouldSimulate() && editor::editorData.dTime > 0) {
-		//	for(auto& scene : editor::editorData.scenes)
-		//		scene.simulate(editor::editorData.dTime);
-		//}
+		if (editor::mainMenuBar->shouldSimulate() && editor::editorData.dTime > 0) {
+			for(auto& scene : editor::editorData.scenes)
+				scene.simulate(editor::editorData.dTime);
+		}
 
 		// render GUI only
 		editor::editorData.renderer->render();
