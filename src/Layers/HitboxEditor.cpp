@@ -242,13 +242,11 @@ namespace editor {
 		m_renderer = std::make_unique<Zap::Renderer>();
 
 		// create the final viewport image
-		m_finalTarget = m_renderer->createRenderTarget<Zap::RenderTargetGuiImage>();
-		m_finalTarget->setFormat(Zap::GlobalSettings::getColorFormat());
-		m_finalTarget->setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
-		m_finalTarget->setUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-		m_finalTarget->setInitialLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		m_finalTarget->setFinalLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		m_finalTarget->init(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		m_finalTarget = m_renderer->createRenderTarget<Zap::RenderTargetGuiImage>(
+			Zap::GlobalSettings::getColorFormat(),
+			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+		);
 
 		//create pbr task
 		m_pbrTask = m_renderer->createRenderTask<Zap::PBRenderer>(m_finalTarget, &m_scene);

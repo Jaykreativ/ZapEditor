@@ -33,6 +33,7 @@
 #include "gtc/type_ptr.hpp"
 
 #include <filesystem>
+#include <chrono>
 
 namespace editor {
 	static EditorData editorData = {};
@@ -259,8 +260,6 @@ int main() {
 
 	editor::editorData.renderer = new Zap::Renderer();
 
-	Zap::Gui::initImGui(editor::editorData.window);
-
 	//deserialize
 
 	auto& scene = editor::scene::createScene(editor::editorData);
@@ -274,7 +273,7 @@ int main() {
 
 	auto windowTargetHandle = editor::editorData.renderer->createRenderTarget<Zap::RenderTargetWindow>(*editor::editorData.window);
 
-	editor::editorData.guiTask = editor::editorData.renderer->createRenderTask<Zap::Gui>(windowTargetHandle);
+	editor::editorData.guiTask = editor::editorData.renderer->createRenderTask<Zap::Gui>(windowTargetHandle, editor::editorData.window);
 
 	editor::editorData.renderer->beginRecord();
 	if(editor::editorData.guiTask)
@@ -372,8 +371,6 @@ int main() {
 		physicsMaterial.release();
 
 	delete editor::editorData.renderer;
-
-	Zap::Gui::destroyImGui();
 
 	delete editor::editorData.window;
 

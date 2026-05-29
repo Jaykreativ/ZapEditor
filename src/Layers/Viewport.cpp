@@ -106,26 +106,26 @@ namespace editor {
 			}
 
 			/*Images*/
-			m_plainColorTarget_blurBTarget = m_pRenderer->createRenderTarget<Zap::RenderTargetImage>();
-			m_plainColorTarget_blurBTarget->setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
-			m_plainColorTarget_blurBTarget->setFormat(Zap::GlobalSettings::getColorFormat());
-			m_plainColorTarget_blurBTarget->setUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
-			m_plainColorTarget_blurBTarget->setInitialLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-			m_plainColorTarget_blurBTarget->init(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+			m_plainColorTarget_blurBTarget = m_pRenderer->createRenderTarget<Zap::RenderTargetImage>(
+				Zap::GlobalSettings::getColorFormat(),
+				VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+			);
 
-			m_plainDepthStencilTarget = m_pRenderer->createRenderTarget<Zap::RenderTargetImage>();
-			m_plainDepthStencilTarget->setAspect(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
-			m_plainDepthStencilTarget->setFormat(Zap::GlobalSettings::getDepthStencilFormat());
-			m_plainDepthStencilTarget->setUsage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
-			m_plainDepthStencilTarget->setInitialLayout(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-			m_plainDepthStencilTarget->init(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+			m_plainDepthStencilTarget = m_pRenderer->createRenderTarget<Zap::RenderTargetImage>(
+				Zap::GlobalSettings::getDepthStencilFormat(),
+				VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+			);
 
-			m_blurATarget = m_pRenderer->createRenderTarget<Zap::RenderTargetImage>();
-			m_blurATarget->setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
-			m_blurATarget->setFormat(Zap::GlobalSettings::getColorFormat());
-			m_blurATarget->setUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT);
-			m_blurATarget->setInitialLayout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-			m_blurATarget->init(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+			m_blurATarget = m_pRenderer->createRenderTarget<Zap::RenderTargetImage>(
+				Zap::GlobalSettings::getColorFormat(),
+				VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+			);
 
 			/*Descriptors*/
 			m_plainDescriptorSet = m_pRenderer->createDescriptorSet<Zap::GenericDescriptorSet>();
@@ -1025,13 +1025,11 @@ namespace editor {
 		m_renderer = std::make_unique<Zap::Renderer>();
 
 		// create the final viewport image
-		m_finalTarget = m_renderer->createRenderTarget<Zap::RenderTargetGuiImage>();
-		m_finalTarget->setFormat(Zap::GlobalSettings::getColorFormat());
-		m_finalTarget->setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
-		m_finalTarget->setUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-		m_finalTarget->setInitialLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		m_finalTarget->setFinalLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		m_finalTarget->init(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		m_finalTarget = m_renderer->createRenderTarget<Zap::RenderTargetGuiImage>(
+			Zap::GlobalSettings::getColorFormat(),
+			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+		);
 
 		// create pbr task
 		m_pbrTask = m_renderer->createRenderTask<Zap::PBRenderer>(m_finalTarget, m_pScene);
@@ -1053,13 +1051,11 @@ namespace editor {
 		m_renderer = std::make_unique<Zap::Renderer>();
 
 		// create the final viewport image
-		m_finalTarget = m_renderer->createRenderTarget<Zap::RenderTargetGuiImage>();
-		m_finalTarget->setFormat(VK_FORMAT_R32G32B32A32_SFLOAT);
-		m_finalTarget->setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
-		m_finalTarget->setUsage(VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-		m_finalTarget->setInitialLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		m_finalTarget->setFinalLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-		m_finalTarget->init(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+		m_finalTarget = m_renderer->createRenderTarget<Zap::RenderTargetGuiImage>(
+			VK_FORMAT_R32G32B32A32_SFLOAT,
+			VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+		);
 
 		// create pathtrace task
 		m_pathTraceTask = m_renderer->createRenderTask<Zap::PathTracer>(m_finalTarget, m_pScene);
