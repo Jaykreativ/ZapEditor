@@ -65,7 +65,7 @@ namespace editor {
 				m_layers.push_back(new Viewport(*m_pEditorData, m_pScene, m_pWindow));
 			}
 			if (ImGui::MenuItem("AssetBrowser")) {
-				//m_layers.push_back(new AssetBrowser(m_pWindow, m_pGui));
+				m_layers.push_back(new AssetBrowser());
 			}
 			if (ImGui::MenuItem("HitboxEditor")) {
 				m_layers.push_back(new HitboxEditor(m_pEditorData));

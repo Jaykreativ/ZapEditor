@@ -5,10 +5,18 @@
 #include "ViewLayer.h"
 
 namespace editor {
+	struct AssetBrowserSettings {
+		
+	};
+
+	struct StaticAssetBrowserSettings {
+		glm::vec2 previewSize = { 150, 150 };
+	};
+
 	class AssetBrowser : public ViewLayer
 	{
 	public:
-		AssetBrowser(Zap::Window* pWindow, Zap::Gui* pGui);
+		AssetBrowser();
 		~AssetBrowser();
 
 		std::string name() override;
@@ -17,16 +25,14 @@ namespace editor {
 
 		ImGuiWindowFlags getWindowFlags() override;
 
-		void reloadPreviews();
+		void loadPreviews();
 
 	private:
-		Zap::Window* m_pWindow;
-		Zap::Gui* m_pGui;
+		AssetBrowserSettings m_settings = {};
+		static StaticAssetBrowserSettings m_globalSettings;
 
-		glm::vec2 m_previewSize = { 150, 150 };
-
-		std::unordered_map<Zap::UUID, Zap::GuiTexture> m_meshPreviews = {};
-		std::unordered_map<Zap::UUID, Zap::Image> m_meshPreviewImages = {};
+		std::unordered_map<Zap::UUID, std::unique_ptr<Zap::GuiImageRef>> m_meshPreviewRefs = {};
+		std::unordered_map<Zap::UUID, std::shared_ptr<Zap::Image2D>> m_meshPreviewImages = {};
 	};
 }
 

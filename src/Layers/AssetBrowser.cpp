@@ -6,18 +6,14 @@
 #include "Zap/Rendering/RenderObjects/RenderTasks/PBRenderer.h"
 
 namespace editor {
-	AssetBrowser::AssetBrowser(Zap::Window* pWindow, Zap::Gui* pGui)
-		: m_pWindow(pWindow), m_pGui(pGui)
+	StaticAssetBrowserSettings AssetBrowser::m_globalSettings = {};
+
+	AssetBrowser::AssetBrowser()
 	{
-		reloadPreviews();
+		loadPreviews();
 	}
 
-	AssetBrowser::~AssetBrowser() {
-		for (auto& previewPair : m_meshPreviews)
-			m_pGui->unloadTexture(previewPair.second);
-		for (auto& imagePair : m_meshPreviewImages)
-			imagePair.second.destroy();
-	}
+	AssetBrowser::~AssetBrowser() {}
 
 	std::string AssetBrowser::name() {
 		return "AssetBrowser";
@@ -29,11 +25,14 @@ namespace editor {
 		
 		for (auto meshIter = pAssetHandler->beginMeshes(); meshIter != pAssetHandler->endMeshes(); meshIter++) {
 			const auto& meshPair = *meshIter;
-			if (ImGui::ImageButton(std::to_string(meshPair.first).c_str(), m_meshPreviews.at(meshPair.first), ImVec2(m_previewSize.x, m_previewSize.y))) {
-
+			const auto meshId = meshPair.first;
+			if (!m_meshPreviewImages.count(meshId))
+				continue;
+			if (ImGui::ImageButton(std::to_string(meshId).c_str(), *m_meshPreviewRefs.at(meshId), ImVec2(m_globalSettings.previewSize.x, m_globalSettings.previewSize.y))) {
+			
 			}
 			if (ImGui::BeginDragDropSource()) {
-				ImGui::SetDragDropPayload("MeshToActorPayload", &meshPair.first, sizeof(Zap::UUID));
+				ImGui::SetDragDropPayload("MeshToActorPayload", &meshId, sizeof(Zap::UUID));
 				ImGui::EndDragDropSource();
 			}
 		}
@@ -43,67 +42,77 @@ namespace editor {
 		return 0;
 	}
 
-	void AssetBrowser::reloadPreviews() {
+	void AssetBrowser::loadPreviews() {
 		auto* base = Zap::Base::getBase();
 		auto* pAssetHandler = base->getAssetHandler();
 		for (auto meshIter = pAssetHandler->beginMeshes(); meshIter != pAssetHandler->endMeshes(); meshIter++) {
 			const auto& meshPair = *meshIter;
-			if (!m_meshPreviews.count(meshPair.first)) {
-				Zap::Image& image = (m_meshPreviewImages[meshPair.first] = Zap::Image());
-				image.setFormat(Zap::GlobalSettings::getColorFormat());
-				image.setAspect(VK_IMAGE_ASPECT_COLOR_BIT);
-				image.setUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT);
-				image.setLayout(VK_IMAGE_LAYOUT_PREINITIALIZED);
-				image.setWidth(m_previewSize.x);
-				image.setHeight(m_previewSize.y);
-			
-				image.init();
-				image.allocate(VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-				image.initView();
+			const auto meshId = meshPair.first;
+			if (!m_meshPreviewImages.count(meshId)) {
+				float maxLen = glm::length(meshPair.second.m_boundMax);
+				float minLen = glm::length(meshPair.second.m_boundMin);
+				float dist = std::max(maxLen, minLen); // calculate the smallest spheres radius which fully contains the mesh
 
-				Zap::Scene scene = Zap::Scene();
+				Zap::Scene scene;
+				scene.init();
 
 				Zap::Actor actor;
 				scene.attachActor(actor);
 				actor.addTransform(glm::mat4(1));
-				actor.addModel({"", {Zap::Material()}, {meshPair.first}});
+				actor.addModel({"", {Zap::Material()}, {meshId}});
 
-				Zap::Actor light;
-				scene.attachActor(light);
-				light.addTransform(glm::mat4(1));
-				light.cmpTransform_setPos({1, 1, -3});
-				light.addLight({1, 1, 1}, 10);
+				Zap::Actor light1;
+				scene.attachActor(light1);
+				light1.addTransform(glm::mat4(1));
+				light1.cmpTransform_setPos(glm::vec3(.5, .6, -1)*dist);
+				light1.addLight({1, 1, 1}, 10*dist*dist);
+				light1.cmpLight_setRadius(0);
+
+				Zap::Actor light2;
+				scene.attachActor(light2);
+				light2.addTransform(glm::mat4(1));
+				light2.cmpTransform_setPos(glm::vec3(1, 1.5, .5)*dist);
+				light2.addLight({1, .8, .3}, 6*dist*dist);
+				light2.cmpLight_setRadius(0);
 
 				Zap::Actor cam;
 				scene.attachActor(cam);
 				cam.addTransform(glm::mat4(1));
 				glm::mat4 camOffset = glm::mat4(1);
-				camOffset[3] = glm::vec4(2, 3, -5, 1);
+				auto camPos = glm::vec3(0.6, 1.1, -1.5) * dist;
+				camOffset[3] = glm::vec4(camPos, 1);
 				cam.addCamera(camOffset);
 				cam.cmpCamera_lookAtCenter();
 
-				scene.init();
+				scene.update();
 
 				Zap::Renderer renderer;
-				//auto* pbRender = new Zap::PBRenderer(&scene);
-				//pbRender->setViewport(m_previewSize.x, m_previewSize.y, 0, 0);
-				//pbRender->updateCamera(cam);
-				//pbRender->clearColor = { 0.1f, 0.1f, 0.1f, 1.0f };
-				//renderer.setResultTarget(&image);
-				//renderer.addRenderTask(pbRender);
+				// create the preview image
+				auto previewTarget = renderer.createRenderTarget<Zap::RenderTargetImage>(
+					Zap::GlobalSettings::getColorFormat(),
+					VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+					VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
+				);
+
+				//create pbr task
+				auto pbrTask = renderer.createRenderTask<Zap::PBRenderer>(previewTarget, &scene);
+				pbrTask->clearColor = { .1, .1, .1, 1 };
+
 				renderer.beginRecord();
-				//renderer.recRenderTask(pbRender);
+				renderer.recRenderTask(pbrTask);
 				renderer.endRecord();
-				renderer.init();
+				renderer.resize(m_globalSettings.previewSize);
+				pbrTask->setViewport(m_globalSettings.previewSize.x, m_globalSettings.previewSize.y, 0, 0);
+				pbrTask->updateCamera(cam);
 				
-				scene.update();
 				renderer.render();
+
+				m_meshPreviewImages[meshId] = renderer.extractRenderTargetImage(previewTarget);
+				m_meshPreviewRefs[meshId] = std::make_unique<Zap::GuiImageRef>(m_meshPreviewImages[meshId]); // generate a reference to the preview which can be used by ImGui
 
 				renderer.destroy();
 				scene.destroy();
 
-				image.changeLayout(VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT);
-				m_meshPreviews[meshPair.first] = m_pGui->loadTexture(&image);
 			}
 		}
 	}
