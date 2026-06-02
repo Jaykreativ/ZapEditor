@@ -19,22 +19,82 @@ namespace editor {
 		return "AssetBrowser";
 	}
 
+	void nextPrev(size_t &i, int newlineInterval) {
+		i++;
+		if (newlineInterval!=0 && i % newlineInterval!=0)
+			ImGui::SameLine();
+	}
+
 	void AssetBrowser::draw() {
+		auto style = ImGui::GetStyle();
+		auto buttonPadding = style.FramePadding;
 		auto* base = Zap::Base::getBase();
 		auto* pAssetHandler = base->getAssetHandler();
+
+		if (ImGui::BeginMenuBar()) {
+			if (ImGui::BeginMenu("View")) {
+				if (ImGui::BeginMenu("Settings")) {
+					int prevSize = m_globalSettings.previewSize.x;
+					ImGui::DragInt("Preview Size", &prevSize, 1, 1, 1080);
+					m_globalSettings.previewSize = { prevSize, prevSize };
+					
+					ImGui::EndMenu();
+				}
+				ImGui::EndMenu();
+			}
+
+			ImGui::Button("Reload");
+			if (ImGui::BeginItemTooltip()) {
+				ImGui::Text("Render previews for unloaded assets. Right-click to reload all previews.");
+				ImGui::EndTooltip();
+			}
+			if (ImGui::IsItemClicked(ImGuiMouseButton_Left)) {
+				loadPreviews();
+			}
+			else if (ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+				clearPreviews();
+				loadPreviews();
+			}
+			ImGui::EndMenuBar();
+		}
 		
+		size_t prevIndex = 0;
+		float xAvailSize = ImGui::GetContentRegionAvail().x;
+		int newlineInterval = (xAvailSize - style.ItemSpacing.x) / (style.FramePadding.x * 2 + style.ItemSpacing.x + m_globalSettings.previewSize.x); // amount of previews per line
+
+		// Meshes
 		for (auto meshIter = pAssetHandler->beginMeshes(); meshIter != pAssetHandler->endMeshes(); meshIter++) {
 			const auto& meshPair = *meshIter;
 			const auto meshId = meshPair.first;
-			if (!m_meshPreviewImages.count(meshId))
-				continue;
-			if (ImGui::ImageButton(std::to_string(meshId).c_str(), *m_meshPreviewRefs.at(meshId), ImVec2(m_globalSettings.previewSize.x, m_globalSettings.previewSize.y))) {
-			
-			}
+			bool isButtonPressed = false;
+			if (m_meshPreviewImages.count(meshId) && m_meshPreviewRefs.at(meshId))
+				isButtonPressed = ImGui::ImageButton(std::to_string(meshId).c_str(), *m_meshPreviewRefs.at(meshId), ImVec2(m_globalSettings.previewSize.x, m_globalSettings.previewSize.y));
+			else
+				isButtonPressed = ImGui::Button(("Mesh##" + std::to_string(meshId)).c_str(), ImVec2(m_globalSettings.previewSize.x + buttonPadding.x*2, m_globalSettings.previewSize.y + buttonPadding.y*2));
 			if (ImGui::BeginDragDropSource()) {
 				ImGui::SetDragDropPayload("MeshToActorPayload", &meshId, sizeof(Zap::UUID));
 				ImGui::EndDragDropSource();
 			}
+			nextPrev(prevIndex, newlineInterval);
+		}
+		// Materials
+		for (auto matIter = pAssetHandler->beginMaterials(); matIter != pAssetHandler->endMaterials(); matIter++) {
+			const auto& matPair = *matIter;
+			const auto matId = matPair.first;
+			bool isButtonPressed = false;
+			isButtonPressed = ImGui::Button(("Material##" + std::to_string(matId)).c_str(), ImVec2(m_globalSettings.previewSize.x + buttonPadding.x*2, m_globalSettings.previewSize.y + buttonPadding.y*2));
+			nextPrev(prevIndex, newlineInterval);
+		}
+		// Textures
+		for (auto texIter = pAssetHandler->beginTextures(); texIter != pAssetHandler->endTextures(); texIter++) {
+			const auto& texPair = *texIter;
+			const auto texId = texPair.first;
+			bool isButtonPressed = false;
+			if (m_texturePreviewImages.count(texId) && m_texturePreviewRefs.at(texId))
+				isButtonPressed = ImGui::ImageButton(std::to_string(texId).c_str(), *m_texturePreviewRefs.at(texId), ImVec2(m_globalSettings.previewSize.x, m_globalSettings.previewSize.y));
+			else
+				isButtonPressed = ImGui::Button(("Texture##" + std::to_string(texId)).c_str(), ImVec2(m_globalSettings.previewSize.x + buttonPadding.x*2, m_globalSettings.previewSize.y + buttonPadding.y*2));
+			nextPrev(prevIndex, newlineInterval);
 		}
 	}
 
@@ -42,9 +102,16 @@ namespace editor {
 		return 0;
 	}
 
+	void AssetBrowser::clearPreviews() {
+		m_meshPreviewRefs.clear();
+		m_meshPreviewImages.clear();
+		m_texturePreviewRefs.clear();
+	}
+
 	void AssetBrowser::loadPreviews() {
 		auto* base = Zap::Base::getBase();
 		auto* pAssetHandler = base->getAssetHandler();
+		// Meshes
 		for (auto meshIter = pAssetHandler->beginMeshes(); meshIter != pAssetHandler->endMeshes(); meshIter++) {
 			const auto& meshPair = *meshIter;
 			const auto meshId = meshPair.first;
@@ -56,10 +123,12 @@ namespace editor {
 				Zap::Scene scene;
 				scene.init();
 
+				Zap::Material meshMat;
+
 				Zap::Actor actor;
 				scene.attachActor(actor);
 				actor.addTransform(glm::mat4(1));
-				actor.addModel({"", {Zap::Material()}, {meshId}});
+				actor.addModel({"", {meshMat}, {meshId}});
 
 				Zap::Actor light1;
 				scene.attachActor(light1);
@@ -111,9 +180,17 @@ namespace editor {
 				m_meshPreviewRefs[meshId] = std::make_unique<Zap::GuiImageRef>(m_meshPreviewImages[meshId]); // generate a reference to the preview which can be used by ImGui
 
 				renderer.destroy();
+				meshMat.remove();
 				scene.destroy();
-
 			}
+		}
+		// Textures
+		for (auto texIter = pAssetHandler->beginTextures(); texIter != pAssetHandler->endTextures(); texIter++) {
+			const auto& texPair = *texIter;
+			const auto texId = texPair.first;
+
+			m_texturePreviewImages[texId] = std::make_shared<Zap::Image2D>(texPair.second.image);
+			m_texturePreviewRefs[texId] = std::make_unique<Zap::GuiImageRef>(m_texturePreviewImages[texId]);
 		}
 	}
 }
