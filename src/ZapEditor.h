@@ -48,6 +48,18 @@ namespace editor {
 		std::vector<Zap::Actor> selectedActors   = {};
 		Zap::Scene*             pActiveScene = nullptr;
 
+		struct DefaultMeshes {
+			DefaultMeshes(Zap::Mesh cube, Zap::Mesh sphere, Zap::Mesh cylinder, Zap::Mesh cone, Zap::Mesh torus)
+				: cube(cube), sphere(sphere), cylinder(cylinder), cone(cone), torus(torus)
+			{}
+			Zap::Mesh cube;
+			Zap::Mesh sphere;
+			Zap::Mesh cylinder;
+			Zap::Mesh cone;
+			Zap::Mesh torus;
+		};
+		std::unique_ptr<DefaultMeshes> pDefaultMeshes;
+
 		Zap::Base* engineBase;
 
 		Zap::Window* window;

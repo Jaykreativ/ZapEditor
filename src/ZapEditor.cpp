@@ -87,6 +87,15 @@ void setupActors() {
 	Zap::ActorLoader actorLoader;
 	Zap::HitMeshLoader hitMeshLoader;
 
+	auto defaultMeshModel = modelLoader.load((std::string)"Models/DefaultMeshes.obj");
+	editor::editorData.pDefaultMeshes = std::make_unique<editor::EditorData::DefaultMeshes>(
+		defaultMeshModel.meshes[0],
+		defaultMeshModel.meshes[1],
+		defaultMeshModel.meshes[2],
+		defaultMeshModel.meshes[3],
+		defaultMeshModel.meshes[4]
+	);
+
 	editor::cubeModel = modelLoader.load((std::string)"Models/OBJ/Cube.obj");
 
 	auto cubeHitMesh = hitMeshLoader.load("Models/OBJ/Cube.obj");
