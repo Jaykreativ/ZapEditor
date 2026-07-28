@@ -7,6 +7,7 @@
 
 namespace editor {
 	struct AssetBrowserSettings {
+		bool filterGenerated = true;
 		bool filterMeshes = true;
 		bool filterMaterials = true;
 		bool filterTextures = true;

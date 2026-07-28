@@ -5,7 +5,7 @@
 #include "SceneHandling.h"
 
 #include "Zap/Scene/Scene.h"
-#include "Zap/Scene/Model.h"
+#include "Zap/Scene/Components/Model.h"
 
 #include "imgui.h"
 #include <iostream>
@@ -79,12 +79,14 @@ namespace editor {
 			// DragDrop MeshToActor
 			if (ImGui::BeginDragDropTarget()) {
 				if (auto* payload = ImGui::AcceptDragDropPayload("MeshToActorPayload")) {
-					Zap::Mesh mesh = Zap::Mesh(*((Zap::UUID*)payload->Data));
-					if (!actor.hasModel()) {
-						actor.addModel({ "", {Zap::Material()}, {mesh} });
-					}
-					else {
-						actor.cmpModel_addMesh(mesh);
+					auto mesh = *reinterpret_cast<Zap::AssetHandle<Zap::Mesh>*>(payload->Data);
+					if (mesh) {
+						if (!actor.hasModel()) {
+							actor.addModel({ {mesh}, {m_pEditorData->defaultMaterial}, {glm::mat4(1)} });
+						}
+						else {
+							actor.cmpModel_addMesh(mesh, m_pEditorData->defaultMaterial, glm::mat4(1));
+						}
 					}
 				}
 				ImGui::EndDragDropTarget();
@@ -164,20 +166,20 @@ namespace editor {
 			if (m_hoveredActorIndex < 0xFFFFFFFF) {
 				if (ImGui::Button("Save")) {
 					Zap::Actor actor = m_pEditorData->actors[m_hoveredActorIndex];
-					if (m_pEditorData->actorPathMap.count(actor))
-						saveActorFile(m_pEditorData->actorPathMap.at(actor), actor, *m_pEditorData);
-					else {
+					//if (m_pEditorData->actorPathMap.count(actor))
+					//	saveActorFile(m_pEditorData->actorPathMap.at(actor), actor, *m_pEditorData);
+					//else {
 						m_actorSaveData = {};
 						m_actorSaveData.actor = actor;
 						ImGui::OpenPopup("ActorSave##Popup");
-					}
+					//}
 				}
 			}
 
 			if (ImGui::BeginPopup("ActorSave##Popup")) {
 				ImGui::InputText("filepath", m_actorSaveData.pathInputBuffer, m_actorSaveData.pathInputSize);
 				if (ImGui::Button("Done") || ImGui::IsKeyPressed(ImGuiKey_Enter, false)) {
-					saveActorFile(m_actorSaveData.pathInputBuffer, m_actorSaveData.actor, *m_pEditorData);
+					//saveActorFile(m_actorSaveData.pathInputBuffer, m_actorSaveData.actor, *m_pEditorData);
 					ImGui::CloseCurrentPopup();
 				}
 				ImGui::EndPopup();

@@ -7,20 +7,18 @@
 #include "SceneHandling.h"
 
 #include "Zap/Zap.h"
-#include "Zap/FileLoader.h"
 #include "Zap/Events.h"
 #include "Zap/Serializer.h"
 #include "Zap/Rendering/Window.h"
 #include "Zap/Rendering/Renderer.h"
 #include "Zap/Rendering/RenderObjects/RenderTasks/Gui.h"
 #include "Zap/Scene/Scene.h"
-#include "Zap/Scene/Mesh.h"
 #include "Zap/Scene/Actor.h"
 #include "Zap/Scene/Transform.h"
 #include "Zap/Scene/Material.h"
-#include "Zap/Scene/Model.h"
 #include "Zap/Physics/Shape.h"
-#include "Zap/Physics/HitMesh.h"
+#include "Zap/AssetHandling/AssetTypes/Mesh.h"
+#include "Zap/AssetHandling/AssetTypes/Material.h"
 
 #include "imgui.h"
 #include "backends/imgui_impl_vulkan.h";
@@ -83,11 +81,14 @@ void setupGuiStyle() {
 }
 
 void setupActors() {
-	Zap::ModelLoader modelLoader ;
-	Zap::ActorLoader actorLoader;
-	Zap::HitMeshLoader hitMeshLoader;
+	auto assetHandler = Zap::Base::getBase()->getAssetHandler();
+	Zap::TextureLoader texLoader;
+	texLoader.load("Textures/Test.png");
+	auto testTexture = texLoader.result();
 
-	auto defaultMeshModel = modelLoader.load((std::string)"Models/DefaultMeshes.obj");
+	Zap::ModelLoader modelLoader;
+	modelLoader.load("Models/DefaultMeshes.obj");
+	auto defaultMeshModel = modelLoader.result();
 	editor::editorData.pDefaultMeshes = std::make_unique<editor::EditorData::DefaultMeshes>(
 		defaultMeshModel.meshes[0],
 		defaultMeshModel.meshes[1],
@@ -95,133 +96,79 @@ void setupActors() {
 		defaultMeshModel.meshes[3],
 		defaultMeshModel.meshes[4]
 	);
+	editor::editorData.defaultMaterial = defaultMeshModel.materials[0];
 
-	editor::cubeModel = modelLoader.load((std::string)"Models/OBJ/Cube.obj");
+	modelLoader.load("Models/OBJ/Cube.obj");
+	editor::cubeModel = modelLoader.result();
 
-	auto cubeHitMesh = hitMeshLoader.load("Models/OBJ/Cube.obj");
+	editor::editorData.actors.push_back(Zap::Actor());
+	auto actor = editor::editorData.actors.back();
+	editor::editorData.scenes.back().attachActor(actor);
+	editor::editorData.actorNameMap[actor] = "CoordinateCross";
+	actor.addTransform(glm::mat4(1));
+	actor.cmpTransform_setPos(0, 0, 0);
+	actor.cmpTransform_setScale(0.5, 0.5, 0.5);
+	modelLoader.load("Models/CoordinateCross/CoordinateCross.glb");
+	actor.addModel(modelLoader.result());
 
-	//auto cboxModel = modelLoader.load("Models/gltf/cornellBox.glb");
+	editor::editorData.actors.push_back(Zap::Actor());
+	actor = editor::editorData.actors.back();
+	editor::editorData.scenes.back().attachActor(actor);
+	editor::editorData.actorNameMap[actor] = "Test";
+	actor.addTransform(glm::mat4(1));
+	actor.cmpTransform_setPos(0, 0, -10);
+	modelLoader.load("Models/CoordinateCross/Test.glb");
+	actor.addModel(modelLoader.result());
 	
-	//auto sponzaModel = modelLoader.load("Models/OBJ/Sponza/Sponza.obj");
-	//auto sponzaModel = modelLoader.load("Models/gltf/Sponza.glb");
-
-	//auto gearModel = modelLoader.load("Models/gltf/ZapGear.glb");
-
-	//auto sphereModel = modelLoader.load("Models/gltf/metalSphere.glb");
-
-	//auto pistolKimber = modelLoader.load((std::string)"Models/gltf/PistolKimber/PistolKimber.glb");
-
 	Zap::PhysicsMaterial pxMaterial = Zap::PhysicsMaterial(0.5, 1, 0.1);
 
 	editor::editorData.actors.push_back(Zap::Actor());
-	auto pActor = &editor::editorData.actors.back();
-	editor::editorData.scenes.back().attachActor(*pActor);
-	editor::editorData.actorNameMap[*pActor] = "LightWhite";
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(-2, 2.7, 1);
-	pActor->addLight({ 1, 1, 1 }, 20);
+	actor = editor::editorData.actors.back();
+	editor::editorData.scenes.back().attachActor(actor);
+	editor::editorData.actorNameMap[actor] = "LightWhite";
+	actor.addTransform(glm::mat4(1));
+	actor.cmpTransform_setPos(-2, 2.7, 1);
+	actor.addLight({ 1, 1, 1 }, 20);
 
 	editor::editorData.actors.push_back(Zap::Actor());
-	pActor = &editor::editorData.actors.back();
-	editor::editorData.scenes.back().attachActor(*pActor);
-	editor::editorData.actorNameMap[*pActor] = "LightOrange";
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(2, 2, 2.7);
-	pActor->addLight({ 1, .6, .2 }, 10);
+	actor = editor::editorData.actors.back();
+	editor::editorData.scenes.back().attachActor(actor);
+	editor::editorData.actorNameMap[actor] = "LightOrange";
+	actor.addTransform(glm::mat4(1));
+	actor.cmpTransform_setPos(2, 2, 2.7);
+	actor.addLight({ 1, .6, .2 }, 10);
 
 	editor::editorData.actors.push_back(Zap::Actor());
-	pActor = &editor::editorData.actors.back();
-	editor::editorData.scenes.back().attachActor(*pActor);
-	editor::editorData.actorNameMap[*pActor] = "Cube";
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(0, 0, 5);
-	pActor->addModel(editor::cubeModel);
+	actor = editor::editorData.actors.back();
+	editor::editorData.scenes.back().attachActor(actor);
+	editor::editorData.actorNameMap[actor] = "Cube";
+	actor.addTransform(glm::mat4(1));
+	actor.cmpTransform_setPos(0, 0, 5);
+	actor.addModel(editor::cubeModel);
+	auto cubeMat = assetHandler->generateAsset<Zap::Material>(
+		glm::vec4{ 1, 1, 1, 1 }, 0, 0.5, glm::vec4{ 0, 0, 0, 0 }, testTexture);
+	actor.cmpModel_setMaterial(cubeMat);
 	{
-		Zap::ConvexMesh convexMesh(cubeHitMesh);
+		Zap::ConvexMesh convexMesh(editor::cubeModel.meshes[0]);
 		editor::editorData.convexMeshes.push_back(convexMesh);
 		auto geometry = Zap::ConvexMeshGeometry(convexMesh);
 		Zap::Shape shape(geometry, pxMaterial, true);
-		pActor->addRigidDynamic(shape);
+		actor.addRigidDynamic(shape);
 	}
 
-	//editor::actors.push_back(Zap::Actor());
-	//pActor = &editor::actors.back();
-	//editor::scenes.back().attachActor(*pActor);
-	//pActor->addTransform(glm::mat4(1));
-	//pActor->cmpTransform_setPos(0, -2, 0);
-	//pActor->cmpTransform_setScale(0.01);
-	//pActor->addModel(sponzaModel);
-
 	editor::editorData.actors.push_back(Zap::Actor());
-	pActor = &editor::editorData.actors.back();
-	editor::editorData.scenes.back().attachActor(*pActor);
-	editor::editorData.actorNameMap[*pActor] = "Ground";
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(0, -6, 0);
-	pActor->cmpTransform_setScale(50, 1, 50);
-	pActor->cmpTransform_rotateX(180);
-	pActor->addModel(editor::cubeModel);
+	actor = editor::editorData.actors.back();
+	editor::editorData.scenes.back().attachActor(actor);
+	editor::editorData.actorNameMap[actor] = "Ground";
+	actor.addTransform(glm::mat4(1));
+	actor.cmpTransform_setPos(0, -6, 0);
+	actor.cmpTransform_setScale(50, 1, 50);
+	actor.cmpTransform_rotateX(180);
+	actor.addModel(editor::cubeModel);
 	{
 		auto geometry = Zap::BoxGeometry(glm::vec3(50, 1, 50));
 		Zap::Shape shape(geometry, pxMaterial, true);
-		pActor->addRigidStatic(shape);
-	}
-
-	// coordinate helper
-	editor::editorData.actors.push_back(Zap::Actor());
-	pActor = &editor::editorData.actors.back();
-	editor::editorData.scenes.back().attachActor(*pActor);
-	editor::editorData.actorNameMap[*pActor] = "Zero";
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(0, 0, 0);
-	pActor->cmpTransform_setScale(0.25, 0.25, 0.25);
-	pActor->addModel(editor::cubeModel);
-	{
-		Zap::Material mat = Zap::Material();
-		mat.setEmissive({ 1, 1, 1, 5 });
-		pActor->cmpModel_setMaterial(mat);
-	}
-	
-	editor::editorData.actors.push_back(Zap::Actor());
-	pActor = &editor::editorData.actors.back();
-	editor::editorData.scenes.back().attachActor(*pActor);
-	editor::editorData.actorNameMap[*pActor] = "X";
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(0.5, 0, 0);
-	pActor->cmpTransform_setScale(0.5, 0.1, 0.1);
-	pActor->addModel(editor::cubeModel);
-	{
-		Zap::Material mat = Zap::Material();
-		mat.setEmissive({ 1, 0, 0, 2 });
-		pActor->cmpModel_setMaterial(mat);
-	}
-	
-	editor::editorData.actors.push_back(Zap::Actor());
-	pActor = &editor::editorData.actors.back();
-	editor::editorData.scenes.back().attachActor(*pActor);
-	editor::editorData.actorNameMap[*pActor] = "Y";
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(0, 0.5, 0);
-	pActor->cmpTransform_setScale(0.1, 0.5, 0.1);
-	pActor->addModel(editor::cubeModel);
-	{
-		Zap::Material mat = Zap::Material();
-		mat.setEmissive({ 0, 1, 0, 2 });
-		pActor->cmpModel_setMaterial(mat);
-	}
-	
-	editor::editorData.actors.push_back(Zap::Actor());
-	pActor = &editor::editorData.actors.back();
-	editor::editorData.scenes.back().attachActor(*pActor);
-	editor::editorData.actorNameMap[*pActor] = "Z";
-	pActor->addTransform(glm::mat4(1));
-	pActor->cmpTransform_setPos(0, 0, 0.5);
-	pActor->cmpTransform_setScale(0.1, 0.1, 0.5);
-	pActor->addModel(editor::cubeModel);
-	{
-		Zap::Material mat = Zap::Material();
-		mat.setEmissive({ 0, 0, 1, 5 });
-		pActor->cmpModel_setMaterial(mat);
+		actor.addRigidStatic(shape);
 	}
 }
 

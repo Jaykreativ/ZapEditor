@@ -1,7 +1,7 @@
 #define ZP_ENTITY_COMPONENT_SYSTEM_ACCESS
 #include "ComponentView.h"
 
-#include "Zap/FileLoader.h"
+#include "Zap/AssetHandling/Loaders.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
 
@@ -219,14 +219,14 @@ namespace editor {
 					pGeometry = new Zap::PlaneGeometry();
 					break;
 				}
-				case Zap::eGEOMETRY_TYPE_CONVEX_MESH: {
-					Zap::HitMeshLoader loader;
-					Zap::HitMesh hitMesh = loader.load(m_shapeCreationInfo.hitMeshPath);
-					Zap::ConvexMesh convexMesh(hitMesh);
-					editorData.convexMeshes.push_back(convexMesh);
-					pGeometry = new Zap::ConvexMeshGeometry(convexMesh);
-					break;
-				}
+				//case Zap::eGEOMETRY_TYPE_CONVEX_MESH: {
+				//	Zap::HitMeshLoader loader;
+				//	auto hitMesh = loader.load(m_shapeCreationInfo.hitMeshPath);
+				//	Zap::ConvexMesh convexMesh(hitMesh);
+				//	editorData.convexMeshes.push_back(convexMesh);
+				//	pGeometry = new Zap::ConvexMeshGeometry(convexMesh);
+				//	break;
+				//}
 				default: {
 					ZP_ASSERT(false, "Shape must be created with known geometry type");
 					break;

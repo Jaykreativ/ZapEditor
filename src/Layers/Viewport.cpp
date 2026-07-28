@@ -3,14 +3,13 @@
 #include "FileHandling.h"
 
 #include "Zap/Events.h"
-#include "Zap/FileLoader.h"
+#include "Zap/AssetHandling/Loaders.h"
 #include "Zap/Rendering/RenderObjects/RenderTask.h"
 #include "Zap/Rendering/RenderObjects/RenderTasks/PBRenderer.h"
-#include "Zap/Rendering/RenderObjects/RenderTasks/RaytracingRenderer.h"
 #include "Zap/Rendering/RenderObjects/RenderTasks/PathTacer.h"
 #include "Zap/Rendering/RenderObjects/RenderTasks/DebugRenderTask.h"
 #include "Zap/Scene/Scene.h"
-#include "Zap/Scene/Mesh.h"
+#include "Zap/AssetHandling/AssetTypes/Mesh.h"
 #include "glm/gtc/matrix_transform.hpp"
 #include "imgui.h"
 #include "backends/imgui_impl_vulkan.h"
@@ -634,16 +633,16 @@ namespace editor {
 			for (auto actor : m_actors) {
 				if (actor.isValid() && actor.hasModel()) {
 					auto* pModel = getActorModel(actor);
-					for (Zap::Mesh mesh : pModel->meshes) {
+					for (Zap::AssetHandle<Zap::Mesh> mesh : pModel->meshes) {
 						VkDeviceSize offsets[] = { 0 };
-						VkBuffer vertexBuffer = *mesh.getVertexBuffer();
+						VkBuffer vertexBuffer = mesh->getVertexBuffer();
 						vkCmdBindVertexBuffers(*cmd, 0, 1, &vertexBuffer, offsets);
-						vkCmdBindIndexBuffer(*cmd, *mesh.getIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
+						vkCmdBindIndexBuffer(*cmd, mesh->getIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
 						uint32_t i = getMeshInstanceIndex(actor, mesh);
 						vkCmdPushConstants(*cmd, m_plainPipeline.getVkPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(uint32_t), &i);
 
-						vkCmdDrawIndexed(*cmd, mesh.getIndexBuffer()->getSize() / sizeof(uint32_t), 1, 0, 0, 0);
+						vkCmdDrawIndexed(*cmd, mesh->getIndexBuffer().getSize() / sizeof(uint32_t), 1, 0, 0, 0);
 					}
 				}
 			}

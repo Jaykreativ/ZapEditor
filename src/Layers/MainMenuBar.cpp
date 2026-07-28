@@ -14,6 +14,8 @@
 #include "imgui.h"
 
 #include <filesystem>
+#include <iostream>
+#include <fstream>
 #include <chrono>
 
 namespace editor {
@@ -99,7 +101,7 @@ namespace editor {
 				ImGui::InputText("Directory", dirBuffer, dirBufferSize);
 
 				if (ImGui::Button("Done")) {
-					project::create(*m_pEditorData, nameBuffer, dirBuffer);
+					//project::create(*m_pEditorData, nameBuffer, dirBuffer);
 					ImGui::CloseCurrentPopup();
 				}
 
@@ -135,7 +137,7 @@ namespace editor {
 					ImGui::BeginDisabled();
 
 				if (ImGui::Button("Done")) {
-					project::open(*m_pEditorData, name, directory);
+					//project::open(*m_pEditorData, name, directory);
 					ImGui::CloseCurrentPopup();
 				}
 
@@ -150,12 +152,12 @@ namespace editor {
 				ImGui::BeginDisabled();
 			//Close Project
 			if (ImGui::Button("Close")) {
-				project::close(*m_pEditorData);
+				//project::close(*m_pEditorData);
 			}
 
 			// Save Project
 			if (ImGui::Button("Save")) {
-				project::save(*m_pEditorData);
+				//project::save(*m_pEditorData);
 			}
 			if (disabled)
 				ImGui::EndDisabled();

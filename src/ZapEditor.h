@@ -49,16 +49,17 @@ namespace editor {
 		Zap::Scene*             pActiveScene = nullptr;
 
 		struct DefaultMeshes {
-			DefaultMeshes(Zap::Mesh cube, Zap::Mesh sphere, Zap::Mesh cylinder, Zap::Mesh cone, Zap::Mesh torus)
+			DefaultMeshes(Zap::AssetHandle<Zap::Mesh> cube, Zap::AssetHandle<Zap::Mesh> sphere, Zap::AssetHandle<Zap::Mesh> cylinder, Zap::AssetHandle<Zap::Mesh> cone, Zap::AssetHandle<Zap::Mesh> torus)
 				: cube(cube), sphere(sphere), cylinder(cylinder), cone(cone), torus(torus)
 			{}
-			Zap::Mesh cube;
-			Zap::Mesh sphere;
-			Zap::Mesh cylinder;
-			Zap::Mesh cone;
-			Zap::Mesh torus;
+			Zap::AssetHandle<Zap::Mesh> cube;
+			Zap::AssetHandle<Zap::Mesh> sphere;
+			Zap::AssetHandle<Zap::Mesh> cylinder;
+			Zap::AssetHandle<Zap::Mesh> cone;
+			Zap::AssetHandle<Zap::Mesh> torus;
 		};
 		std::unique_ptr<DefaultMeshes> pDefaultMeshes;
+		Zap::AssetHandle<Zap::Material> defaultMaterial;
 
 		Zap::Base* engineBase;
 

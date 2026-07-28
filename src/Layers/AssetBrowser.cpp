@@ -1,6 +1,9 @@
 #include "AssetBrowser.h"
 
 #include "Zap/Zap.h"
+#include "Zap/AssetHandling/AssetTypes/Mesh.h"
+#include "Zap/AssetHandling/AssetTypes/Material.h"
+#include "Zap/AssetHandling/AssetTypes/Texture.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Rendering/Renderer.h"
 #include "Zap/Rendering/RenderObjects/RenderTasks/PBRenderer.h"
@@ -24,6 +27,26 @@ namespace editor {
 		i++;
 		if (newlineInterval!=0 && i % newlineInterval!=0)
 			ImGui::SameLine();
+	}
+
+	template<class T>
+	std::string typeStr();
+	template<>
+	std::string typeStr<Zap::Mesh>() { return "Mesh"; }
+	template<>
+	std::string typeStr<Zap::Material>() { return "Material"; }
+	template<>
+	std::string typeStr<Zap::Texture>() { return "Texture"; }
+
+	template<class T>
+	void drawTooltip(Zap::AssetHandle<T> handle) {
+		if (ImGui::BeginItemTooltip()) {
+			if (handle->isGenerated())
+				ImGui::TextColored({ 1, 0, 0, 1 }, "Generated");
+			ImGui::Text("Type: %s", typeStr<T>().c_str());
+			ImGui::Text("UUID: %llu", (Zap::UUID)handle);
+			ImGui::EndTooltip();
+		}
 	}
 
 	void AssetBrowser::draw() {
@@ -57,6 +80,7 @@ namespace editor {
 				loadPreviews();
 			}
 
+			ImGui::Checkbox("Generated Assets", &m_settings.filterGenerated);
 			ImGui::Checkbox("Meshes", &m_settings.filterMeshes);
 			ImGui::Checkbox("Materials", &m_settings.filterMaterials);
 			ImGui::Checkbox("Textures", &m_settings.filterTextures);
@@ -70,43 +94,64 @@ namespace editor {
 
 		// Meshes
 		if(m_settings.filterMeshes)
-		for (auto meshIter = pAssetHandler->beginMeshes(); meshIter != pAssetHandler->endMeshes(); meshIter++) {
-			const auto& meshPair = *meshIter;
-			const auto meshId = meshPair.first;
+		for (auto meshIter = pAssetHandler->begin<Zap::Mesh>(); meshIter != pAssetHandler->end<Zap::Mesh>(); meshIter++) {
+			auto mesh = *meshIter;
+			if (!m_settings.filterGenerated && mesh->isGenerated()) continue; // skip generated assets if filtered
+			ImGui::PushID(prevIndex);
+
 			bool isButtonPressed = false;
-			if (m_meshPreviewImages.count(meshId) && m_meshPreviewRefs.at(meshId))
-				isButtonPressed = ImGui::ImageButton(std::to_string(meshId).c_str(), *m_meshPreviewRefs.at(meshId), ImVec2(m_globalSettings.previewSize.x, m_globalSettings.previewSize.y));
+			if (m_meshPreviewImages.count(mesh) && m_meshPreviewRefs.at(mesh))
+				isButtonPressed = ImGui::ImageButton(std::to_string(mesh).c_str(), *m_meshPreviewRefs.at(mesh), ImVec2(m_globalSettings.previewSize.x, m_globalSettings.previewSize.y));
 			else
-				isButtonPressed = ImGui::Button(("Mesh##" + std::to_string(meshId)).c_str(), ImVec2(m_globalSettings.previewSize.x + buttonPadding.x*2, m_globalSettings.previewSize.y + buttonPadding.y*2));
+				isButtonPressed = ImGui::Button(("Mesh##" + std::to_string(mesh)).c_str(), ImVec2(m_globalSettings.previewSize.x + buttonPadding.x*2, m_globalSettings.previewSize.y + buttonPadding.y*2));
+			
 			if (ImGui::BeginDragDropSource()) {
-				ImGui::SetDragDropPayload("MeshToActorPayload", &meshId, sizeof(Zap::UUID));
+				ImGui::SetDragDropPayload("MeshToActorPayload", &mesh, sizeof(Zap::AssetHandle<Zap::Mesh>));
+				ImGui::Text("UUID: %llu", (Zap::UUID)mesh);
 				ImGui::EndDragDropSource();
 			}
+			else {
+				drawTooltip(mesh);
+			}
+
 			nextPrev(prevIndex, newlineInterval);
+			ImGui::PopID();
 		}
 		// Materials
 		if (m_settings.filterMaterials)
-		for (auto matIter = pAssetHandler->beginMaterials(); matIter != pAssetHandler->endMaterials(); matIter++) {
-			const auto& matPair = *matIter;
-			const auto matId = matPair.first;
+		for (auto matIter = pAssetHandler->begin<Zap::Material>(); matIter != pAssetHandler->end<Zap::Material>(); matIter++) {
+			auto material = *matIter;
+			if (!m_settings.filterGenerated && material->isGenerated()) continue; // skip generated assets if filtered
+			ImGui::PushID(prevIndex);
+
 			bool isButtonPressed = false;
-			if (m_materialPreviewImages.count(matId) && m_materialPreviewRefs.at(matId))
-				isButtonPressed = ImGui::ImageButton(std::to_string(matId).c_str(), *m_materialPreviewRefs.at(matId), ImVec2(m_globalSettings.previewSize.x, m_globalSettings.previewSize.y));
+			if (m_materialPreviewImages.count(material) && m_materialPreviewRefs.at(material))
+				isButtonPressed = ImGui::ImageButton(std::to_string(material).c_str(), *m_materialPreviewRefs.at(material), ImVec2(m_globalSettings.previewSize.x, m_globalSettings.previewSize.y));
 			else
-				isButtonPressed = ImGui::Button(("Material##" + std::to_string(matId)).c_str(), ImVec2(m_globalSettings.previewSize.x + buttonPadding.x*2, m_globalSettings.previewSize.y + buttonPadding.y*2));
+				isButtonPressed = ImGui::Button(("Material##" + std::to_string(material)).c_str(), ImVec2(m_globalSettings.previewSize.x + buttonPadding.x*2, m_globalSettings.previewSize.y + buttonPadding.y*2));
+
+			drawTooltip(material);
+
 			nextPrev(prevIndex, newlineInterval);
+			ImGui::PopID();
 		}
 		// Textures
 		if (m_settings.filterTextures)
-		for (auto texIter = pAssetHandler->beginTextures(); texIter != pAssetHandler->endTextures(); texIter++) {
-			const auto& texPair = *texIter;
-			const auto texId = texPair.first;
+		for (auto texIter = pAssetHandler->begin<Zap::Texture>(); texIter != pAssetHandler->end<Zap::Texture>(); texIter++) {
+			auto texture = *texIter;
+			if (!m_settings.filterGenerated && texture->isGenerated()) continue; // skip generated assets if filtered
+			ImGui::PushID(prevIndex);
+
 			bool isButtonPressed = false;
-			if (m_texturePreviewImages.count(texId) && m_texturePreviewRefs.at(texId))
-				isButtonPressed = ImGui::ImageButton(std::to_string(texId).c_str(), *m_texturePreviewRefs.at(texId), ImVec2(m_globalSettings.previewSize.x, m_globalSettings.previewSize.y));
+			if (m_texturePreviewImages.count(texture) && m_texturePreviewRefs.at(texture))
+				isButtonPressed = ImGui::ImageButton(std::to_string(texture).c_str(), *m_texturePreviewRefs.at(texture), ImVec2(m_globalSettings.previewSize.x, m_globalSettings.previewSize.y));
 			else
-				isButtonPressed = ImGui::Button(("Texture##" + std::to_string(texId)).c_str(), ImVec2(m_globalSettings.previewSize.x + buttonPadding.x*2, m_globalSettings.previewSize.y + buttonPadding.y*2));
+				isButtonPressed = ImGui::Button(("Texture##" + std::to_string(texture)).c_str(), ImVec2(m_globalSettings.previewSize.x + buttonPadding.x*2, m_globalSettings.previewSize.y + buttonPadding.y*2));
+			
+			drawTooltip(texture);
+
 			nextPrev(prevIndex, newlineInterval);
+			ImGui::PopID();
 		}
 	}
 
@@ -127,23 +172,22 @@ namespace editor {
 		auto* base = Zap::Base::getBase();
 		auto* pAssetHandler = base->getAssetHandler();
 		// Meshes
-		for (auto meshIter = pAssetHandler->beginMeshes(); meshIter != pAssetHandler->endMeshes(); meshIter++) {
-			const auto& meshPair = *meshIter;
-			const auto meshId = meshPair.first;
-			if (!m_meshPreviewImages.count(meshId)) {
-				float maxLen = glm::length(meshPair.second.m_boundMax);
-				float minLen = glm::length(meshPair.second.m_boundMin);
+		for (auto meshIter = pAssetHandler->begin<Zap::Mesh>(); meshIter != pAssetHandler->end<Zap::Mesh>(); meshIter++) {
+			auto mesh = *meshIter;
+			if (!m_meshPreviewImages.count(mesh)) {
+				float maxLen = glm::length(mesh->getBoundMax());
+				float minLen = glm::length(mesh->getBoundMin());
 				float dist = std::max(maxLen, minLen); // calculate the smallest spheres radius which fully contains the mesh
 
 				Zap::Scene scene;
 				scene.init();
 
-				Zap::Material meshMat;
+				auto meshMat = pAssetHandler->generateAsset<Zap::Material>(glm::vec4(1, 1, 1, 1));
 
 				Zap::Actor actor;
 				scene.attachActor(actor);
 				actor.addTransform(glm::mat4(1));
-				actor.addModel({"", {meshMat}, {meshId}});
+				actor.addModel({ {mesh}, {meshMat}, {glm::mat4(1)}});
 
 				Zap::Actor light1;
 				scene.attachActor(light1);
@@ -191,20 +235,19 @@ namespace editor {
 				
 				renderer.render();
 
-				m_meshPreviewImages[meshId] = renderer.extractRenderTargetImage(previewTarget);
-				m_meshPreviewRefs[meshId] = std::make_unique<Zap::GuiImageRef>(m_meshPreviewImages[meshId]); // generate a reference to the preview which can be used by ImGui
+				m_meshPreviewImages[mesh] = renderer.extractRenderTargetImage(previewTarget);
+				m_meshPreviewRefs[mesh] = std::make_unique<Zap::GuiImageRef>(m_meshPreviewImages[mesh]); // generate a reference to the preview which can be used by ImGui
 
 				renderer.destroy();
-				meshMat.remove();
+				pAssetHandler->deleteAsset(meshMat);
 				scene.destroy();
 			}
 		}
 		//Materials
-		for (auto matIter = pAssetHandler->beginMaterials(); matIter != pAssetHandler->endMaterials(); matIter++) {
-			auto& matPair = *matIter;
-			auto matId = matPair.first;
+		for (auto matIter = pAssetHandler->begin<Zap::Material>(); matIter != pAssetHandler->end<Zap::Material>(); matIter++) {
+			auto material = *matIter;
 
-			if (!m_materialPreviewImages.count(matId)) {
+			if (!m_materialPreviewImages.count(material)) {
 				float dist = 1.5;
 
 				Zap::Scene scene;
@@ -213,7 +256,7 @@ namespace editor {
 				Zap::Actor actor;
 				scene.attachActor(actor);
 				actor.addTransform(glm::mat4(1));
-				actor.addModel({ "", {matId}, {m_editorData.pDefaultMeshes->sphere} });
+				actor.addModel({ {m_editorData.pDefaultMeshes->sphere}, {material}, {glm::mat4(1)} });
 
 				Zap::Actor light1;
 				scene.attachActor(light1);
@@ -261,21 +304,19 @@ namespace editor {
 
 				renderer.render();
 
-				m_materialPreviewImages[matId] = renderer.extractRenderTargetImage(previewTarget);
-				m_materialPreviewRefs[matId] = std::make_unique<Zap::GuiImageRef>(m_materialPreviewImages[matId]); // generate a reference to the preview which can be used by ImGui
+				m_materialPreviewImages[material] = renderer.extractRenderTargetImage(previewTarget);
+				m_materialPreviewRefs[material] = std::make_unique<Zap::GuiImageRef>(m_materialPreviewImages[material]); // generate a reference to the preview which can be used by ImGui
 
 				renderer.destroy();
 				scene.destroy();
 			}
 		}
 		// Textures
-		for (auto texIter = pAssetHandler->beginTextures(); texIter != pAssetHandler->endTextures(); texIter++) {
-			const auto& texPair = *texIter;
-			const auto texId = texPair.first;
-			const auto texture = texPair.second;
+		for (auto texIter = pAssetHandler->begin<Zap::Texture>(); texIter != pAssetHandler->end<Zap::Texture>(); texIter++) {
+			auto texture = *texIter;
 
-			m_texturePreviewImages[texId] = std::make_shared<Zap::Image2D>(texture.image);
-			m_texturePreviewRefs[texId] = std::make_unique<Zap::GuiImageRef>(m_texturePreviewImages[texId]);
+			m_texturePreviewImages[texture] = std::make_shared<Zap::Image2D>(texture->getImage());
+			m_texturePreviewRefs[texture] = std::make_unique<Zap::GuiImageRef>(m_texturePreviewImages[texture]);
 		}
 	}
 }
