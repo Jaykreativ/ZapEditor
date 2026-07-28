@@ -1,59 +1,107 @@
 #include "SceneHandling.h"
 
+#define ZP_SCENE_FILE_EXTENSION ".zscn"
+
 namespace editor {
-	namespace scene {
-		Zap::Scene& createScene(EditorData& editorData) {
-			editorData.scenes.push_back(Zap::Scene());
-			return editorData.scenes.back();
-		}
+	void SceneIterator::operator++(int) {
+		m_index++;
+	}
+	bool SceneIterator::operator==(const SceneIterator& it) {
+		m_index == it.m_index;
+	}
+	bool SceneIterator::operator!=(const SceneIterator& it) {
+		return !(*this == it);
+	}
+	SceneIterator::operator size_t() {
+		return m_index;
+	}
 
-		void destroyScene(EditorData& editorData, Zap::Scene& scene) {
-			uint32_t i = 0;
-			for (auto& s : editorData.scenes) {
-				if (s == scene)
-					destroyScene(editorData, scene);
-				i++;
-			}
-		}
-		void destroyScene(EditorData& editorData, uint32_t sceneIndex) {
-			editorData.scenes[sceneIndex].destroy(); // TODO delete all actors inside the scene
-			editorData.scenes.erase(editorData.scenes.begin() + sceneIndex);
-		}
+	std::shared_ptr<SceneHandler::SceneData> SceneHandler::get(SceneIterator it) {
+		return m_sceneData[it];
+	}
 
-		void selectScene(EditorData& editorData, Zap::Scene& scene) {
-			uint32_t i = 0;
-			for (auto& s : editorData.scenes) {
-				if (s == scene)
-					selectScene(editorData, i);
-				i++;
-			}
-		}
-		void selectScene(EditorData& editorData, uint32_t sceneIndex) {
-			editorData.pActiveScene = &editorData.scenes[sceneIndex];
-		}
+	Zap::Scene& SceneHandler::create(std::string name) {
+		m_sceneData.push_back(std::make_shared<SceneData>(name));
+		auto& scene = m_sceneData.back()->scene;
+		scene.init();
+		return scene;
+	}
 
-		void createActor(EditorData& editorData, Zap::Actor actor, std::string name) {
-			editorData.actors.push_back(actor);
-			if (name == "")
-				name = std::to_string(actor.getHandle());
-			editorData.actorNameMap[actor] = name;
+	Zap::Scene* SceneHandler::load(std::filesystem::path path) {
+		auto& scene = create(path.filename().replace_extension().string());
+		std::ifstream file(path);
+		if (!file.good()) {
+			ZP_WARN(false, ("invalid filepath: " + path.string() + " | Scene:Handler::loadScene").c_str());
+			return nullptr;
 		}
+		Zap::Serializer::readSceneReadable(scene, path, file);
+		file.close();
+		return &scene;
+	}
 
-		void destroyActor(EditorData& editorData, Zap::Actor actor) {
-			uint32_t i = 0;
-			for (auto& a : editorData.actors) {
-				if (a == actor)
-					destroyActor(editorData, i);
-				i++;
-			}
+	SceneIterator SceneHandler::begin() {
+		return SceneIterator(0);
+	}
+	SceneIterator SceneHandler::end() {
+		return SceneIterator(m_sceneData.size());
+	}
+
+	void SceneHandler::save(std::filesystem::path path, SceneIterator it) {
+		path = path.replace_filename(get(it)->name + ZP_SCENE_FILE_EXTENSION);
+		auto& scene = get(it)->scene;
+		std::ofstream file(path);
+		if (!file.good()) {
+			ZP_WARN(false, ("invalid filepath: " + path.string() + " | Scene:Handler::saveScene").c_str());
+			return;
 		}
-		void destroyActor(EditorData& editorData, uint32_t actorIndex) {
-			//delete custom data
-			if (editorData.actorNameMap.count(editorData.actors[actorIndex]))
-				editorData.actorNameMap.erase(editorData.actors[actorIndex]);
-			//delete actor
-			editorData.actors[actorIndex].destroy();
-			editorData.actors.erase(editorData.actors.begin() + actorIndex);
-		}
+		Zap::Serializer::writeSceneReadable(scene, path, file);
+		file.close();
+	}
+
+	void SceneHandler::destroy(SceneIterator it) {
+		get(it)->scene.destroy();
+		m_sceneData.erase(m_sceneData.begin() + it);
+	}
+
+	std::string SceneHandler::getName(SceneIterator it) {
+		return get(it)->name;
+	}
+
+	CustomSceneReference SceneHandler::getReference(SceneIterator it) {
+		return CustomSceneReference(get(it));
+	}
+
+	void SceneHandler::activate(SceneIterator it) {
+		m_active = get(it);
+	}
+
+	bool SceneHandler::isActive(SceneIterator it) {
+		return m_active.lock() == get(it);
+	}
+
+	std::string SceneHandler::getActiveName() {
+		if (auto sp = m_active.lock())
+			return sp->name;
+		return "None";
+	}
+
+	ActiveSceneReference SceneHandler::getActiveReference() {
+		return ActiveSceneReference(*this);
+	}
+
+	ActiveSceneReference::ActiveSceneReference(SceneHandler& handler)
+		: m_handler(handler)
+	{}
+
+	std::shared_ptr<SceneHandler::SceneData> ActiveSceneReference::getData() {
+		return m_handler.m_active.lock();
+	}
+
+	CustomSceneReference::CustomSceneReference(std::weak_ptr<SceneHandler::SceneData> wptr)
+		: m_wptr(wptr)
+	{}
+
+	std::shared_ptr<SceneHandler::SceneData> CustomSceneReference::getData() {
+		return m_wptr.lock();
 	}
 }
