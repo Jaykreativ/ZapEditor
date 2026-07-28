@@ -7,27 +7,18 @@
 #include "Zap/AssetHandling/Loaders.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
-#include "Zap/Scene/Model.h"
+#include "Zap/Scene/Components/Model.h"
 
 #include <iostream>
 #include <filesystem>
 
 namespace editor {
 	void loadModelFile(std::filesystem::path filepath, EditorData& editorData) {
-		std::string filename = filepath.filename().replace_extension().string();
-
 		Zap::ModelLoader loader;
 		loader.load(filepath);
-		auto model = loader.result();
-
-		editorData.actors.push_back(Zap::Actor());
-		Zap::Actor& actor = editorData.actors.back();
-		editorData.scenes.back().attachActor(actor);
-		editorData.actorNameMap[actor] = filename;
-		actor.addTransform(glm::mat4(1));
-		actor.addModel(model);
+		auto model = loader.result(); // TODO forward drag drop files to the viewlayer its dropped into
 	}
-
+	
 	//void loadSceneFile(std::filesystem::path filepath, EditorData& editorData) {
 	//
 	//}

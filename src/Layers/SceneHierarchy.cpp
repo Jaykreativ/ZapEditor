@@ -14,8 +14,8 @@
 #include <string>
 
 namespace editor {
-	SceneHierarchyView::SceneHierarchyView(EditorData* pEditorData, Zap::Scene* pScene)
-		: m_pEditorData(pEditorData), m_pScene(pScene)
+	SceneHierarchyView::SceneHierarchyView(EditorData* pEditorData)
+		: SceneAccessLayer(*pEditorData->pSceneHandler), m_pEditorData(pEditorData)
 	{}
 
 	SceneHierarchyView::~SceneHierarchyView(){}
@@ -25,19 +25,16 @@ namespace editor {
 	}
 
 	void SceneHierarchyView::draw() {
+		if (ImGui::BeginMenuBar()) {
+			SceneAccessLayer::draw();
+			ImGui::EndMenuBar();
+		}
 		if(!ImGui::IsPopupOpen("SceneEdit##Popup"))
 			m_hoveredActorIndex = 0xFFFFFFFF;
 
 		uint32_t i = 0;
-		for (Zap::Actor actor : m_pEditorData->actors) {
-			std::string actorName;
-			if (m_pEditorData->actorNameMap.count(actor))
-				actorName = m_pEditorData->actorNameMap.at(actor);
-			else {
-				std::stringstream stream;
-				stream << "Actor_" << std::hex << (Zap::UUID)actor;
-				actorName = stream.str();
-			}
+		for (Zap::Actor actor : scene().actors()) {
+			auto actorName = scene().actorName(actor);
 
 			//check if actor is selected
 			bool selected = false;
@@ -58,7 +55,7 @@ namespace editor {
 				memset(buf, 0, renameBufSize);
 				memcpy(buf, actorName.c_str(), std::min<size_t>(actorName.size(), renameBufSize));
 				if (ImGui::InputText("##ActorRenameInput", buf, renameBufSize, ImGuiInputTextFlags_EnterReturnsTrue)) {
-					m_pEditorData->actorNameMap[actor] =  buf;
+					scene().renameActor(actor, buf);
 					m_renameActorIndex = 0xFFFFFFFF;
 				}
 				ImGui::SetItemDefaultFocus();
@@ -111,8 +108,7 @@ namespace editor {
 
 			// Create Actor
 			if (ImGui::Button("Add")) {
-				m_actorCreationData = {};
-				m_actorCreationData.newActor = Zap::Actor();// setup one time data for actor creation
+				m_actorCreationData = {}; // setup one time data for actor creation
 				ImGui::OpenPopup("ActorCreation##Popup");
 			}
 
@@ -134,12 +130,9 @@ namespace editor {
 				}
 
 				if (ImGui::Button("Done") || ImGui::IsKeyPressed(ImGuiKey_Enter, false)) {
-					Zap::Actor actor = m_actorCreationData.newActor;
 					if (!m_actorCreationData.createName)
 						m_actorCreationData.name = "";
-					m_pScene->attachActor(actor);
-					scene::createActor(*m_pEditorData, actor, m_actorCreationData.name);
-						m_pEditorData->actorNameMap[actor] = m_actorCreationData.name;
+					Zap::Actor actor = scene().createActor(m_actorCreationData.name);
 					if (m_actorCreationData.createTransform)
 						actor.addTransform(m_actorCreationData.transform);
 
@@ -153,19 +146,14 @@ namespace editor {
 			// Delete Actor
 			if (m_hoveredActorIndex < 0xFFFFFFFF) {
 				if (ImGui::Button("Delete")) {
-					//delete custom data
-					if(m_pEditorData->actorNameMap.count(m_pEditorData->actors[m_hoveredActorIndex]))
-						m_pEditorData->actorNameMap.erase(m_pEditorData->actors[m_hoveredActorIndex]);
-					//delete actor
-					m_pEditorData->actors[m_hoveredActorIndex].destroy();
-					m_pEditorData->actors.erase(m_pEditorData->actors.begin() + m_hoveredActorIndex);
+					scene().destroyActor(m_hoveredActorIndex);
 					ImGui::CloseCurrentPopup();
 				}
 			}
 
 			if (m_hoveredActorIndex < 0xFFFFFFFF) {
 				if (ImGui::Button("Save")) {
-					Zap::Actor actor = m_pEditorData->actors[m_hoveredActorIndex];
+					Zap::Actor actor = scene().actors()[m_hoveredActorIndex];
 					//if (m_pEditorData->actorPathMap.count(actor))
 					//	saveActorFile(m_pEditorData->actorPathMap.at(actor), actor, *m_pEditorData);
 					//else {

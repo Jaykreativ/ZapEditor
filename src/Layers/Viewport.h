@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ZapEditor.h"
+#include "Handlers/SceneHandling.h"
 
 #include "VulkanFramework.h"
 
@@ -34,12 +35,12 @@ namespace editor {
 		bool enablePxDebug = false;
 	};
 
-	class Viewport : public ViewLayer
+	class Viewport : public SceneAccessLayer
 	{
 	public:
 		bool canMove = true;
 
-		Viewport(EditorData& editorData, Zap::Scene* pScene, Zap::Window* pWindow);
+		Viewport(EditorData& editorData, Zap::Window* pWindow);
 		~Viewport();
 
 		std::string name();
@@ -71,7 +72,6 @@ namespace editor {
 		std::vector<Zap::Actor>& m_selectedActors;
 
 		Zap::Window* m_pWindow;
-		Zap::Scene* m_pScene;
 
 		RenderType m_renderType = ePBR;
 		std::unique_ptr<Zap::Renderer> m_renderer;

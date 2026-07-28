@@ -9,13 +9,14 @@
 #include "Zap/Zap.h"
 #include "Zap/Events.h"
 #include "Zap/Serializer.h"
+#include "Zap/AssetHandling/Loaders.h"
 #include "Zap/Rendering/Window.h"
 #include "Zap/Rendering/Renderer.h"
 #include "Zap/Rendering/RenderObjects/RenderTasks/Gui.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
-#include "Zap/Scene/Transform.h"
-#include "Zap/Scene/Material.h"
+#include "Zap/Scene/Components/Transform.h"
+#include "Zap/Scene/Components/Model.h"
 #include "Zap/Physics/Shape.h"
 #include "Zap/AssetHandling/AssetTypes/Mesh.h"
 #include "Zap/AssetHandling/AssetTypes/Material.h"
@@ -80,7 +81,7 @@ void setupGuiStyle() {
 	style->Colors[ImGuiCol_Border] = ImVec4(130 / 255.0, 112 / 255.0, 110 / 255.0, 255 / 255.0);
 }
 
-void setupActors() {
+void setupActors(editor::CustomSceneReference sceneRef) {
 	auto assetHandler = Zap::Base::getBase()->getAssetHandler();
 	Zap::TextureLoader texLoader;
 	texLoader.load("Textures/Test.png");
@@ -101,47 +102,32 @@ void setupActors() {
 	modelLoader.load("Models/OBJ/Cube.obj");
 	editor::cubeModel = modelLoader.result();
 
-	editor::editorData.actors.push_back(Zap::Actor());
-	auto actor = editor::editorData.actors.back();
-	editor::editorData.scenes.back().attachActor(actor);
-	editor::editorData.actorNameMap[actor] = "CoordinateCross";
+	auto actor = sceneRef.createActor("CoordinateCross");
 	actor.addTransform(glm::mat4(1));
 	actor.cmpTransform_setPos(0, 0, 0);
 	actor.cmpTransform_setScale(0.5, 0.5, 0.5);
 	modelLoader.load("Models/CoordinateCross/CoordinateCross.glb");
 	actor.addModel(modelLoader.result());
 
-	editor::editorData.actors.push_back(Zap::Actor());
-	actor = editor::editorData.actors.back();
-	editor::editorData.scenes.back().attachActor(actor);
-	editor::editorData.actorNameMap[actor] = "Test";
+	actor = sceneRef.createActor("Test");
 	actor.addTransform(glm::mat4(1));
 	actor.cmpTransform_setPos(0, 0, -10);
 	modelLoader.load("Models/CoordinateCross/Test.glb");
 	actor.addModel(modelLoader.result());
-	
+
 	Zap::PhysicsMaterial pxMaterial = Zap::PhysicsMaterial(0.5, 1, 0.1);
 
-	editor::editorData.actors.push_back(Zap::Actor());
-	actor = editor::editorData.actors.back();
-	editor::editorData.scenes.back().attachActor(actor);
-	editor::editorData.actorNameMap[actor] = "LightWhite";
+	actor = sceneRef.createActor("LightWhite");
 	actor.addTransform(glm::mat4(1));
 	actor.cmpTransform_setPos(-2, 2.7, 1);
 	actor.addLight({ 1, 1, 1 }, 20);
 
-	editor::editorData.actors.push_back(Zap::Actor());
-	actor = editor::editorData.actors.back();
-	editor::editorData.scenes.back().attachActor(actor);
-	editor::editorData.actorNameMap[actor] = "LightOrange";
+	actor = sceneRef.createActor("LightOrange");
 	actor.addTransform(glm::mat4(1));
 	actor.cmpTransform_setPos(2, 2, 2.7);
 	actor.addLight({ 1, .6, .2 }, 10);
 
-	editor::editorData.actors.push_back(Zap::Actor());
-	actor = editor::editorData.actors.back();
-	editor::editorData.scenes.back().attachActor(actor);
-	editor::editorData.actorNameMap[actor] = "Cube";
+	actor = sceneRef.createActor("Cube");
 	actor.addTransform(glm::mat4(1));
 	actor.cmpTransform_setPos(0, 0, 5);
 	actor.addModel(editor::cubeModel);
@@ -156,10 +142,7 @@ void setupActors() {
 		actor.addRigidDynamic(shape);
 	}
 
-	editor::editorData.actors.push_back(Zap::Actor());
-	actor = editor::editorData.actors.back();
-	editor::editorData.scenes.back().attachActor(actor);
-	editor::editorData.actorNameMap[actor] = "Ground";
+	actor = sceneRef.createActor("Ground");
 	actor.addTransform(glm::mat4(1));
 	actor.cmpTransform_setPos(0, -6, 0);
 	actor.cmpTransform_setScale(50, 1, 50);
@@ -218,14 +201,10 @@ int main() {
 
 	//deserialize
 
-	auto& scene = editor::scene::createScene(editor::editorData);
-	scene.init();
-	editor::scene::selectScene(editor::editorData, scene);
-	
-	setupActors();
+	editor::editorData.pSceneHandler = std::make_unique<editor::SceneHandler>();
+	auto sceneRef = editor::editorData.pSceneHandler->create("default");
 
-	for(auto& scene : editor::editorData.scenes)
-		scene.update();
+	setupActors(sceneRef);
 
 	auto windowTargetHandle = editor::editorData.renderer->createRenderTarget<Zap::RenderTargetWindow>(*editor::editorData.window);
 
@@ -236,9 +215,9 @@ int main() {
 		editor::editorData.renderer->recRenderTask(editor::editorData.guiTask);
 	editor::editorData.renderer->endRecord();
 
-	editor::mainMenuBar = new editor::MainMenuBar(&editor::editorData, editor::editorData.layers, editor::editorData.window, editor::editorData.renderer, &editor::editorData.scenes.back(), editor::editorData.actors, editor::editorData.selectedActors);
-	editor::editorData.layers.push_back(new editor::Viewport(editor::editorData, &editor::editorData.scenes.back(), editor::editorData.window));
-	editor::editorData.layers.push_back(new editor::SceneHierarchyView(&editor::editorData, &editor::editorData.scenes.back()));
+	editor::mainMenuBar = new editor::MainMenuBar(&editor::editorData, editor::editorData.layers, editor::editorData.window, editor::editorData.renderer, editor::editorData.selectedActors);
+	editor::editorData.layers.push_back(new editor::Viewport(editor::editorData, editor::editorData.window));
+	editor::editorData.layers.push_back(new editor::SceneHierarchyView(&editor::editorData));
 	editor::editorData.layers.push_back(new editor::ComponentView(&editor::editorData, editor::editorData.layers, editor::editorData.selectedActors));
 	editor::editorData.layers.push_back(new editor::Settings(&editor::editorData));
 
@@ -294,8 +273,8 @@ int main() {
 		}
 
 		if (editor::mainMenuBar->shouldSimulate() && editor::editorData.dTime > 0) {
-			for(auto& scene : editor::editorData.scenes)
-				scene.simulate(editor::editorData.dTime);
+			for(auto it = editor::editorData.pSceneHandler->begin(); it != editor::editorData.pSceneHandler->end(); it++)
+				editor::editorData.pSceneHandler->getReference(it)->simulate(editor::editorData.dTime);
 		}
 
 		// render GUI only
@@ -330,10 +309,7 @@ int main() {
 
 	delete editor::editorData.window;
 
-	for(auto scene : editor::editorData.scenes)
-		scene.destroy();
-	editor::editorData.scenes.clear();
-	editor::editorData.actors.clear();
+	editor::editorData.pSceneHandler.reset();
 
 	editor::editorData.engineBase->terminate();
 	Zap::Base::releaseBase();

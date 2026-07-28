@@ -1,13 +1,79 @@
 #include "SceneHandling.h"
 
+#include <sstream>
+
 #define ZP_SCENE_FILE_EXTENSION ".zscn"
 
 namespace editor {
+	SceneReference::operator Zap::Scene&() {
+		return getData()->scene;
+	}
+	SceneReference::operator Zap::Scene*() {
+		return &getData()->scene;
+	}
+
+	bool SceneReference::operator==(SceneReference& other) {
+		return this->operator Zap::Scene*() == other.operator Zap::Scene*();
+	}
+	Zap::Scene* SceneReference::operator->() {
+		return *this;
+	}
+
+	bool SceneReference::expired() {
+		return getData().operator bool();
+	}
+
+	Zap::Actor SceneReference::createActor(std::string name) {
+		Zap::Actor actor; // create new actor
+		getData()->scene.attachActor(actor);
+		getData()->actors.push_back(actor); // add actor to the editor
+		renameActor(actor, name);
+		return actor;
+	}
+
+	void SceneReference::destroyActor(Zap::Actor actor) {
+		size_t i = 0;
+		for (auto other : getData()->actors) {
+			if (other == actor)
+				return destroyActor(i);
+			i++;
+		}
+	}
+	void SceneReference::destroyActor(size_t index) {
+		//delete custom data
+		if (getData()->actorNameMap.count(getData()->actors[index]))
+			getData()->actorNameMap.erase(getData()->actors[index]);
+		//delete actor
+		getData()->actors[index].destroy();
+		getData()->actors.erase(getData()->actors.begin() + index);
+	}
+
+	void SceneReference::renameActor(Zap::Actor actor, std::string name) {
+		getData()->actorNameMap[actor] = name;
+	}
+
+	std::string SceneReference::actorName(Zap::Actor actor) {
+		std::string actorName;
+		if (getData()->actorNameMap.count(actor))
+			actorName = getData()->actorNameMap.at(actor);
+		else {
+			std::stringstream stream;
+			stream << "Actor_" << std::hex << (Zap::UUID)actor;
+			actorName = stream.str();
+		}
+		return actorName;
+	}
+
+	std::vector<Zap::Actor>& SceneReference::actors() {
+		return getData()->actors;
+	}
+
+	SceneIterator::SceneIterator(size_t index) : m_index(index) {}
 	void SceneIterator::operator++(int) {
 		m_index++;
 	}
 	bool SceneIterator::operator==(const SceneIterator& it) {
-		m_index == it.m_index;
+		return m_index == it.m_index;
 	}
 	bool SceneIterator::operator!=(const SceneIterator& it) {
 		return !(*this == it);
@@ -16,27 +82,35 @@ namespace editor {
 		return m_index;
 	}
 
+	SceneHandler::~SceneHandler() {
+		for (auto& data : m_sceneData)
+			data->scene.destroy();
+	}
+
 	std::shared_ptr<SceneHandler::SceneData> SceneHandler::get(SceneIterator it) {
 		return m_sceneData[it];
 	}
 
-	Zap::Scene& SceneHandler::create(std::string name) {
+	CustomSceneReference SceneHandler::create(std::string name) {
 		m_sceneData.push_back(std::make_shared<SceneData>(name));
 		auto& scene = m_sceneData.back()->scene;
 		scene.init();
-		return scene;
+		SceneIterator it(m_sceneData.size() - 1);
+		if (m_sceneData.size() == 1)
+			activate(it); // activate the first scene by default
+		return getReference(it);
 	}
 
-	Zap::Scene* SceneHandler::load(std::filesystem::path path) {
-		auto& scene = create(path.filename().replace_extension().string());
+	CustomSceneReference SceneHandler::load(std::filesystem::path path) {
+		auto scene = create(path.filename().replace_extension().string());
 		std::ifstream file(path);
 		if (!file.good()) {
 			ZP_WARN(false, ("invalid filepath: " + path.string() + " | Scene:Handler::loadScene").c_str());
-			return nullptr;
+			return CustomSceneReference(std::weak_ptr<SceneHandler::SceneData>()); // return expired reference
 		}
 		Zap::Serializer::readSceneReadable(scene, path, file);
 		file.close();
-		return &scene;
+		return scene;
 	}
 
 	SceneIterator SceneHandler::begin() {

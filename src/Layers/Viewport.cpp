@@ -693,8 +693,8 @@ namespace editor {
 		}
 	};
 
-	Viewport::Viewport(EditorData& editorData, Zap::Scene* pScene, Zap::Window* pWindow)
-		: m_editorData(editorData), m_pScene(pScene), m_pWindow(pWindow), m_selectedActors(editorData.selectedActors), m_camera(*pScene)
+	Viewport::Viewport(EditorData& editorData, Zap::Window* pWindow)
+		: SceneAccessLayer(*editorData.pSceneHandler), m_editorData(editorData), m_pWindow(pWindow), m_selectedActors(editorData.selectedActors), m_camera(scene())
 	{
 		m_spLineBuffer = std::make_shared<Zap::LineBuffer>();
 
@@ -787,6 +787,7 @@ namespace editor {
 
 	void Viewport::draw() {
 		if (ImGui::BeginMenuBar()) {
+			SceneAccessLayer::draw();
 			std::string mode;
 			std::string names[] = {
 				"PBR",
@@ -870,7 +871,7 @@ namespace editor {
 		if (m_pathTraceTask)
 			m_pathTraceTask->updateCamera(m_camera);
 
-		m_pScene->update();
+		scene()->update();
 
 		// update TransformEditScene
 		if(!m_isTransformDragged)
@@ -979,7 +980,7 @@ namespace editor {
 		
 			std::vector<Zap::LineVertex> pxDebugVertices = {};
 			if (m_settings.enablePxDebug) {
-				m_pScene->getPxDebugVertices(pxDebugVertices);
+				scene()->getPxDebugVertices(pxDebugVertices);
 			}
 		
 			size += pxDebugVertices.size()/2;
@@ -1031,11 +1032,11 @@ namespace editor {
 		);
 
 		// create pbr task
-		m_pbrTask = m_renderer->createRenderTask<Zap::PBRenderer>(m_finalTarget, m_pScene);
+		m_pbrTask = m_renderer->createRenderTask<Zap::PBRenderer>(m_finalTarget, scene());
 		// create line task
 		m_lineTask = m_renderer->createRenderTask<Zap::LineRenderTask>(m_finalTarget, std::initializer_list({ (std::weak_ptr<Zap::LineBuffer>)m_spLineBuffer }));
 		// create outline task
-		m_outlineTask = m_renderer->createRenderTask<OutlineRenderTask>(m_pScene, m_selectedActors, m_finalTarget);
+		m_outlineTask = m_renderer->createRenderTask<OutlineRenderTask>(scene(), m_selectedActors, m_finalTarget);
 
 		m_renderer->beginRecord();
 		m_renderer->recRenderTask(m_pbrTask);
@@ -1057,7 +1058,7 @@ namespace editor {
 		);
 
 		// create pathtrace task
-		m_pathTraceTask = m_renderer->createRenderTask<Zap::PathTracer>(m_finalTarget, m_pScene);
+		m_pathTraceTask = m_renderer->createRenderTask<Zap::PathTracer>(m_finalTarget, scene());
 
 		m_renderer->beginRecord();
 		m_renderer->recRenderTask(m_pathTraceTask);

@@ -5,11 +5,6 @@
 #include "Zap/Scene/Actor.h"
 
 namespace editor {
-	class SceneReference {
-		virtual std::shared_ptr<SceneHandler::SceneData> getData() = 0;
-	public:
-	};
-
 	class SceneIterator {
 	public:
 		~SceneIterator() = default;
@@ -18,12 +13,11 @@ namespace editor {
 		void operator++(int);
 		bool operator==(const SceneIterator& it);
 		bool operator!=(const SceneIterator& it);
+		operator size_t();
 
 	private:
 		SceneIterator(size_t index);
 		size_t m_index = 0;
-
-		operator size_t();
 
 		friend class SceneHandler;
 	};
@@ -33,9 +27,12 @@ namespace editor {
 		friend class ActiveSceneReference;
 		friend class CustomSceneReference;
 	public:
-		Zap::Scene& create(std::string name);
+		SceneHandler() = default;
+		~SceneHandler();
 
-		Zap::Scene* load(std::filesystem::path path);
+		CustomSceneReference create(std::string name);
+
+		CustomSceneReference load(std::filesystem::path path);
 
 		SceneIterator begin();
 		SceneIterator end();
@@ -58,14 +55,41 @@ namespace editor {
 
 	private:
 		struct SceneData {
+			SceneData(std::string name) : name(name) {}
 			std::string name;
 			Zap::Scene scene;
 			std::vector<Zap::Actor> actors;
+
+			// custom ECS components
+			std::unordered_map<Zap::UUID, std::string> actorNameMap = {};
 		};
 		std::vector<std::shared_ptr<SceneData>> m_sceneData;
 		std::weak_ptr<SceneData> m_active;
 
 		std::shared_ptr<SceneData> get(SceneIterator it);
+	};
+
+	class SceneReference {
+		virtual std::shared_ptr<SceneHandler::SceneData> getData() = 0;
+	public:
+		operator Zap::Scene& ();
+		operator Zap::Scene* ();
+
+		bool operator==(SceneReference& other);
+		Zap::Scene* operator->();
+
+		bool expired();
+
+		Zap::Actor createActor(std::string name);
+
+		void destroyActor(Zap::Actor actor);
+		void destroyActor(size_t index);
+
+		void renameActor(Zap::Actor actor, std::string name);
+
+		std::string actorName(Zap::Actor actor);
+
+		std::vector<Zap::Actor>& actors();
 	};
 
 	class ActiveSceneReference : public SceneReference {

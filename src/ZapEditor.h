@@ -1,7 +1,5 @@
 #pragma once
 
-#include "ViewLayer.h"
-
 #include "Zap/UUID.h"
 #include "Zap/Physics/Shape.h"
 #include "Zap/Scene/Actor.h"
@@ -32,21 +30,16 @@ namespace editor {
 		std::filesystem::path assetLibraryPath = "";
 	};
 
+	class SceneHandler;
+	class ViewLayer;
 	struct EditorData {
-		std::vector<Zap::Scene> scenes = {};
-		std::vector<Zap::Actor> actors = {};
-
-		// custom ECS components
-		std::unordered_map<Zap::UUID, std::string> actorNameMap = {};
-		std::unordered_map<Zap::UUID, std::filesystem::path> actorPathMap = {};
-		std::unordered_map<Zap::UUID, std::filesystem::path> scenePathMap = {};
+		std::unique_ptr<SceneHandler> pSceneHandler;
 
 		std::vector<Zap::Shape>           physicsShapes    = {};
 		std::vector<Zap::PhysicsMaterial> physicsMaterials = {};
 		std::vector<Zap::ConvexMesh>      convexMeshes     = {};
 
 		std::vector<Zap::Actor> selectedActors   = {};
-		Zap::Scene*             pActiveScene = nullptr;
 
 		struct DefaultMeshes {
 			DefaultMeshes(Zap::AssetHandle<Zap::Mesh> cube, Zap::AssetHandle<Zap::Mesh> sphere, Zap::AssetHandle<Zap::Mesh> cylinder, Zap::AssetHandle<Zap::Mesh> cone, Zap::AssetHandle<Zap::Mesh> torus)

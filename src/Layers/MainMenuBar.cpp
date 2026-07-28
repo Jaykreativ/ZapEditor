@@ -24,8 +24,6 @@ namespace editor {
 		std::vector<ViewLayer*>& layers,
 		Zap::Window* pWindow,
 		Zap::Renderer* pRenderer,
-		Zap::Scene* pScene,
-		std::vector<Zap::Actor>& actors,
 		std::vector<Zap::Actor>& selectedActors
 	)
 		:
@@ -33,8 +31,6 @@ namespace editor {
 		m_layers(layers),
 		m_pWindow(pWindow),
 		m_pRenderer(pRenderer), 
-		m_pScene(pScene), 
-		m_actors(actors),
 		m_selectedActors(selectedActors)
 	{}
 
@@ -58,13 +54,13 @@ namespace editor {
 		ImGui::PopStyleColor(3);
 		if (ImGui::BeginMenu("View")) {
 			if (ImGui::MenuItem("SceneHierarchy")) {
-				m_layers.push_back(new SceneHierarchyView(m_pEditorData, m_pScene));
+				m_layers.push_back(new SceneHierarchyView(m_pEditorData));
 			}
 			if (ImGui::MenuItem("ComponentView")) {
 				m_layers.push_back(new ComponentView(m_pEditorData, m_layers, m_selectedActors));
 			}
 			if (ImGui::MenuItem("Viewport")) {
-				m_layers.push_back(new Viewport(*m_pEditorData, m_pScene, m_pWindow));
+				m_layers.push_back(new Viewport(*m_pEditorData, m_pWindow));
 			}
 			if (ImGui::MenuItem("AssetBrowser")) {
 				m_layers.push_back(new AssetBrowser(*m_pEditorData));
@@ -162,6 +158,18 @@ namespace editor {
 			if (disabled)
 				ImGui::EndDisabled();
 			
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("Scene")) {
+			for (auto it = m_pEditorData->pSceneHandler->begin(); it != m_pEditorData->pSceneHandler->end(); it++) {
+				ImGui::PushID(it);
+				if (ImGui::MenuItem(m_pEditorData->pSceneHandler->getName(it).c_str(), nullptr, m_pEditorData->pSceneHandler->isActive(it))) {
+					m_pEditorData->pSceneHandler->activate(it);
+				}
+				ImGui::SetItemTooltip("use this scene as the shared active scene");
+				ImGui::PopID();
+			}
 			ImGui::EndMenu();
 		}
 

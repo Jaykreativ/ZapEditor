@@ -9,10 +9,10 @@
 #include "ViewLayer.h"
 
 namespace editor {
-	class SceneHierarchyView : public ViewLayer
+	class SceneHierarchyView : public SceneAccessLayer
 	{
 	public:
-		SceneHierarchyView(EditorData* pEditorData, Zap::Scene* pScene);
+		SceneHierarchyView(EditorData* pEditorData);
 		~SceneHierarchyView();
 
 		std::string name() override;
@@ -23,13 +23,11 @@ namespace editor {
 
 	private:
 		EditorData* m_pEditorData = nullptr;
-		Zap::Scene* m_pScene;
 
 		uint32_t m_hoveredActorIndex = 0xFFFFFFFF;
 		uint32_t m_renameActorIndex = 0xFFFFFFFF;
 
 		struct ActorCreationData {
-			Zap::Actor newActor;
 			bool createName = true;
 			char nameInputBuffer[50] = "";
 			std::string name = {};
