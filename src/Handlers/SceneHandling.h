@@ -2,6 +2,7 @@
 
 #include "ZapEditor.h"
 
+#include "Zap/Events.h"
 #include "Zap/Scene/Actor.h"
 
 namespace editor {
@@ -19,6 +20,13 @@ namespace editor {
 		SceneIterator(size_t index);
 		size_t m_index = 0;
 
+		friend class SceneHandler;
+	};
+
+	class ActiveSceneChangeEvent;
+	class SceneHandlerEventHandler :
+		public Zap::EventHandler<ActiveSceneChangeEvent>
+	{
 		friend class SceneHandler;
 	};
 
@@ -53,6 +61,8 @@ namespace editor {
 
 		ActiveSceneReference getActiveReference();
 
+		SceneHandlerEventHandler& getEventHandler();
+
 	private:
 		struct SceneData {
 			SceneData(std::string name) : name(name) {}
@@ -65,6 +75,8 @@ namespace editor {
 		};
 		std::vector<std::shared_ptr<SceneData>> m_sceneData;
 		std::weak_ptr<SceneData> m_active;
+
+		SceneHandlerEventHandler m_eventHandler;
 
 		std::shared_ptr<SceneData> get(SceneIterator it);
 	};
@@ -79,6 +91,8 @@ namespace editor {
 		Zap::Scene* operator->();
 
 		bool expired();
+
+		std::string name();
 
 		Zap::Actor createActor(std::string name);
 
@@ -110,5 +124,12 @@ namespace editor {
 		virtual std::shared_ptr<SceneHandler::SceneData> getData() override;
 
 		friend class SceneHandler;
+	};
+
+	class ActiveSceneChangeEvent : public Zap::Event {
+	public:
+		CustomSceneReference lastActive;
+		ActiveSceneReference nowActive;
+		ActiveSceneChangeEvent(CustomSceneReference lastActive, ActiveSceneReference nowActive) : lastActive(lastActive), nowActive(nowActive) {}
 	};
 }

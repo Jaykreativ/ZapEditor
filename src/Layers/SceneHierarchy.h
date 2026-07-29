@@ -15,9 +15,11 @@ namespace editor {
 		SceneHierarchyView(EditorData* pEditorData);
 		~SceneHierarchyView();
 
-		std::string name() override;
+		virtual std::string name() override;
 
-		void draw() override;
+		virtual void draw() override;
+
+		virtual void changeScene(SceneReference& lastScene) override;
 
 		ImGuiWindowFlags getWindowFlags() override;
 

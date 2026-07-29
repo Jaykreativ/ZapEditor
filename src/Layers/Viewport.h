@@ -43,9 +43,11 @@ namespace editor {
 		Viewport(EditorData& editorData, Zap::Window* pWindow);
 		~Viewport();
 
-		std::string name();
+		virtual std::string name() override;
 
-		void draw();
+		virtual void draw() override;
+
+		virtual void changeScene(SceneReference& lastScene) override;
 
 		enum RenderType {
 			ePBR = 0,

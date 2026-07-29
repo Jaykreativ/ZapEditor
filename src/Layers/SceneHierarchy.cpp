@@ -186,6 +186,8 @@ namespace editor {
 		}
 	}
 
+	void SceneHierarchyView::changeScene(SceneReference& lastScene){}
+
 	ImGuiWindowFlags SceneHierarchyView::getWindowFlags() {
 		return 0;
 	}

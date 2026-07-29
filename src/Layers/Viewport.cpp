@@ -624,8 +624,10 @@ namespace editor {
 			
 			vkCmdBindPipeline(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_plainPipeline);
 
-			vkCmdSetViewport(*cmd, 0, 1, &getViewport());
-			vkCmdSetScissor(*cmd, 0, 1, &getScissor());
+			auto viewport = getViewport();
+			auto scissor = getScissor();
+			vkCmdSetViewport(*cmd, 0, 1, &viewport);
+			vkCmdSetScissor(*cmd, 0, 1, &scissor);
 
 			VkDescriptorSet boundSets[] = { m_plainDescriptorSet };
 			vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_plainPipeline.getVkPipelineLayout(), 0, 1, boundSets, 0, nullptr);
@@ -651,8 +653,8 @@ namespace editor {
 
 			vkCmdBindPipeline(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_blurAPipeline);
 
-			vkCmdSetViewport(*cmd, 0, 1, &getViewport());
-			vkCmdSetScissor(*cmd, 0, 1, &getScissor());
+			vkCmdSetViewport(*cmd, 0, 1, &viewport);
+			vkCmdSetScissor(*cmd, 0, 1, &scissor);
 
 			VkDescriptorSet blurABoundSets[] = { m_plainColorTargetDescriptorSet };
 			vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_blurAPipeline.getVkPipelineLayout(), 0, 1, blurABoundSets, 0, nullptr);
@@ -663,8 +665,8 @@ namespace editor {
 
 			vkCmdBindPipeline(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_blurBPipeline);
 
-			vkCmdSetViewport(*cmd, 0, 1, &getViewport());
-			vkCmdSetScissor(*cmd, 0, 1, &getScissor());
+			vkCmdSetViewport(*cmd, 0, 1, &viewport);
+			vkCmdSetScissor(*cmd, 0, 1, &scissor);
 
 			VkDescriptorSet blurBBoundSets[] = { m_blurATargetDescriptorSet };
 			vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_blurBPipeline.getVkPipelineLayout(), 0, 1, blurBBoundSets, 0, nullptr);
@@ -675,8 +677,8 @@ namespace editor {
 
 			vkCmdBindPipeline(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_outlinePipeline);
 
-			vkCmdSetViewport(*cmd, 0, 1, &getViewport());
-			vkCmdSetScissor(*cmd, 0, 1, &getScissor());
+			vkCmdSetViewport(*cmd, 0, 1, &viewport);
+			vkCmdSetScissor(*cmd, 0, 1, &scissor);
 
 			VkDescriptorSet outlineBoundSets[] = { m_outlineDescriptorSet };
 			vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_outlinePipeline.getVkPipelineLayout(), 0, 1, outlineBoundSets, 0, nullptr);
@@ -1011,6 +1013,22 @@ namespace editor {
 		}
 
 		m_renderer->render();
+	}
+
+	void Viewport::changeScene(SceneReference& lastScene) {
+		scene()->update();
+		disableRenderType();
+		switch (m_renderType)
+		{
+		case editor::Viewport::ePBR:
+			activatePBR();
+			break;
+		case editor::Viewport::ePATHTRACING:
+			activatePathTracer();
+			break;
+		default:
+			break;
+		}
 	}
 
 	ImGuiWindowFlags Viewport::getWindowFlags() {

@@ -1,6 +1,10 @@
 #include "SceneHandling.h"
 
+#include "Zap/Serializer.h"
+
 #include <sstream>
+#include <fstream>
+#include <iostream>
 
 #define ZP_SCENE_FILE_EXTENSION ".zscn"
 
@@ -21,6 +25,10 @@ namespace editor {
 
 	bool SceneReference::expired() {
 		return getData().operator bool();
+	}
+
+	std::string SceneReference::name() {
+		return getData()->name;
 	}
 
 	Zap::Actor SceneReference::createActor(std::string name) {
@@ -110,6 +118,7 @@ namespace editor {
 		}
 		Zap::Serializer::readSceneReadable(scene, path, file);
 		file.close();
+		scene.actors() = scene->scanActors();
 		return scene;
 	}
 
@@ -146,7 +155,10 @@ namespace editor {
 	}
 
 	void SceneHandler::activate(SceneIterator it) {
-		m_active = get(it);
+		if (m_active.lock() == get(it)) // ignore unchanged
+			return;
+		ActiveSceneChangeEvent event(CustomSceneReference(m_active), getActiveReference());
+		m_active = get(it);		m_eventHandler.pushEvent(event);
 	}
 
 	bool SceneHandler::isActive(SceneIterator it) {
@@ -161,6 +173,10 @@ namespace editor {
 
 	ActiveSceneReference SceneHandler::getActiveReference() {
 		return ActiveSceneReference(*this);
+	}
+
+	SceneHandlerEventHandler& SceneHandler::getEventHandler() {
+		return m_eventHandler;
 	}
 
 	ActiveSceneReference::ActiveSceneReference(SceneHandler& handler)

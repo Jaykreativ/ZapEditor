@@ -157,17 +157,49 @@ namespace editor {
 			}
 			if (disabled)
 				ImGui::EndDisabled();
-			
+
 			ImGui::EndMenu();
 		}
 
 		if (ImGui::BeginMenu("Scene")) {
+			if (ImGui::Button("Load"))
+				ImGui::OpenPopup("LoadScene");
+			if (ImGui::BeginPopup("LoadScene")) {
+				static char buf[150];
+				ImGui::InputText("path", buf, 150);
+				if (ImGui::Button("Done"))
+					m_pEditorData->pSceneHandler->load(buf);
+				ImGui::EndPopup();
+			}
+			if (ImGui::Button("Save"))
+				ImGui::OpenPopup("SaveAllScenes");
+			if (ImGui::BeginPopup("SaveAllScenes")) {
+				ImGui::Text("WIP save all");
+				ImGui::EndPopup();
+			}
+			ImGui::Separator();
 			for (auto it = m_pEditorData->pSceneHandler->begin(); it != m_pEditorData->pSceneHandler->end(); it++) {
 				ImGui::PushID(it);
 				if (ImGui::MenuItem(m_pEditorData->pSceneHandler->getName(it).c_str(), nullptr, m_pEditorData->pSceneHandler->isActive(it))) {
 					m_pEditorData->pSceneHandler->activate(it);
 				}
 				ImGui::SetItemTooltip("use this scene as the shared active scene");
+				if (ImGui::IsItemClicked(ImGuiMouseButton_Right))
+					ImGui::OpenPopup("SceneSelectionPopup");
+				if (ImGui::BeginPopup("SceneSelectionPopup")) {
+					if (ImGui::Button("Save"))
+						ImGui::OpenPopup("SaveScene");
+					if (ImGui::BeginPopup("SaveScene")) {
+						static char buf[150];
+						ImGui::InputText("path", buf, 150);
+						if (ImGui::Button("Done")) {
+							m_pEditorData->pSceneHandler->save(buf, it);
+							ImGui::CloseCurrentPopup();
+						}
+						ImGui::EndPopup();
+					}
+					ImGui::EndPopup();
+				}
 				ImGui::PopID();
 			}
 			ImGui::EndMenu();

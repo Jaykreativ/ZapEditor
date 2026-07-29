@@ -1,6 +1,7 @@
 #include "AssetBrowser.h"
 
 #include "Zap/Zap.h"
+#include "Zap/AssetHandling/AssetHandler.h"
 #include "Zap/AssetHandling/AssetTypes/Mesh.h"
 #include "Zap/AssetHandling/AssetTypes/Material.h"
 #include "Zap/AssetHandling/AssetTypes/Texture.h"
@@ -107,7 +108,7 @@ namespace editor {
 			
 			if (ImGui::BeginDragDropSource()) {
 				ImGui::SetDragDropPayload("MeshToActorPayload", &mesh, sizeof(Zap::AssetHandle<Zap::Mesh>));
-				ImGui::Text("UUID: %llu", (Zap::UUID)mesh);
+				ImGui::Text("UUID: %llu", static_cast<Zap::UUID>(mesh));
 				ImGui::EndDragDropSource();
 			}
 			else {

@@ -19,19 +19,25 @@ namespace editor {
 		virtual ImGuiWindowFlags getWindowFlags() = 0;
 	};
 
-	class SceneAccessLayer : public ViewLayer {
+	class SceneAccessLayer : public ViewLayer,
+		public Zap::EventListener<ActiveSceneChangeEvent>
+	{
 	public:
 		SceneAccessLayer(SceneHandler& sceneHandler);
 		virtual ~SceneAccessLayer() = default;
 
-		virtual void draw();
+		virtual void changeScene(SceneReference& lastScene) = 0;
+
+		virtual void draw() override;
 
 	protected:
 		SceneReference& scene();
 
 	private:
 		SceneHandler& m_sceneHandler;
-		std::unique_ptr<SceneReference> m_sceneRef;
+		std::shared_ptr<SceneReference> m_sceneRef;
 		bool m_isActive = true;
+
+		virtual void callback(const ActiveSceneChangeEvent& event) override;
 	};
 }
