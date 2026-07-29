@@ -43,6 +43,10 @@ add_subdirectory("../Zap" "${PROJECT_SOURCE_DIR}/../Zap")
 
 set(Zap_DIR "${PROJECT_SOURCE_DIR}/../Zap")
 
+if (MSVC)
+    target_compile_options(ZapEditor PRIVATE "/MP")
+endif()
+
 target_link_libraries(ZapEditor PUBLIC Zap)
 target_include_directories(
     ZapEditor PUBLIC
