@@ -633,7 +633,7 @@ namespace editor {
 			vkCmdBindDescriptorSets(*cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_plainPipeline.getVkPipelineLayout(), 0, 1, boundSets, 0, nullptr);
 
 			for (auto actor : m_actors) {
-				if (actor.isValid() && actor.hasModel()) {
+				if (actor.isValid() && isSameScene(actor) && actor.hasModel()) {
 					auto* pModel = getActorModel(actor);
 					for (Zap::AssetHandle<Zap::Mesh> mesh : pModel->meshes) {
 						VkDeviceSize offsets[] = { 0 };

@@ -162,13 +162,45 @@ namespace editor {
 		}
 
 		if (ImGui::BeginMenu("Scene")) {
+			bool closePopupTree = false;
 			if (ImGui::Button("Load"))
 				ImGui::OpenPopup("LoadScene");
 			if (ImGui::BeginPopup("LoadScene")) {
 				static char buf[150];
 				ImGui::InputText("path", buf, 150);
-				if (ImGui::Button("Done"))
-					m_pEditorData->pSceneHandler->load(buf);
+				if (ImGui::Button("Load")) {
+					SceneHandler::LoadFailFlags fail;
+					auto sceneRef = m_pEditorData->pSceneHandler->load(buf, &fail);
+					if (ZP_IS_FLAG_ENABLED(fail, SceneHandler::eInvalidFilepath))
+						ImGui::OpenPopup("InvalidSceneFilepath");
+					if (ZP_IS_FLAG_ENABLED(fail, SceneHandler::eDuplicate))
+						ImGui::OpenPopup("DuplicateSceneLoad");
+				}
+				if (ImGui::BeginPopupModal("InvalidSceneFilepath", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize)) {
+					ImGui::Text("filepath cannot be opened");
+					ImGui::Text("path: \"%s\" is invalid", buf);
+					if (ImGui::Button("Back"))
+						ImGui::CloseCurrentPopup();
+					ImGui::SameLine();
+					if (ImGui::Button("Cancel"))
+						closePopupTree = true;
+					if (closePopupTree) ImGui::CloseCurrentPopup();
+					ImGui::EndPopup();
+				}
+				if (ImGui::BeginPopupModal("DuplicateSceneLoad", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize)) {
+					ImGui::Text("this scene is already loaded");
+					ImGui::Text("create a new copy of the scene?");
+					if (ImGui::Button("Back"))
+						ImGui::CloseCurrentPopup();
+					ImGui::SameLine();
+					if (ImGui::Button("Cancel"))
+						closePopupTree = true;
+					ImGui::SameLine();
+					if (ImGui::Button("Copy(WIP)")); // TODO add scene copy functionality
+					if (closePopupTree) ImGui::CloseCurrentPopup(); 
+					ImGui::EndPopup();
+				}
+				if (closePopupTree) ImGui::CloseCurrentPopup();
 				ImGui::EndPopup();
 			}
 			if (ImGui::Button("Save"))
@@ -192,12 +224,14 @@ namespace editor {
 					if (ImGui::BeginPopup("SaveScene")) {
 						static char buf[150];
 						ImGui::InputText("path", buf, 150);
-						if (ImGui::Button("Done")) {
+						if (ImGui::Button("Save")) {
 							m_pEditorData->pSceneHandler->save(buf, it);
-							ImGui::CloseCurrentPopup();
+							closePopupTree = true;
 						}
+						if (closePopupTree) ImGui::CloseCurrentPopup();
 						ImGui::EndPopup();
 					}
+					if (closePopupTree) ImGui::CloseCurrentPopup();
 					ImGui::EndPopup();
 				}
 				ImGui::PopID();

@@ -40,7 +40,17 @@ namespace editor {
 
 		CustomSceneReference create(std::string name);
 
-		CustomSceneReference load(std::filesystem::path path);
+		enum LoadFailBits {
+			eSuccess = 0x0,
+			eDuplicate = 0x1,
+			eInvalidFilepath = 0x2
+		};
+		typedef uint32_t LoadFailFlags;
+		// creates a new scene and fills it with the scene data specified by path
+		// the result can be checked using pFail flags
+		// eDuplicate: returns a ref to the duplicate
+		// eInvalidFilepath: returns an expired ref
+		CustomSceneReference load(std::filesystem::path path, LoadFailFlags* pFail = nullptr);
 
 		SceneIterator begin();
 		SceneIterator end();
@@ -62,6 +72,8 @@ namespace editor {
 		ActiveSceneReference getActiveReference();
 
 		SceneHandlerEventHandler& getEventHandler();
+
+		CustomSceneReference getDuplicateByID(Zap::UUID id);
 
 	private:
 		struct SceneData {

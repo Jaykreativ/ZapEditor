@@ -24,7 +24,7 @@ namespace editor {
 	}
 
 	bool SceneReference::expired() {
-		return getData().operator bool();
+		return !getData().operator bool();
 	}
 
 	std::string SceneReference::name() {
@@ -109,13 +109,27 @@ namespace editor {
 		return getReference(it);
 	}
 
-	CustomSceneReference SceneHandler::load(std::filesystem::path path) {
-		auto scene = create(path.filename().replace_extension().string());
+	CustomSceneReference SceneHandler::load(std::filesystem::path path, LoadFailFlags* pFail) {
 		std::ifstream file(path);
-		if (!file.good()) {
+
+		if (!file.good()) { // check filepath
 			ZP_WARN(false, ("invalid filepath: " + path.string() + " | Scene:Handler::loadScene").c_str());
+			if (pFail)
+				*pFail |= eInvalidFilepath;
 			return CustomSceneReference(std::weak_ptr<SceneHandler::SceneData>()); // return expired reference
 		}
+
+		Zap::UUID sceneID; // check for duplicates
+		Zap::Serializer::readSceneIDReadable(sceneID, file);
+		auto duplicateRef = getDuplicateByID(sceneID);
+		if (!duplicateRef.expired()) {
+			if(pFail)
+				*pFail |= eDuplicate;
+			return duplicateRef;
+		}
+		file.seekg(0); // go back to beginning
+
+		auto scene = create(path.filename().replace_extension().string());
 		Zap::Serializer::readSceneReadable(scene, path, file);
 		file.close();
 		scene.actors() = scene->scanActors();
@@ -177,6 +191,14 @@ namespace editor {
 
 	SceneHandlerEventHandler& SceneHandler::getEventHandler() {
 		return m_eventHandler;
+	}
+
+	CustomSceneReference SceneHandler::getDuplicateByID(Zap::UUID id) {
+		for (auto it = begin(); it != end(); it++) {
+			if (id == get(it)->scene.getHandle())
+				return getReference(it);
+		}
+		return CustomSceneReference(std::weak_ptr<SceneHandler::SceneData>());
 	}
 
 	ActiveSceneReference::ActiveSceneReference(SceneHandler& handler)
