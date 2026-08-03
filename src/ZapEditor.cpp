@@ -82,22 +82,7 @@ void setupGuiStyle() {
 
 void setupActors(editor::CustomSceneReference sceneRef) {
 	auto assetHandler = Zap::Base::getBase()->getAssetHandler();
-	Zap::TextureLoader texLoader;
-	texLoader.load("Textures/Test.png");
-	auto testTexture = texLoader.result();
-
 	Zap::ModelLoader modelLoader;
-	modelLoader.load("Models/DefaultMeshes.obj");
-	auto defaultMeshModel = modelLoader.result();
-	editor::editorData.pDefaultMeshes = std::make_unique<editor::EditorData::DefaultMeshes>(
-		defaultMeshModel.meshes[0],
-		defaultMeshModel.meshes[1],
-		defaultMeshModel.meshes[2],
-		defaultMeshModel.meshes[3],
-		defaultMeshModel.meshes[4]
-	);
-	editor::editorData.defaultMaterial = defaultMeshModel.materials[0];
-
 	modelLoader.load("Models/OBJ/Cube.obj");
 	editor::cubeModel = modelLoader.result();
 
@@ -130,9 +115,6 @@ void setupActors(editor::CustomSceneReference sceneRef) {
 	actor.addTransform(glm::mat4(1));
 	actor.cmpTransform_setPos(0, 0, 5);
 	actor.addModel(editor::cubeModel);
-	auto cubeMat = assetHandler->generateAsset<Zap::Material>(
-		glm::vec4{ 1, 1, 1, 1 }, 0, 0.5, glm::vec4{ 0, 0, 0, 0 }, testTexture);
-	actor.cmpModel_setMaterial(cubeMat);
 	{
 		Zap::ConvexMesh convexMesh(editor::cubeModel.meshes[0]);
 		editor::editorData.convexMeshes.push_back(convexMesh);
@@ -199,11 +181,27 @@ int main() {
 	editor::editorData.renderer = new Zap::Renderer();
 
 	//deserialize
+	auto assetHandler = Zap::Base::getBase()->getAssetHandler();
+	Zap::ModelLoader modelLoader;
+	modelLoader.load("Models/DefaultMeshes.obj");
+	auto defaultMeshModel = modelLoader.result();
+	editor::editorData.pDefaultMeshes = std::make_unique<editor::EditorData::DefaultMeshes>(
+		defaultMeshModel.meshes[0],
+		defaultMeshModel.meshes[1],
+		defaultMeshModel.meshes[2],
+		defaultMeshModel.meshes[3],
+		defaultMeshModel.meshes[4]
+	);
+	editor::editorData.defaultMaterial = defaultMeshModel.materials[0];
+
+	Zap::TextureLoader texLoader;
+	texLoader.load("Textures/Test.png");
+	auto testTexture = texLoader.result();
 
 	editor::editorData.pSceneHandler = std::make_unique<editor::SceneHandler>();
-	auto sceneRef = editor::editorData.pSceneHandler->create("default");
+	auto sceneRef = editor::editorData.pSceneHandler->load("default.zscn");
 
-	setupActors(sceneRef);
+	//setupActors(sceneRef);
 
 	auto windowTargetHandle = editor::editorData.renderer->createRenderTarget<Zap::RenderTargetWindow>(*editor::editorData.window);
 

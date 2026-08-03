@@ -696,7 +696,7 @@ namespace editor {
 	};
 
 	Viewport::Viewport(EditorData& editorData, Zap::Window* pWindow)
-		: SceneAccessLayer(*editorData.pSceneHandler), m_editorData(editorData), m_pWindow(pWindow), m_selectedActors(editorData.selectedActors), m_camera(scene())
+		: SceneAccessLayer(*editorData.pSceneHandler), m_editorData(editorData), m_pWindow(pWindow), m_selectedActors(editorData.selectedActors), m_transformEditScene("edit"), m_camera(m_transformEditScene)
 	{
 		m_spLineBuffer = std::make_shared<Zap::LineBuffer>();
 
@@ -704,7 +704,6 @@ namespace editor {
 
 		m_camera.setMode(eFLY);
 
-		m_transformEditScene = Zap::Scene();
 		m_transformEditScene.init();
 		m_transformEditScene.attachActor(m_transformX);
 		m_transformEditScene.attachActor(m_transformY);

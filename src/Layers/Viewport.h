@@ -84,7 +84,6 @@ namespace editor {
 
 		Zap::RenderTargetHandle<Zap::RenderTargetGuiImage> m_finalTarget;
 
-		editor::Camera m_camera;
 
 		bool m_isFocused = false;
 		bool m_isHovered = false;
@@ -96,6 +95,7 @@ namespace editor {
 
 		Zap::Scene m_transformEditScene;
 		Zap::PhysicsMaterial* m_transformMaterial;
+		editor::Camera m_camera;
 		Zap::Actor m_transformX;
 		Zap::Actor m_transformY;
 		Zap::Actor m_transformZ;

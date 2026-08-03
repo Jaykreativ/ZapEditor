@@ -104,7 +104,7 @@ namespace editor {
 				*pFail |= eDuplicate;
 			return duplicateRef;
 		}
-		file.seekg(0); // go back to beginning
+		file.seekg(0, std::ios::beg); // go back to beginning
 
 		auto scene = create(path.filename().replace_extension().string());
 		Zap::Serializer::readSceneReadable(scene, path, file);
