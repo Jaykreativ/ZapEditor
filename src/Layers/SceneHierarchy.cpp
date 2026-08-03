@@ -5,7 +5,7 @@
 #include "SceneHandling.h"
 
 #include "Zap/Scene/Scene.h"
-#include "Zap/Scene/Components/Model.h"
+#include "Zap/Scene/Components.h"
 
 #include "imgui.h"
 #include <iostream>
@@ -34,7 +34,9 @@ namespace editor {
 
 		uint32_t i = 0;
 		for (Zap::Actor actor : scene().actors()) {
-			auto actorName = scene().actorName(actor);
+			ImGui::PushID(i);
+
+			auto actorName = actor.name();
 
 			//check if actor is selected
 			bool selected = false;
@@ -55,7 +57,7 @@ namespace editor {
 				memset(buf, 0, renameBufSize);
 				memcpy(buf, actorName.c_str(), std::min<size_t>(actorName.size(), renameBufSize));
 				if (ImGui::InputText("##ActorRenameInput", buf, renameBufSize, ImGuiInputTextFlags_EnterReturnsTrue)) {
-					scene().renameActor(actor, buf);
+					actor.rename(buf);
 					m_renameActorIndex = 0xFFFFFFFF;
 				}
 				ImGui::SetItemDefaultFocus();
@@ -94,6 +96,8 @@ namespace editor {
 			if (ImGui::IsItemHovered())
 				m_hoveredActorIndex = i;
 			i++;
+
+			ImGui::PopID();
 		}
 		if (ImGui::IsWindowHovered()) {
 			if (ImGui::IsMouseClicked(ImGuiMouseButton_Left) && m_hoveredActorIndex == 0xFFFFFFFF)

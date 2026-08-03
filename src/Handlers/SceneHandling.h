@@ -77,13 +77,9 @@ namespace editor {
 
 	private:
 		struct SceneData {
-			SceneData(std::string name) : name(name) {}
-			std::string name;
+			SceneData(std::string name) : scene(name) {}
 			Zap::Scene scene;
 			std::vector<Zap::Actor> actors;
-
-			// custom ECS components
-			std::unordered_map<Zap::UUID, std::string> actorNameMap = {};
 		};
 		std::vector<std::shared_ptr<SceneData>> m_sceneData;
 		std::weak_ptr<SceneData> m_active;
@@ -104,16 +100,10 @@ namespace editor {
 
 		bool expired();
 
-		std::string name();
-
 		Zap::Actor createActor(std::string name);
 
 		void destroyActor(Zap::Actor actor);
 		void destroyActor(size_t index);
-
-		void renameActor(Zap::Actor actor, std::string name);
-
-		std::string actorName(Zap::Actor actor);
 
 		std::vector<Zap::Actor>& actors();
 	};

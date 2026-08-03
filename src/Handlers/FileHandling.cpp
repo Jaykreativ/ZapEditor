@@ -7,7 +7,7 @@
 #include "Zap/AssetHandling/Loaders.h"
 #include "Zap/Scene/Scene.h"
 #include "Zap/Scene/Actor.h"
-#include "Zap/Scene/Components/Model.h"
+#include "Zap/Scene/Components.h"
 
 #include <iostream>
 #include <filesystem>

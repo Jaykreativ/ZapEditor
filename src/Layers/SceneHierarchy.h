@@ -4,7 +4,7 @@
 
 #include "Zap/Zap.h"
 #include "Zap/Scene/Actor.h"
-#include "Zap/Scene/Components/Transform.h"
+#include "Zap/Scene/Components.h"
 
 #include "ViewLayer.h"
 

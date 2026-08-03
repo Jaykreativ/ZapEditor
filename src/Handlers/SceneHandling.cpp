@@ -27,15 +27,11 @@ namespace editor {
 		return !getData().operator bool();
 	}
 
-	std::string SceneReference::name() {
-		return getData()->name;
-	}
-
 	Zap::Actor SceneReference::createActor(std::string name) {
 		Zap::Actor actor; // create new actor
 		getData()->scene.attachActor(actor);
+		actor.addName(name);
 		getData()->actors.push_back(actor); // add actor to the editor
-		renameActor(actor, name);
 		return actor;
 	}
 
@@ -48,28 +44,9 @@ namespace editor {
 		}
 	}
 	void SceneReference::destroyActor(size_t index) {
-		//delete custom data
-		if (getData()->actorNameMap.count(getData()->actors[index]))
-			getData()->actorNameMap.erase(getData()->actors[index]);
 		//delete actor
 		getData()->actors[index].destroy();
 		getData()->actors.erase(getData()->actors.begin() + index);
-	}
-
-	void SceneReference::renameActor(Zap::Actor actor, std::string name) {
-		getData()->actorNameMap[actor] = name;
-	}
-
-	std::string SceneReference::actorName(Zap::Actor actor) {
-		std::string actorName;
-		if (getData()->actorNameMap.count(actor))
-			actorName = getData()->actorNameMap.at(actor);
-		else {
-			std::stringstream stream;
-			stream << "Actor_" << std::hex << (Zap::UUID)actor;
-			actorName = stream.str();
-		}
-		return actorName;
 	}
 
 	std::vector<Zap::Actor>& SceneReference::actors() {
@@ -144,7 +121,7 @@ namespace editor {
 	}
 
 	void SceneHandler::save(std::filesystem::path path, SceneIterator it) {
-		path = path.replace_filename(get(it)->name + ZP_SCENE_FILE_EXTENSION);
+		path = path.replace_filename(get(it)->scene.name() + ZP_SCENE_FILE_EXTENSION);
 		auto& scene = get(it)->scene;
 		std::ofstream file(path);
 		if (!file.good()) {
@@ -161,7 +138,7 @@ namespace editor {
 	}
 
 	std::string SceneHandler::getName(SceneIterator it) {
-		return get(it)->name;
+		return get(it)->scene.name();
 	}
 
 	CustomSceneReference SceneHandler::getReference(SceneIterator it) {
@@ -181,7 +158,7 @@ namespace editor {
 
 	std::string SceneHandler::getActiveName() {
 		if (auto sp = m_active.lock())
-			return sp->name;
+			return sp->scene.name();
 		return "None";
 	}
 
