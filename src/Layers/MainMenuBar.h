@@ -34,6 +34,9 @@ namespace editor {
 		Zap::Window* m_pWindow;
 		Zap::Renderer* m_pRenderer;
 		std::vector<Zap::Actor>& m_selectedActors;
+
+		// gui data
+		int m_renameIndex = -1;
 	};
 }
 

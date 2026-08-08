@@ -212,7 +212,25 @@ namespace editor {
 			ImGui::Separator();
 			for (auto it = m_pEditorData->pSceneHandler->begin(); it != m_pEditorData->pSceneHandler->end(); it++) {
 				ImGui::PushID(it);
-				if (ImGui::MenuItem(m_pEditorData->pSceneHandler->getName(it).c_str(), nullptr, m_pEditorData->pSceneHandler->isActive(it))) {
+				if ((int)it == m_renameIndex) {
+					static const size_t renameBufSize = 50;
+					static char buf[renameBufSize] = "";
+					memset(buf, 0, renameBufSize);
+					std::string name = m_pEditorData->pSceneHandler->getName(it);
+					memcpy(buf, name.c_str(), std::min<size_t>(renameBufSize-1, name.size()));
+					if (ImGui::InputText("##RenameInput", buf, renameBufSize, ImGuiInputTextFlags_EnterReturnsTrue)) {
+						m_pEditorData->pSceneHandler->getReference(it)->rename(buf);
+						m_renameIndex = -1;
+					}
+					ImGui::SetItemDefaultFocus();
+					ImGui::SetKeyboardFocusHere(-1);
+					if (
+						(ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsItemClicked(ImGuiMouseButton_Left)) ||
+						(ImGui::IsMouseClicked(ImGuiMouseButton_Right) && !ImGui::IsItemClicked(ImGuiMouseButton_Right))
+						)
+						m_renameIndex = -1;
+				}
+				else if (ImGui::MenuItem(m_pEditorData->pSceneHandler->getName(it).c_str(), nullptr, m_pEditorData->pSceneHandler->isActive(it))) {
 					m_pEditorData->pSceneHandler->activate(it);
 				}
 				ImGui::SetItemTooltip("use this scene as the shared active scene");
@@ -231,10 +249,17 @@ namespace editor {
 						if (closePopupTree) ImGui::CloseCurrentPopup();
 						ImGui::EndPopup();
 					}
+					if (ImGui::Button("Rename")) {
+						m_renameIndex = it;
+						closePopupTree = true;
+					}
 					if (closePopupTree) ImGui::CloseCurrentPopup();
 					ImGui::EndPopup();
 				}
 				ImGui::PopID();
+			}
+			if (ImGui::Button("+")) {
+				m_pEditorData->pSceneHandler->create("NewScene");
 			}
 			ImGui::EndMenu();
 		}
