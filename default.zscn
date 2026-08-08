@@ -1,0 +1,45 @@
+Scene: id: 6037229951595943105
+-- Asset Paths --
+size: 2
+"Models\CoordinateCross\CoordinateCross.glb"
+"Models\OBJ\Cube.obj"
+
+-- PxScene --
+size: 1 | {Link: id: 3116249441747620753 | userData: 552723656275814452 | shapes: {local pose: mat{vec{1,0,0,0},vec{0,1,0,0},vec{0,0,1,0},vec{0,0,0,1}}
+material: {dynamic friction: 1, static friction: 0.5, restitution: 0.1}
+geometry type index: 5
+convex mesh geometry: {hitMesh: AssetHandle: id: 13323236982072547075}}}
+size: 1 | {Link: id: 3023963297597970788 | userData: 13248014899603007402 | shapes: {local pose: mat{vec{1,0,0,0},vec{0,1,0,0},vec{0,0,1,0},vec{0,0,0,1}}
+material: {dynamic friction: 1, static friction: 0.5, restitution: 0.1}
+geometry type index: 3
+box geometry: {halfExtents: vec{50,1,50}}}}
+-- Name Components --
+{{id: 8484451255460052281,name: "CoordinateCross"},{id: 17925974425098934714,name: "LightWhite"},{id: 15155711075108819361,name: "SpikeBall"},{id: 9769063810037450856,name: "LightOrange"},{id: 552723656275814452,name: "Cube"},{id: 13248014899603007402,name: "Ground"}}
+-- Camera Components --
+{}
+-- Light Components --
+{{id: 17925974425098934714,color: vec{1,1,1} | radius: 1 | strength: 20},{id: 9769063810037450856,color: vec{1,0.6,0.2} | radius: 1 | strength: 10}}
+meshInstanceCount: 10
+-- Model Components --
+{{id: 8484451255460052281,
+bounds{min: vec{-1,-1,-1} | max: vec{4.21532,4.21532,4.21532}}
+materials: {AssetHandle: id: 3944369330221042633,AssetHandle: id: 13717124412136725528,AssetHandle: id: 3944369330221042633,AssetHandle: id: 15238517448690333699,AssetHandle: id: 4436662778341358704,AssetHandle: id: 17793295541204524192,AssetHandle: id: 7825138695100406193,AssetHandle: id: 14535431245875259430}
+meshes: {AssetHandle: id: 3299130491530754501,AssetHandle: id: 10848505999860462607,AssetHandle: id: 16728221561394692225,AssetHandle: id: 16166039087667748720,AssetHandle: id: 8520547672655554226,AssetHandle: id: 14592964475048826455,AssetHandle: id: 13014828920159505126,AssetHandle: id: 5987371241964692882}
+transforms: {mat{vec{1,0,0,0},vec{0,1,0,0},vec{-0,-0,1,-0},vec{0,0,0,1}},mat{vec{1,0,0,0},vec{0,1,0,0},vec{-0,-0,1,-0},vec{0,1.9,0,1}},mat{vec{1,0,0,0},vec{0,1,0,0},vec{-0,-0,1,-0},vec{0,0,0,1}},mat{vec{0.4,0,0,0},vec{0,0.4,0,0},vec{-0,-0,0.4,-0},vec{0,2.9,0,1}},mat{vec{0.4,0,0,0},vec{0,-4.76837e-08,0.4,0},vec{-0,-0.4,-4.76837e-08,-0},vec{0,0,2.9,1}},mat{vec{0,1.19209e-08,-0.4,0},vec{0.4,0,-1.19209e-08,0},vec{-1.19209e-08,-0.4,0,-0},vec{2.9,0,0,1}},mat{vec{-1.19209e-07,-1,0,0},vec{1,-1.19209e-07,0,0},vec{0,0,1,-0},vec{1.9,0,0,1}},mat{vec{0,-1,5.96046e-08,0},vec{5.96046e-08,0,1,0},vec{-1,-5.96046e-08,-0,-0},vec{0,0,1.9,1}}}
+},{id: 552723656275814452,
+bounds{min: vec{-1,-1,-1} | max: vec{1,1,1}}
+materials: {AssetHandle: {invalid}}
+meshes: {AssetHandle: id: 13323236982072547075}
+transforms: {mat{vec{1,0,0,0},vec{0,1,0,0},vec{-0,-0,1,-0},vec{0,0,0,1}}}
+},{id: 13248014899603007402,
+bounds{min: vec{-1,-1,-1} | max: vec{1,1,1}}
+materials: {AssetHandle: id: 6211986222919050620}
+meshes: {AssetHandle: id: 13323236982072547075}
+transforms: {mat{vec{1,0,0,0},vec{0,1,0,0},vec{-0,-0,1,-0},vec{0,0,0,1}}}
+}}
+-- RigidDynamic Components --
+{{id: 552723656275814452,PxActor: Link: id: 3116249441747620753}}
+-- RigidStatic Components --
+{{id: 13248014899603007402,PxActor: Link: id: 3023963297597970788}}
+-- Transform Components --
+{{id: 8484451255460052281,transform: mat{vec{0.5,0,0,0},vec{0,0.5,0,0},vec{0,0,0.5,0},vec{0,0,0,1}}},{id: 17925974425098934714,transform: mat{vec{1,0,0,0},vec{0,1,0,0},vec{0,0,1,0},vec{-2,2.7,1,1}}},{id: 9769063810037450856,transform: mat{vec{1,0,0,0},vec{0,1,0,0},vec{0,0,1,0},vec{2,2,2.7,1}}},{id: 552723656275814452,transform: mat{vec{1,0,0,0},vec{0,1,0,0},vec{0,0,1,0},vec{0,0,5,1}}},{id: 13248014899603007402,transform: mat{vec{50,0,0,0},vec{0,-1,-4.37114e-06,0},vec{0,8.74228e-08,-50,0},vec{0,-6,0,1}}}}

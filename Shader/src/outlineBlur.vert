@@ -7,11 +7,11 @@ out gl_PerVertex {
 
 vec3 rect[6] = {
 	vec3(-1, -1, 0),
-	vec3( 1, -1, 0),
-	vec3(-1,  1, 0),
 	vec3(-1,  1, 0),
 	vec3( 1, -1, 0),
-	vec3( 1,  1, 0)
+	vec3(-1,  1, 0),
+	vec3( 1,  1, 0),
+	vec3( 1, -1, 0)
 };
 
 void main(){

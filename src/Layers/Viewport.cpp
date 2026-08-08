@@ -879,7 +879,7 @@ namespace editor {
 			m_axisIndex = 0xFFFFFFFF;
 		if (m_settings.enableTransformVisual && m_selectedActors.size() > 0) {
 			auto actor = m_selectedActors.back();
-			if (actor.isValid() && actor.hasTransform()) {
+			if (actor.isValid() && scene()->isAttachedActor(actor) && actor.hasTransform()) {
 				float scale = glm::length(actor.cmpTransform_getPos() - m_camera.getPosition()) / 5.f;
 				Zap::BoxGeometry box = Zap::BoxGeometry(glm::vec3(0.5, 0.05, 0.05)*scale);
 		
@@ -973,7 +973,7 @@ namespace editor {
 			// find the line count
 			if (m_settings.enableTransformVisual) {
 				for (auto actor : m_selectedActors) {
-					if (actor.isValid() && actor.hasTransform()) {
+					if (actor.isValid() && scene()->isAttachedActor(actor) && actor.hasTransform()) {
 						size += countTransformLines();
 					}
 				}
@@ -996,7 +996,7 @@ namespace editor {
 
 				if (m_settings.enableTransformVisual) {
 					for (auto actor : m_selectedActors) {
-						if (actor.isValid() && actor.hasTransform()) {
+						if (actor.isValid() && scene()->isAttachedActor(actor) && actor.hasTransform()) {
 							drawTransformLines(offset, data, actor, m_axisIndex, glm::length(actor.cmpTransform_getPos() - m_camera.getPosition())/5.f);
 						}
 					}
