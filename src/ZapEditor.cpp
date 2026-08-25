@@ -200,6 +200,7 @@ int main() {
 
 	editor::editorData.pSceneHandler = std::make_unique<editor::SceneHandler>();
 	auto sceneRef = editor::editorData.pSceneHandler->load("default.zscn");
+	sceneRef->updatePxPoses();
 
 	//setupActors(sceneRef);
 

@@ -1,0 +1,28 @@
+Scene: id: 13300877629084750364
+-- Asset Paths --
+size: 1
+"../Models/DefaultMeshes.obj"
+
+-- PxScene --
+size: 0 | {}
+size: 0 | {}
+-- Name Components --
+{{id: 4618549845263334807,name: "Light"},{id: 11517205197897985426,name: "Cube"}}
+-- Camera Components --
+{}
+-- Light Components --
+{{id: 4618549845263334807,color: vec{1,1,1} | radius: 1 | strength: 25}}
+meshInstanceCount: 1
+-- Model Components --
+{{id: 11517205197897985426,
+bounds{min: vec{0,0,0} | max: vec{0,0,0}}
+materials: {AssetHandle: id: 2687057123390916966}
+meshes: {AssetHandle: id: 803776828036139359}
+transforms: {mat{vec{1,0,0,0},vec{0,1,0,0},vec{0,0,1,0},vec{0,0,0,1}}}
+}}
+-- RigidDynamic Components --
+{}
+-- RigidStatic Components --
+{}
+-- Transform Components --
+{{id: 4618549845263334807,transform: mat{vec{1,0,0,0},vec{0,1,0,0},vec{0,0,1,0},vec{1.99446,2.91027,1.98351,1}}},{id: 11517205197897985426,transform: mat{vec{1,0,0,0},vec{0,1,0,0},vec{0,0,1,0},vec{-0.0700206,-0.115867,4.95253,1}}}}

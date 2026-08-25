@@ -171,6 +171,10 @@ namespace editor {
 				if (ImGui::Button("Load")) {
 					SceneHandler::LoadFailFlags fail;
 					auto sceneRef = m_pEditorData->pSceneHandler->load(buf, &fail);
+					if (!fail) {
+						sceneRef->updatePxPoses();
+						sceneRef->update();
+					}
 					if (ZP_IS_FLAG_ENABLED(fail, SceneHandler::eInvalidFilepath))
 						ImGui::OpenPopup("InvalidSceneFilepath");
 					if (ZP_IS_FLAG_ENABLED(fail, SceneHandler::eDuplicate))
