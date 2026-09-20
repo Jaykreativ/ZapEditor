@@ -174,6 +174,7 @@ namespace editor {
 					if (!fail) {
 						sceneRef->updatePxPoses();
 						sceneRef->update();
+						closePopupTree = true;
 					}
 					if (ZP_IS_FLAG_ENABLED(fail, SceneHandler::eInvalidFilepath))
 						ImGui::OpenPopup("InvalidSceneFilepath");

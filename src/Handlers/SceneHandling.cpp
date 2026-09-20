@@ -121,13 +121,26 @@ namespace editor {
 	}
 
 	void SceneHandler::save(std::filesystem::path path, SceneIterator it) {
-		path = path.replace_filename(get(it)->scene.name() + ZP_SCENE_FILE_EXTENSION);
-		auto& scene = get(it)->scene;
+		if (path.has_extension())
+			path.replace_extension(ZP_SCENE_FILE_EXTENSION);
 		std::ofstream file(path);
+		if (file.is_open()) {
+			get(it)->scene.rename(path.filename().replace_extension().string()); // rename on save
+		}
+		else {
+			std::string filename = get(it)->scene.name() + ZP_SCENE_FILE_EXTENSION; // use default filename
+			auto newPath = path/filename; 
+			file = std::ofstream(newPath);
+			if (!file.is_open()) {
+				path.replace_filename(filename);
+				file = std::ofstream(newPath);
+			}
+		}
 		if (!file.good()) {
 			ZP_WARN(false, ("invalid filepath: " + path.string() + " | Scene:Handler::saveScene").c_str());
 			return;
 		}
+		auto& scene = get(it)->scene;
 		Zap::Serializer::writeSceneReadable(scene, path, file);
 		file.close();
 	}
