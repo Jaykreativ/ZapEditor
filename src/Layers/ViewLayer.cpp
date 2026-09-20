@@ -1,8 +1,12 @@
 #include "ViewLayer.h"
 
 namespace editor {
-	SceneAccessLayer::SceneAccessLayer(SceneHandler& sceneHandler)
-		: m_sceneHandler(sceneHandler),
+	ViewLayer::ViewLayer(Zap::EventHandler<Zap::WindowEvent::DragDrop>& handler)
+		: Zap::EventListener<Zap::WindowEvent::DragDrop>(handler)
+	{}
+
+	SceneAccessLayer::SceneAccessLayer(SceneHandler& sceneHandler, Zap::EventHandler<Zap::WindowEvent::DragDrop>& handler)
+		: ViewLayer(handler), m_sceneHandler(sceneHandler),
 		Zap::EventListener<ActiveSceneChangeEvent>(sceneHandler.getEventHandler())
 	{
 		m_sceneRef = std::make_shared<ActiveSceneReference>(m_sceneHandler.getActiveReference());

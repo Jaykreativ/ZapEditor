@@ -17,12 +17,16 @@ void deleteSave(void* data) {
 }
 
 namespace editor {
+	ComponentEditor::ComponentEditor(Zap::EventHandler<Zap::WindowEvent::DragDrop>& handler)
+		: ViewLayer(handler)
+	{}
+
 	ImGuiWindowFlags ComponentEditor::getWindowFlags() {
 		return 0;
 	}
 
-	TransformEditor::TransformEditor(std::vector<Zap::Actor> selectedActors)
-		: m_selectedActors(selectedActors)
+	TransformEditor::TransformEditor(std::vector<Zap::Actor> selectedActors, Zap::EventHandler<Zap::WindowEvent::DragDrop>& handler)
+		: ComponentEditor(handler), m_selectedActors(selectedActors)
 	{}
 
 	TransformEditor::~TransformEditor(){}
@@ -301,7 +305,7 @@ namespace editor {
 	}
 
 	RigidDynamicEditor::RigidDynamicEditor(EditorData* pEditorData, std::vector<Zap::Actor>& selectedActors)
-		: m_pEditorData(pEditorData), m_selectedActors(selectedActors)
+		: ComponentEditor(pEditorData->window->getEventHandler()), m_pEditorData(pEditorData), m_selectedActors(selectedActors)
 	{}
 
 	RigidDynamicEditor::~RigidDynamicEditor() {}
@@ -333,7 +337,7 @@ namespace editor {
 	}
 
 	RigidStaticEditor::RigidStaticEditor(EditorData* pEditorData, std::vector<Zap::Actor>& selectedActors)
-		: m_pEditorData(pEditorData), m_selectedActors(selectedActors)
+		: ComponentEditor(pEditorData->window->getEventHandler()), m_pEditorData(pEditorData), m_selectedActors(selectedActors)
 	{}
 
 	RigidStaticEditor::~RigidStaticEditor() {}
@@ -364,8 +368,8 @@ namespace editor {
 		return false;
 	}
 
-	LightEditor::LightEditor(std::vector<Zap::Actor>& selectedActors)
-		: m_selectedActors(selectedActors)
+	LightEditor::LightEditor(std::vector<Zap::Actor>& selectedActors, Zap::EventHandler<Zap::WindowEvent::DragDrop>& handler)
+		: ComponentEditor(handler), m_selectedActors(selectedActors)
 	{}
 
 	LightEditor::~LightEditor() {}
@@ -412,7 +416,7 @@ namespace editor {
 	}
 
 	ComponentView::ComponentView(EditorData* pEditorData, std::vector<ViewLayer*>& layers, std::vector<Zap::Actor>& selectedActors)
-		: m_pEditorData(pEditorData), m_layers(layers), m_selectedActors(selectedActors)
+		: ViewLayer(pEditorData->window->getEventHandler()), m_pEditorData(pEditorData), m_layers(layers), m_selectedActors(selectedActors)
 	{}
 
 	ComponentView::~ComponentView(){}
@@ -448,7 +452,7 @@ namespace editor {
 		if (selectedActor.hasTransform())
 			if (ImGui::Button("Transform")) {
 				deleteSave(m_selectedEditor);
-				m_selectedEditor = new TransformEditor(m_selectedActors);
+				m_selectedEditor = new TransformEditor(m_selectedActors, m_pEditorData->window->getEventHandler());
 			}
 		if (selectedActor.hasModel())
 			if (ImGui::Button("Model")) {
@@ -458,7 +462,7 @@ namespace editor {
 		if (selectedActor.hasLight())
 			if (ImGui::Button("Light")) {
 				deleteSave(m_selectedEditor);
-				m_selectedEditor = new LightEditor(m_selectedActors);
+				m_selectedEditor = new LightEditor(m_selectedActors, m_pEditorData->window->getEventHandler());
 			}
 		if (selectedActor.hasRigidDynamic())
 			if (ImGui::Button("RigidDynamic")) {

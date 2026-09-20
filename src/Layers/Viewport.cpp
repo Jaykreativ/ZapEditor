@@ -696,7 +696,7 @@ namespace editor {
 	};
 
 	Viewport::Viewport(EditorData& editorData, Zap::Window* pWindow)
-		: SceneAccessLayer(*editorData.pSceneHandler), m_editorData(editorData), m_pWindow(pWindow), m_selectedActors(editorData.selectedActors), m_transformEditScene("edit"), m_camera(m_transformEditScene)
+		: SceneAccessLayer(*editorData.pSceneHandler, editorData.window->getEventHandler()), m_editorData(editorData), m_pWindow(pWindow), m_selectedActors(editorData.selectedActors), m_transformEditScene("edit"), m_camera(m_transformEditScene)
 	{
 		m_spLineBuffer = std::make_shared<Zap::LineBuffer>();
 

@@ -60,6 +60,15 @@ namespace editor {
 		{
 			loadModelFile(filepath, editorData);
 		}
+		else if (fileExtension == "zscn") {
+			SceneHandler::LoadFailFlags fail;
+			auto sceneRef = editorData.pSceneHandler->load(filepath, &fail);
+			if (!fail) {
+				sceneRef->updatePxPoses();
+				sceneRef->update();
+			}
+
+		}
 		/*else if (
 			fileExtension == projectFileExtension ||
 			fileExtension == projectEditorFileExtension )

@@ -9,6 +9,8 @@ namespace editor {
 	class ComponentEditor : public ViewLayer
 	{
 	public:
+		ComponentEditor(Zap::EventHandler<Zap::WindowEvent::DragDrop>& handler);
+
 		virtual void draw() = 0;
 
 		virtual bool isValid() = 0;
@@ -19,7 +21,7 @@ namespace editor {
 	class TransformEditor : public ComponentEditor
 	{
 	public:
-		TransformEditor(std::vector<Zap::Actor> selectedActors);
+		TransformEditor(std::vector<Zap::Actor> selectedActors, Zap::EventHandler<Zap::WindowEvent::DragDrop>& handler);
 
 		~TransformEditor();
 
@@ -109,7 +111,7 @@ namespace editor {
 	class LightEditor : public ComponentEditor
 	{
 	public:
-		LightEditor(std::vector<Zap::Actor>& selectedActors);
+		LightEditor(std::vector<Zap::Actor>& selectedActors, Zap::EventHandler<Zap::WindowEvent::DragDrop>& handler);
 
 		~LightEditor();
 

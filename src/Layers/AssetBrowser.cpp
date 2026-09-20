@@ -13,7 +13,7 @@ namespace editor {
 	StaticAssetBrowserSettings AssetBrowser::m_globalSettings = {};
 
 	AssetBrowser::AssetBrowser(EditorData& editorData)
-		: m_editorData(editorData)
+		: ViewLayer(editorData.window->getEventHandler()), m_editorData(editorData)
 	{
 		loadPreviews();
 	}

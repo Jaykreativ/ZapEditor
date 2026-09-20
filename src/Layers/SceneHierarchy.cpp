@@ -15,7 +15,7 @@
 
 namespace editor {
 	SceneHierarchyView::SceneHierarchyView(EditorData* pEditorData)
-		: SceneAccessLayer(*pEditorData->pSceneHandler), m_pEditorData(pEditorData)
+		: SceneAccessLayer(*pEditorData->pSceneHandler, pEditorData->window->getEventHandler()), m_pEditorData(pEditorData)
 	{}
 
 	SceneHierarchyView::~SceneHierarchyView(){}

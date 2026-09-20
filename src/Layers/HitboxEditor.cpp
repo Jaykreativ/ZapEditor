@@ -9,7 +9,7 @@
 
 namespace editor {
 	HitboxEditor::HitboxEditor(EditorData* pEditorData)
-		: m_pEditorData(pEditorData)//, m_pbrTask(&m_scene)
+		: ViewLayer(m_pEditorData->window->getEventHandler()), m_pEditorData(pEditorData)//, m_pbrTask(&m_scene)
 	{
 		setupScene();
 		m_spLineBuffer = std::make_shared<Zap::LineBuffer>();

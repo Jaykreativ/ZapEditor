@@ -6,24 +6,28 @@
 #include <string>
 
 namespace editor {
-	class ViewLayer {
+	class ViewLayer
+		: public Zap::EventListener<Zap::WindowEvent::DragDrop>
+	{
 	public:
-		ViewLayer() = default;
+		ViewLayer(Zap::EventHandler<Zap::WindowEvent::DragDrop>& handler);
 
 		virtual ~ViewLayer() = default;
 
 		virtual std::string name() = 0;
 
 		virtual void draw() = 0;
-		
+
 		virtual ImGuiWindowFlags getWindowFlags() = 0;
+
+		virtual void callback(const Zap::WindowEvent::DragDrop& event) override {};
 	};
 
 	class SceneAccessLayer : public ViewLayer,
 		public Zap::EventListener<ActiveSceneChangeEvent>
 	{
 	public:
-		SceneAccessLayer(SceneHandler& sceneHandler);
+		SceneAccessLayer(SceneHandler& sceneHandler, Zap::EventHandler<Zap::WindowEvent::DragDrop>& handler);
 		virtual ~SceneAccessLayer() = default;
 
 		virtual void changeScene(SceneReference& lastScene) = 0;

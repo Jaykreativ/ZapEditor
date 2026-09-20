@@ -4,7 +4,7 @@
 
 namespace editor {
 	Settings::Settings(EditorData* pEditorData)
-		: m_pEditorData(pEditorData)
+		: ViewLayer(pEditorData->window->getEventHandler()), m_pEditorData(pEditorData)
 	{
 
 	}
